@@ -1,0 +1,794 @@
+@model NagmClinic.ViewModels.PharmacyPurchaseCreateViewModel
+
+@{
+    ViewData["Title"] = "إضافة فاتورة شراء - صيدلية النجم";
+    Model.Lines ??= new System.Collections.Generic.List<NagmClinic.ViewModels.PharmacyPurchaseLineInputViewModel>();
+    var lines = Model.Lines;
+    var suppliers = Model.SupplierLookup as IEnumerable<dynamic>;
+    var items = Model.ItemLookup as IEnumerable<dynamic>;
+}
+
+<style>
+    :root {
+        --erp-bg: #f2f5f4;
+        --erp-card: #ffffff;
+        --erp-border: #d7dde3;
+        --erp-title: #0f172a;
+        --erp-muted: #5f6b7a;
+        --erp-primary: #1769aa;
+        --erp-danger: #b42318;
+        --erp-success: #127a4a;
+    }
+
+    .erp-purchase-page {
+        background: var(--erp-bg);
+    }
+
+    .erp-section,
+    .erp-summary {
+        border: 1px solid var(--erp-border);
+        border-radius: 10px;
+        background: var(--erp-card);
+        box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+    }
+
+    .erp-section .card-header {
+        border-bottom: 1px solid #e9edf2;
+        background: #fbfcfe;
+        padding: 0.6rem 0.9rem;
+    }
+
+    .erp-title {
+        color: var(--erp-title);
+        font-size: 1rem;
+    }
+
+    .erp-subtitle {
+        color: var(--erp-muted);
+        font-size: 0.78rem;
+    }
+
+    .erp-label {
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: #334155;
+        margin-bottom: 0.2rem;
+        text-align: right;
+    }
+
+    .erp-input,
+    .erp-lines-table .form-select,
+    .erp-lines-table .form-control {
+        border-color: #c8d2dd;
+        font-size: 0.82rem;
+        min-height: 32px;
+    }
+
+    .erp-input:focus,
+    .erp-lines-table .form-select:focus,
+    .erp-lines-table .form-control:focus {
+        border-color: var(--erp-primary);
+        box-shadow: 0 0 0 0.15rem rgba(23, 105, 170, 0.13);
+    }
+
+    .erp-input-readonly {
+        background-color: #f3f6f9 !important;
+        color: #475569;
+    }
+
+    .erp-lines-table {
+        margin-bottom: 0;
+    }
+
+    .erp-lines-table thead th {
+        font-size: 0.73rem;
+        color: #334155;
+        font-weight: 700;
+        white-space: nowrap;
+        border-bottom-width: 1px;
+        background: #f8fafc;
+        text-align: center;
+        padding: 0.5rem 0.4rem;
+    }
+
+    .erp-lines-table tbody td {
+        padding: 0.35rem 0.35rem;
+        border-bottom: 1px solid #edf1f5;
+        vertical-align: top;
+    }
+
+    .erp-lines-table tbody .line-row:nth-child(even) {
+        background: #fcfdff;
+    }
+
+    .line-row:last-child td {
+        border-bottom: 0;
+    }
+
+    .field-validation-inline {
+        display: block;
+        min-height: 16px;
+        margin-top: 0.1rem;
+        line-height: 1.15;
+        text-align: right;
+    }
+
+    .line-total-display {
+        font-weight: 700;
+        color: #0b5d91;
+        font-size: 0.84rem;
+        display: inline-block;
+        padding-top: 0.45rem;
+    }
+
+    .btn-line-action {
+        width: 30px;
+        height: 30px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .btn-line-remove {
+        color: var(--erp-danger);
+        border-color: #f1b7b2;
+        background: #fff;
+    }
+
+    .btn-line-remove:hover {
+        color: #fff;
+        background: var(--erp-danger);
+        border-color: var(--erp-danger);
+    }
+
+    .btn-line-reload {
+        border-color: #ced7e1;
+        color: #334155;
+    }
+
+    .erp-actions .btn {
+        min-width: 90px;
+    }
+
+    .erp-total-title {
+        font-size: 0.75rem;
+        color: #64748b;
+        margin-bottom: 0;
+    }
+
+    .erp-total-value {
+        font-weight: 700;
+        font-size: 1rem;
+        color: var(--erp-success);
+        margin-bottom: 0;
+        line-height: 1.1;
+    }
+
+    .erp-empty {
+        color: #64748b;
+        text-align: center;
+        padding: 1rem;
+        border-top: 1px dashed #d4dce5;
+        background: #fcfdff;
+        font-size: 0.85rem;
+    }
+
+    .select2-container--bootstrap-5 .select2-selection {
+        min-height: 32px !important;
+        border-color: #c8d2dd !important;
+        font-size: 0.82rem;
+    }
+
+    .select2-container--bootstrap-5 .select2-selection--single {
+        padding-top: 0.2rem;
+    }
+
+    html[dir="rtl"] .select2-container .select2-selection--single .select2-selection__rendered {
+        text-align: right;
+    }
+
+    @@media (max-width: 991px) {
+        .erp-lines-table thead {
+            display: none;
+        }
+
+        .erp-lines-table,
+        .erp-lines-table tbody,
+        .erp-lines-table tr,
+        .erp-lines-table td {
+            display: block;
+            width: 100%;
+        }
+
+        .erp-lines-table tr {
+            border: 1px solid #e4eaf1;
+            border-radius: 8px;
+            padding: 0.45rem;
+            margin-bottom: 0.45rem;
+            background: #fff;
+        }
+
+        .erp-lines-table td {
+            border: 0;
+            padding: 0.2rem 0;
+        }
+
+        .erp-lines-table td[data-label]::before {
+            content: attr(data-label);
+            display: block;
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: #64748b;
+            margin-bottom: 0.2rem;
+            text-align: right;
+        }
+
+        .line-total-display {
+            padding-top: 0.1rem;
+        }
+    }
+</style>
+
+<div class="container-fluid erp-purchase-page py-2">
+    <form asp-action="Create" id="purchaseForm" novalidate>
+        @Html.AntiForgeryToken()
+
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 px-3 small mb-2"></div>
+
+        <div class="card erp-section mb-2">
+           
+            <div class="card-body py-2 px-3">
+                <div class="row g-2">
+                    <div class="col-xl-4 col-lg-4 col-md-6">
+                        <label asp-for="SupplierId" class="erp-label">المورد <span class="text-danger">*</span></label>
+                        <select asp-for="SupplierId" class="form-select form-select-sm erp-input select2-header">
+                            <option value="0">-- اختر المورد --</option>
+                            @if (suppliers != null)
+                            {
+                                @foreach (var s in suppliers)
+                                {
+                                    <option value="@s.Id">@s.Name</option>
+                                }
+                            }
+                        </select>
+                        <span asp-validation-for="SupplierId" class="text-danger small field-validation-inline"></span>
+                    </div>
+                    <div class="col-xl-3 col-lg-4 col-md-6">
+                        <label asp-for="PurchaseDate" class="erp-label">تاريخ الشراء <span class="text-danger">*</span></label>
+                        <input asp-for="PurchaseDate" asp-format="{0:yyyy-MM-ddTHH:mm}" type="datetime-local" class="form-control form-control-sm erp-input" step="60" />
+                        <span asp-validation-for="PurchaseDate" class="text-danger small field-validation-inline"></span>
+                    </div>
+                    <div class="col-xl-2 col-lg-4 col-md-6">
+                        <label asp-for="InvoiceNumber" class="erp-label">رقم المرجع</label>
+                        <input asp-for="InvoiceNumber" class="form-control form-control-sm erp-input" placeholder="INV-0001" />
+                        <span asp-validation-for="InvoiceNumber" class="text-danger small field-validation-inline"></span>
+                    </div>
+                    <div class="col-xl-3 col-lg-12 col-md-6">
+                        <label asp-for="Notes" class="erp-label">ملاحظات</label>
+                        <input asp-for="Notes" class="form-control form-control-sm erp-input" placeholder="ملاحظة مختصرة" />
+                        <span asp-validation-for="Notes" class="text-danger small field-validation-inline"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card erp-section mb-2" id="lineItemsCard">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold">بنود الفاتورة</h6>
+                <button type="button" id="addLineBtn" class="btn btn-primary btn-sm px-2 py-1">
+                    <i class="bi bi-plus-lg"></i>
+                    <span>إضافة بند</span>
+                </button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm erp-lines-table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th style="width:20%;">الصنف <span class="text-danger">*</span></th>
+                            <th style="width:10%;">الوحدة</th>
+                            <th style="width:8%;">الكمية <span class="text-danger">*</span></th>
+                            <th style="width:10%;">سعر الشراء <span class="text-danger">*</span></th>
+                            <th style="width:11%;">تاريخ الانتهاء <span class="text-danger">*</span></th>
+                            <th style="width:12%;">رقم الباتش <span class="text-danger">*</span></th>
+                            <th style="width:14%;">الباركود <span class="text-danger">*</span></th>
+                            <th style="width:10%;">الإجمالي</th>
+                            <th style="width:5%;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="linesTableBody">
+                        @for (int i = 0; i < lines.Count; i++)
+                        {
+                            <tr class="line-row" id="line_row_@i" data-line-index="@i">
+                                <td data-label="الصنف">
+                                    <select asp-for="Lines[i].ItemId" data-field="ItemId" class="form-select form-select-sm erp-input line-item-select">
+                                        <option value="0">-- اختر الصنف --</option>
+                                        @if (items != null)
+                                        {
+                                            @foreach (var item in items)
+                                            {
+                                                <option value="@item.Id" data-price="@item.DefaultSellingPrice" data-unit="@item.UnitName" selected="@(item.Id == lines[i].ItemId ? "selected" : null)">@item.Name</option>
+                                            }
+                                        }
+                                    </select>
+                                    <span asp-validation-for="Lines[i].ItemId" data-valmsg-field="ItemId" class="text-danger small field-validation-inline"></span>
+                                </td>
+                                <td data-label="الوحدة">
+                                    <input type="text" class="form-control form-control-sm erp-input erp-input-readonly line-unit-name" value="-" readonly tabindex="-1" />
+                                </td>
+                                <td data-label="الكمية">
+                                    <input asp-for="Lines[i].Quantity" data-field="Quantity" type="number" class="form-control form-control-sm erp-input text-center" min="0.01" step="0.01" />
+                                    <span asp-validation-for="Lines[i].Quantity" data-valmsg-field="Quantity" class="text-danger small field-validation-inline"></span>
+                                </td>
+                                <td data-label="سعر الشراء">
+                                    <input asp-for="Lines[i].PurchasePrice" data-field="PurchasePrice" type="number" class="form-control form-control-sm erp-input text-center" min="0.01" step="0.01" />
+                                    <span asp-validation-for="Lines[i].PurchasePrice" data-valmsg-field="PurchasePrice" class="text-danger small field-validation-inline"></span>
+                                </td>
+                                <td data-label="تاريخ الانتهاء">
+                                    <input asp-for="Lines[i].ExpiryDate" data-field="ExpiryDate" asp-format="{0:yyyy-MM-dd}" type="date" class="form-control form-control-sm erp-input text-center" />
+                                    <span asp-validation-for="Lines[i].ExpiryDate" data-valmsg-field="ExpiryDate" class="text-danger small field-validation-inline"></span>
+                                </td>
+                                <td data-label="رقم الباتش">
+                                    <input asp-for="Lines[i].BatchNumber" data-field="BatchNumber" type="text" class="form-control form-control-sm erp-input erp-input-readonly" readonly />
+                                    <span asp-validation-for="Lines[i].BatchNumber" data-valmsg-field="BatchNumber" class="text-danger small field-validation-inline"></span>
+                                </td>
+                                <td data-label="الباركود">
+                                    <div class="input-group input-group-sm">
+                                        <input asp-for="Lines[i].Barcode" data-field="Barcode" type="text" class="form-control erp-input line-barcode-input" autocomplete="off" placeholder="ادخل أو امسح الباركود" />
+                                    </div>
+                                    <span asp-validation-for="Lines[i].Barcode" data-valmsg-field="Barcode" class="text-danger small field-validation-inline"></span>
+                                </td>
+                                <td class="text-end" data-label="الإجمالي">
+                                    <span class="line-total-display">0.00</span>
+                                </td>
+                                <td class="text-center" data-label="إجراء">
+                                    <button type="button" class="btn btn-sm btn-line-action btn-line-remove btn-remove-line" title="حذف البند">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                                <input asp-for="Lines[i].SellingPrice" data-field="SellingPrice" type="hidden" />
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="emptyContainer" class="erp-empty" style="@(lines.Count == 0 ? "" : "display:none;")">
+                لا توجد بنود حالياً. اضغط "إضافة بند" لإدخال أول صنف.
+            </div>
+
+            <div class="px-3 py-2 border-top d-flex justify-content-between align-items-center bg-light-subtle">
+                <div class="small text-muted">يتم توليد رقم الباتش تلقائياً لكل بند جديد، والباركود يُدخل يدوياً أو عبر الماسح.</div>
+                <div>
+                    <span asp-validation-for="Lines" class="text-danger small"></span>
+                    <span id="linesClientValidation" class="text-danger small"></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card erp-summary">
+            <div class="card-body py-2 px-3">
+                <div class="row g-2 align-items-center">
+                    <div class="col-lg-6 col-md-12 small text-muted">
+                        تأكد من الكمية وسعر الشراء وتاريخ الانتهاء لكل بند قبل الحفظ.
+                    </div>
+                    <div class="col-lg-6 col-md-12">
+                        <div class="d-flex justify-content-lg-end justify-content-start align-items-center gap-2 flex-wrap erp-actions">
+                            <div class="text-end ms-lg-2">
+                                <p class="erp-total-title">الإجمالي الفرعي</p>
+                                <p class="erp-total-value"><span id="subTotalDisplay">0.00</span> ج.س</p>
+                            </div>
+                            <div class="text-end ms-lg-2">
+                                <p class="erp-total-title">الإجمالي النهائي</p>
+                                <p class="erp-total-value"><span id="grandTotalDisplay">0.00</span> ج.س</p>
+                            </div>
+                            <a asp-action="Index" class="btn btn-outline-secondary btn-sm">رجوع</a>
+                            <button type="submit" class="btn btn-success btn-sm">حفظ الفاتورة</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        const rawItemLookup = @Html.Raw(Json.Serialize(Model.ItemLookup));
+        const itemLookup = normalizeItemLookup(rawItemLookup || []);
+
+        const $form = $('#purchaseForm');
+        const $tableBody = $('#linesTableBody');
+        const $lineCard = $('#lineItemsCard');
+        const $emptyContainer = $('#emptyContainer');
+        let nextLineIndex = 0;
+
+        $(function () {
+            nextLineIndex = getNextLineIndex();
+            initializeSelect2($(document));
+            initializeExistingRows();
+            refreshValidation();
+            recalculateAll();
+            toggleEmptyState();
+
+            if ($tableBody.find('tr.line-row').length === 0) {
+                addNewLine();
+            }
+
+            bindEvents();
+        });
+
+        function bindEvents() {
+            $('#addLineBtn').on('click', function () {
+                addNewLine();
+            });
+
+            $tableBody.on('change', '[data-field="ItemId"]', function () {
+                const $row = $(this).closest('tr.line-row');
+                syncRowItemMeta($row);
+                updateLineTotal($row);
+                $(this).valid();
+            });
+
+            $tableBody.on('input change', '[data-field="Quantity"], [data-field="PurchasePrice"]', function () {
+                const $row = $(this).closest('tr.line-row');
+                updateLineTotal($row);
+                $(this).valid();
+            });
+
+            $tableBody.on('change blur', '[data-field="ExpiryDate"], [data-field="BatchNumber"], [data-field="Barcode"]', function () {
+                $(this).valid();
+            });
+
+            $tableBody.on('click', '.btn-remove-line', function () {
+                const $row = $(this).closest('tr.line-row');
+                $row.remove();
+                recalculateAll();
+                toggleEmptyState();
+                refreshValidation();
+            });
+
+            $tableBody.on('keydown', '.line-barcode-input', function (e) {
+                if (e.key !== 'Enter') {
+                    return;
+                }
+
+                e.preventDefault();
+                const $row = $(this).closest('tr.line-row');
+                const $quantity = $row.find('[data-field="Quantity"]');
+                $(this).valid();
+
+                if ($quantity.length) {
+                    $quantity.trigger('focus').select();
+                }
+            });
+
+            $form.on('submit', function (e) {
+                clearClientLineValidation();
+                reindexRows();
+                refreshValidation();
+
+                if ($tableBody.find('tr.line-row').length === 0) {
+                    setClientLineValidation('يجب إضافة بند شراء واحد على الأقل');
+                    e.preventDefault();
+                    return false;
+                }
+
+                if (!$form.valid()) {
+                    e.preventDefault();
+                    focusFirstInvalid();
+                    return false;
+                }
+
+                return true;
+            });
+        }
+
+        function normalizeItemLookup(list) {
+            return (list || []).map(function (x) {
+                return {
+                    id: Number(x.id ?? x.Id ?? 0),
+                    name: String(x.name ?? x.Name ?? ''),
+                    unitName: String(x.unitName ?? x.UnitName ?? '-'),
+                    defaultSellingPrice: Number(x.defaultSellingPrice ?? x.DefaultSellingPrice ?? 0)
+                };
+            });
+        }
+
+        function initializeSelect2($scope) {
+            $scope.find('.select2-header').each(function () {
+                if ($(this).data('select2')) {
+                    return;
+                }
+
+                $(this).select2({
+                    theme: 'bootstrap-5',
+                    width: '100%',
+                    dir: 'rtl'
+                });
+            });
+
+            $scope.find('.line-item-select').each(function () {
+                if ($(this).data('select2')) {
+                    return;
+                }
+
+                $(this).select2({
+                    theme: 'bootstrap-5',
+                    width: '100%',
+                    dir: 'rtl',
+                    dropdownParent: $lineCard
+                });
+            });
+        }
+
+        function initializeExistingRows() {
+            $tableBody.find('tr.line-row').each(function () {
+                const $row = $(this);
+                syncRowItemMeta($row);
+                updateLineTotal($row);
+            });
+        }
+
+        function getNextLineIndex() {
+            let max = -1;
+
+            $tableBody.find('tr.line-row').each(function () {
+                const idx = parseInt($(this).attr('data-line-index'), 10);
+                if (!Number.isNaN(idx)) {
+                    max = Math.max(max, idx);
+                }
+            });
+
+            return max + 1;
+        }
+
+        async function addNewLine() {
+            clearClientLineValidation();
+
+            try {
+                const batchResponse = await $.get('/PharmacyPurchases/GetNextBatchNumber');
+
+                if (!batchResponse.success) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'تعذر إكمال العملية',
+                        text: batchResponse.message || 'تعذر توليد رقم الباتش تلقائياً.',
+                        confirmButtonText: 'حسناً'
+                    });
+                    return;
+                }
+
+                const idx = nextLineIndex;
+                const rowHtml = buildRowHtml(idx, batchResponse.batchNumber);
+
+                $tableBody.append(rowHtml);
+
+                const $newRow = $tableBody.find(`tr#line_row_${idx}`);
+                initializeSelect2($newRow);
+                syncRowItemMeta($newRow);
+                updateLineTotal($newRow);
+                $newRow.find('[data-field="Barcode"]').trigger('focus');
+
+                nextLineIndex += 1;
+                refreshValidation();
+                toggleEmptyState();
+            } catch (err) {
+                console.error(err);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ في الاتصال',
+                    text: 'حدث خطأ أثناء توليد رقم الباتش من الخادم.',
+                    confirmButtonText: 'حسناً'
+                });
+            }
+        }
+
+        function buildRowHtml(idx, batchNumber) {
+            const options = buildItemOptions();
+            const expiryDate = getDefaultExpiryDate();
+
+            return `
+                <tr class="line-row" id="line_row_${idx}" data-line-index="${idx}">
+                    <td data-label="الصنف">
+                        <select id="Lines_${idx}__ItemId" name="Lines[${idx}].ItemId" data-field="ItemId" class="form-select form-select-sm erp-input line-item-select" data-val="true" data-val-range="يرجى اختيار الصنف" data-val-range-min="1" data-val-range-max="2147483647">
+                            <option value="0">-- اختر الصنف --</option>
+                            ${options}
+                        </select>
+                        <span class="text-danger small field-validation-valid field-validation-inline" data-valmsg-for="Lines[${idx}].ItemId" data-valmsg-replace="true" data-valmsg-field="ItemId"></span>
+                    </td>
+                    <td data-label="الوحدة">
+                        <input type="text" class="form-control form-control-sm erp-input erp-input-readonly line-unit-name" value="-" readonly tabindex="-1" />
+                    </td>
+                    <td data-label="الكمية">
+                        <input id="Lines_${idx}__Quantity" name="Lines[${idx}].Quantity" data-field="Quantity" type="number" class="form-control form-control-sm erp-input text-center" value="1" min="0.01" step="0.01" data-val="true" data-val-number="قيمة الكمية غير صحيحة" data-val-required="الكمية مطلوبة" data-val-range="الكمية يجب أن تكون أكبر من صفر" data-val-range-min="0.01" data-val-range-max="999999" />
+                        <span class="text-danger small field-validation-valid field-validation-inline" data-valmsg-for="Lines[${idx}].Quantity" data-valmsg-replace="true" data-valmsg-field="Quantity"></span>
+                    </td>
+                    <td data-label="سعر الشراء">
+                        <input id="Lines_${idx}__PurchasePrice" name="Lines[${idx}].PurchasePrice" data-field="PurchasePrice" type="number" class="form-control form-control-sm erp-input text-center" value="0" min="0.01" step="0.01" data-val="true" data-val-number="قيمة سعر الشراء غير صحيحة" data-val-required="سعر الشراء مطلوب" data-val-range="سعر الشراء يجب أن يكون أكبر من صفر" data-val-range-min="0.01" data-val-range-max="999999" />
+                        <span class="text-danger small field-validation-valid field-validation-inline" data-valmsg-for="Lines[${idx}].PurchasePrice" data-valmsg-replace="true" data-valmsg-field="PurchasePrice"></span>
+                    </td>
+                    <td data-label="تاريخ الانتهاء">
+                        <input id="Lines_${idx}__ExpiryDate" name="Lines[${idx}].ExpiryDate" data-field="ExpiryDate" type="date" class="form-control form-control-sm erp-input text-center" value="${expiryDate}" data-val="true" data-val-required="تاريخ الانتهاء مطلوب" />
+                        <span class="text-danger small field-validation-valid field-validation-inline" data-valmsg-for="Lines[${idx}].ExpiryDate" data-valmsg-replace="true" data-valmsg-field="ExpiryDate"></span>
+                    </td>
+                    <td data-label="رقم الباتش">
+                        <input id="Lines_${idx}__BatchNumber" name="Lines[${idx}].BatchNumber" data-field="BatchNumber" type="text" class="form-control form-control-sm erp-input erp-input-readonly" readonly value="${escapeHtml(batchNumber)}" data-val="true" data-val-required="رقم الباتش مطلوب" />
+                        <span class="text-danger small field-validation-valid field-validation-inline" data-valmsg-for="Lines[${idx}].BatchNumber" data-valmsg-replace="true" data-valmsg-field="BatchNumber"></span>
+                    </td>
+                    <td data-label="الباركود">
+                        <div class="input-group input-group-sm">
+                            <input id="Lines_${idx}__Barcode" name="Lines[${idx}].Barcode" data-field="Barcode" type="text" class="form-control erp-input line-barcode-input" value="" autocomplete="off" placeholder="ادخل أو امسح الباركود" data-val="true" data-val-required="الباركود مطلوب" />
+                        </div>
+                        <span class="text-danger small field-validation-valid field-validation-inline" data-valmsg-for="Lines[${idx}].Barcode" data-valmsg-replace="true" data-valmsg-field="Barcode"></span>
+                    </td>
+                    <td class="text-end" data-label="الإجمالي">
+                        <span class="line-total-display">0.00</span>
+                    </td>
+                    <td class="text-center" data-label="إجراء">
+                        <button type="button" class="btn btn-sm btn-line-action btn-line-remove btn-remove-line" title="حذف البند">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                    <input id="Lines_${idx}__SellingPrice" name="Lines[${idx}].SellingPrice" data-field="SellingPrice" type="hidden" value="0" />
+                </tr>`;
+        }
+
+        function buildItemOptions() {
+            return itemLookup
+                .map(function (item) {
+                    return `<option value="${item.id}" data-price="${item.defaultSellingPrice}" data-unit="${escapeHtml(item.unitName)}">${escapeHtml(item.name)}</option>`;
+                })
+                .join('');
+        }
+
+        function syncRowItemMeta($row) {
+            const selectedId = Number($row.find('[data-field="ItemId"]').val() || 0);
+            const selectedItem = itemLookup.find(function (item) {
+                return item.id === selectedId;
+            });
+
+            $row.find('.line-unit-name').val(selectedItem ? selectedItem.unitName : '-');
+            $row.find('[data-field="SellingPrice"]').val(selectedItem ? selectedItem.defaultSellingPrice.toFixed(2) : '0');
+        }
+
+        function updateLineTotal($row) {
+            const quantity = parseDecimal($row.find('[data-field="Quantity"]').val());
+            const purchasePrice = parseDecimal($row.find('[data-field="PurchasePrice"]').val());
+            const lineTotal = quantity * purchasePrice;
+            $row.find('.line-total-display').text(lineTotal.toFixed(2));
+            calculateGrandTotal();
+        }
+
+        function recalculateAll() {
+            $tableBody.find('tr.line-row').each(function () {
+                const $row = $(this);
+                syncRowItemMeta($row);
+                updateLineTotal($row);
+            });
+            calculateGrandTotal();
+        }
+
+        function calculateGrandTotal() {
+            let total = 0;
+            $tableBody.find('tr.line-row .line-total-display').each(function () {
+                total += parseDecimal($(this).text());
+            });
+
+            const value = total.toFixed(2);
+            $('#subTotalDisplay').text(value);
+            $('#grandTotalDisplay').text(value);
+        }
+
+        function parseDecimal(value) {
+            if (value === null || value === undefined || value === '') {
+                return 0;
+            }
+
+            const parsed = parseFloat(String(value).replace(',', '.'));
+            return Number.isFinite(parsed) ? parsed : 0;
+        }
+
+        function reindexRows() {
+            $tableBody.find('tr.line-row').each(function (index) {
+                const $row = $(this);
+                $row.attr('id', `line_row_${index}`);
+                $row.attr('data-line-index', index);
+
+                $row.find('[data-field]').each(function () {
+                    const $field = $(this);
+                    const fieldName = $field.data('field');
+                    if (!fieldName) {
+                        return;
+                    }
+
+                    $field.attr('name', `Lines[${index}].${fieldName}`);
+                    if ($field.attr('id')) {
+                        $field.attr('id', `Lines_${index}__${fieldName}`);
+                    }
+                });
+
+                $row.find('[data-valmsg-field]').each(function () {
+                    const $msg = $(this);
+                    const fieldName = $msg.attr('data-valmsg-field');
+                    if (!fieldName) {
+                        return;
+                    }
+
+                    $msg.attr('data-valmsg-for', `Lines[${index}].${fieldName}`);
+                });
+            });
+
+            nextLineIndex = getNextLineIndex();
+        }
+
+        function refreshValidation() {
+            if (!$.validator || !$.validator.unobtrusive) {
+                return;
+            }
+
+            $form.removeData('validator');
+            $form.removeData('unobtrusiveValidation');
+            $.validator.unobtrusive.parse($form);
+
+            const validator = $form.data('validator');
+            if (validator) {
+                validator.settings.ignore = ':hidden:not(.select2-hidden-accessible)';
+            }
+        }
+
+        function focusFirstInvalid() {
+            const $invalid = $form.find('.input-validation-error, [aria-invalid="true"]').first();
+            if ($invalid.length) {
+                if ($invalid.hasClass('select2-hidden-accessible')) {
+                    $invalid.select2('open');
+                    return;
+                }
+                $invalid.trigger('focus');
+            }
+        }
+
+        function toggleEmptyState() {
+            if ($tableBody.find('tr.line-row').length === 0) {
+                $emptyContainer.show();
+            } else {
+                $emptyContainer.hide();
+            }
+        }
+
+        function setClientLineValidation(message) {
+            $('#linesClientValidation').text(message || '');
+        }
+
+        function clearClientLineValidation() {
+            setClientLineValidation('');
+        }
+
+        function getDefaultExpiryDate() {
+            const date = new Date();
+            date.setMonth(date.getMonth() + 12);
+
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function escapeHtml(text) {
+            return String(text ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+    </script>
+}
+
+

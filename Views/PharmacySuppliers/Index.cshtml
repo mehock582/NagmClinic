@@ -1,0 +1,209 @@
+@{
+    ViewData["Title"] = "موردي الصيدلية";
+}
+
+<div class="card border-0 shadow-sm rounded-3">
+    <div class="card-body p-3">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold mb-0 text-primary">
+                <i class="bi bi-truck me-2"></i> موردي الصيدلية
+            </h5>
+            <button type="button" class="btn btn-primary btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#quickCreateSupplierModal">
+                <i class="bi bi-plus-lg me-1"></i> إضافة مورد
+            </button>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle text-center small w-100">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="border-0">اسم المورد</th>
+                        <th class="border-0">شخص التواصل</th>
+                        <th class="border-0">الهاتف</th>
+                        <th class="border-0">الحالة</th>
+                        <th class="border-0">الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="quickCreateSupplierModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold"><i class="bi bi-plus-circle-fill text-primary me-2"></i> إضافة مورد</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="quickCreateSupplierForm" class="needs-validation" novalidate>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">اسم المورد *</label>
+                            <input type="text" id="supplierName" class="form-control form-control-sm" required>
+                            <div class="invalid-feedback">يرجى إدخال اسم المورد</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">شخص التواصل</label>
+                            <input type="text" id="supplierContact" class="form-control form-control-sm">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">الهاتف</label>
+                            <input type="text" id="supplierPhone" class="form-control form-control-sm">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">العنوان</label>
+                            <input type="text" id="supplierAddress" class="form-control form-control-sm">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">ملاحظات</label>
+                            <textarea id="supplierNotes" class="form-control form-control-sm" rows="2"></textarea>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light btn-sm rounded-pill px-3" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-primary btn-sm rounded-pill px-4 fw-bold" onclick="saveSupplier()">حفظ</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="quickEditSupplierModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold"><i class="bi bi-pencil-square text-primary me-2"></i> تعديل مورد</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="quickEditSupplierForm" class="needs-validation" novalidate>
+                    <input type="hidden" id="editSupplierId">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">اسم المورد *</label>
+                            <input type="text" id="editSupplierName" class="form-control form-control-sm" required>
+                            <div class="invalid-feedback">يرجى إدخال اسم المورد</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">شخص التواصل</label>
+                            <input type="text" id="editSupplierContact" class="form-control form-control-sm">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">الهاتف</label>
+                            <input type="text" id="editSupplierPhone" class="form-control form-control-sm">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">العنوان</label>
+                            <input type="text" id="editSupplierAddress" class="form-control form-control-sm">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">ملاحظات</label>
+                            <textarea id="editSupplierNotes" class="form-control form-control-sm" rows="2"></textarea>
+                        </div>
+                        <div class="col-12 mt-3">
+                            <div class="form-check form-switch p-3 bg-light rounded-3 d-flex justify-content-between align-items-center">
+                                <label class="form-check-label fw-bold mb-0" for="editSupplierActive">حالة المورد</label>
+                                <input class="form-check-input ms-0 me-2" type="checkbox" role="switch" id="editSupplierActive">
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light btn-sm rounded-pill px-3" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-primary btn-sm rounded-pill px-4 fw-bold" onclick="updateSupplier()">حفظ التغييرات</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" />
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+    <script>
+        $(function () {
+            var columns = [
+                { "data": "name", "render": function(d) { return `<span class="fw-bold">${d}</span>`; } },
+                { "data": "contactPerson", "render": function(d) { return d || '-'; } },
+                { "data": "phoneNumber", "render": function(d) { return d || '-'; } },
+                { "data": "isActive", "render": function(d, t, row) { return `<div class="form-check form-switch d-flex justify-content-center"><input class="form-check-input" type="checkbox" role="switch" ${d ? 'checked' : ''} onchange="toggleStatus(${row.id})"></div>`; } },
+                { "data": "id", "orderable": false, "render": function(d, t, row) { return `<div class="action-group"><button type="button" class="btn-action btn-action-primary" data-label="تعديل" data-id="${d}" data-name="${row.name}" data-contact="${row.contactPerson || ''}" data-phone="${row.phoneNumber || ''}" data-address="${row.address || ''}" data-notes="${row.notes || ''}" data-active="${row.isActive}" onclick="openEditSupplier(this)"><i class="bi bi-pencil-fill"></i></button></div>`; } }
+            ];
+            initDataTable('.table', '/PharmacySuppliers/GetSuppliersData', columns, { "pageLength": 10 });
+        });
+
+        function toggleStatus(id) {
+            $.post('/PharmacySuppliers/ToggleStatus/' + id, function (res) {
+                if (!res.success) Swal.fire('خطأ', res.message || 'تعذر تغيير الحالة', 'error');
+            });
+        }
+
+        function saveSupplier() {
+            const form = document.getElementById('quickCreateSupplierForm');
+            if (!form.checkValidity()) { form.classList.add('was-validated'); return; }
+
+            const data = {
+                name: $('#supplierName').val(),
+                contactPerson: $('#supplierContact').val(),
+                phoneNumber: $('#supplierPhone').val(),
+                address: $('#supplierAddress').val(),
+                notes: $('#supplierNotes').val()
+            };
+
+            $.ajax({
+                url: '/PharmacySuppliers/QuickCreate',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(data),
+                success: function (res) {
+                    if (res.success) location.reload();
+                    else Swal.fire('خطأ', res.message, 'error');
+                }
+            });
+        }
+
+        function openEditSupplier(btn) {
+            const $btn = $(btn);
+            $('#editSupplierId').val($btn.data('id'));
+            $('#editSupplierName').val($btn.data('name'));
+            $('#editSupplierContact').val($btn.data('contact'));
+            $('#editSupplierPhone').val($btn.data('phone'));
+            $('#editSupplierAddress').val($btn.data('address'));
+            $('#editSupplierNotes').val($btn.data('notes'));
+            $('#editSupplierActive').prop('checked', $btn.data('active') === true);
+            $('#quickEditSupplierForm').removeClass('was-validated');
+            new bootstrap.Modal(document.getElementById('quickEditSupplierModal')).show();
+        }
+
+        function updateSupplier() {
+            const form = document.getElementById('quickEditSupplierForm');
+            if (!form.checkValidity()) { form.classList.add('was-validated'); return; }
+
+            const data = {
+                id: parseInt($('#editSupplierId').val()),
+                name: $('#editSupplierName').val(),
+                contactPerson: $('#editSupplierContact').val(),
+                phoneNumber: $('#editSupplierPhone').val(),
+                address: $('#editSupplierAddress').val(),
+                notes: $('#editSupplierNotes').val(),
+                isActive: $('#editSupplierActive').is(':checked')
+            };
+
+            $.ajax({
+                url: '/PharmacySuppliers/QuickEdit',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(data),
+                success: function (res) {
+                    if (res.success) location.reload();
+                    else Swal.fire('خطأ', res.message, 'error');
+                }
+            });
+        }
+    </script>
+}

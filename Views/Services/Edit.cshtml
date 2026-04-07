@@ -1,0 +1,71 @@
+@model NagmClinic.ViewModels.ClinicServiceViewModel
+
+@{
+    ViewData["Title"] = "تعديل الخدمة";
+}
+
+<!-- Auto-open Edit Modal -->
+<div class="modal fade" id="editServiceModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 pb-0 px-4 pt-4">
+                <h5 class="modal-title fw-bold">
+                    <i class="bi bi-pencil-square text-primary me-2"></i> تعديل بيانات الخدمة
+                </h5>
+                <a asp-action="Index" class="btn-close" aria-label="Close"></a>
+            </div>
+            <div class="modal-body px-4">
+                <form asp-action="Edit" method="post" id="editServiceForm">
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
+                    <input type="hidden" asp-for="Id" />
+
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label asp-for="NameAr" class="form-label small fw-bold">اسم الخدمة (عربي) *</label>
+                            <span asp-validation-for="NameAr" class="text-danger small d-block mb-1"></span>
+                            <input asp-for="NameAr" class="form-control form-control-sm" required>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="Price" class="form-label small fw-bold">السعر *</label>
+                            <span asp-validation-for="Price" class="text-danger small d-block mb-1"></span>
+                            <input asp-for="Price" class="form-control form-control-sm text-center" required step="0.01">
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="Notes" class="form-label small fw-bold">ملاحظات</label>
+                            <span asp-validation-for="Notes" class="text-danger small d-block mb-1"></span>
+                            <textarea asp-for="Notes" class="form-control form-control-sm" rows="2"></textarea>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="form-check form-switch p-3 bg-light rounded-3 d-flex justify-content-between align-items-center">
+                                <label class="form-check-label fw-bold mb-0" asp-for="IsActive">حالة الخدمة (مفعلة/معطلة)</label>
+                                <input class="form-check-input ms-0 me-2" type="checkbox" role="switch" asp-for="IsActive">
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-0 pt-0 px-4 pb-4">
+                <a asp-action="Index" class="btn btn-light btn-sm rounded-pill px-3">إلغاء</a>
+                <button type="submit" form="editServiceForm" class="btn btn-primary btn-sm rounded-pill px-4">
+                    <i class="bi bi-save me-1"></i> حفظ التغييرات
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        $(document).ready(function () {
+            var modal = new bootstrap.Modal(document.getElementById('editServiceModal'), { backdrop: 'static' });
+            modal.show();
+            document.getElementById('editServiceModal').addEventListener('hidden.bs.modal', function () {
+                window.location.href = '@Url.Action("Index")';
+            });
+        });
+    </script>
+}

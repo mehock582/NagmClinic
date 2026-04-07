@@ -1,0 +1,74 @@
+@model NagmClinic.ViewModels.ClinicServiceViewModel
+
+@{
+    ViewData["Title"] = "تعديل الفحص المعملي";
+}
+
+<div class="row justify-content-center">
+    <div class="col-12" style="max-width: 600px;">
+        <div class="card border-0 shadow-sm rounded-4 border-info-subtle">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+                    <h5 class="fw-bold mb-0 text-info">
+                        <i class="bi bi-pencil-square me-2"></i> تعديل الفحص المعملي
+                    </h5>
+                    <a asp-action="Index" class="btn btn-outline-secondary btn-sm rounded-pill px-3">العودة</a>
+                </div>
+
+                <form asp-action="Edit">
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3 small"></div>
+                    <input type="hidden" asp-for="Id" />
+
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label asp-for="NameAr" class="form-label small fw-bold">اسم الفحص (عربي) *</label>
+                            <input asp-for="NameAr" class="form-control" required>
+                            <span asp-validation-for="NameAr" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="Price" class="form-label small fw-bold">التكلفة *</label>
+                            <input asp-for="Price" class="form-control text-center text-info fs-5 fw-bold" required step="0.01">
+                            <span asp-validation-for="Price" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="Unit" class="form-label small fw-bold"></label>
+                            <input asp-for="Unit" class="form-control" placeholder="مثل: mg/dL">
+                            <span asp-validation-for="Unit" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="NormalRange" class="form-label small fw-bold"></label>
+                            <input asp-for="NormalRange" class="form-control" placeholder="مثل: 70 - 100">
+                            <span asp-validation-for="NormalRange" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="Notes" class="form-label small fw-bold">ملاحظات التجهيز</label>
+                            <textarea asp-for="Notes" class="form-control" rows="3"></textarea>
+                            <span asp-validation-for="Notes" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="form-check form-switch p-3 bg-light rounded-3 d-flex justify-content-between align-items-center">
+                                <label class="form-check-label fw-bold mb-0" asp-for="IsActive">حالة الفحص (مفعل/معطل)</label>
+                                <input class="form-check-input ms-0 me-2" type="checkbox" role="switch" asp-for="IsActive">
+                            </div>
+                        </div>
+
+                        <div class="col-12 pt-3 border-top mt-4">
+                            <button type="submit" class="btn btn-info text-white w-100 rounded-pill py-2 fw-bold">
+                                <i class="bi bi-save me-1"></i> حفظ التغييرات
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

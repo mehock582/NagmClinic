@@ -1,0 +1,57 @@
+@*
+    Shared Quick-Create Patient Modal
+    Usage: <partial name="_QuickCreatePatientModal" />
+    Requires: quickCreatePatient() function from site.js
+    Optional callback: set window.onPatientCreated = function(id, name, phone) { ... } before opening.
+*@
+
+<!-- Quick Create Patient Modal -->
+<div class="modal fade" id="newPatientModal" tabindex="-1" aria-labelledby="newPatientModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-bottom-0 px-4 pt-4 pb-0">
+                <h5 class="modal-title fw-bold" id="newPatientModalLabel"><i class="bi bi-person-plus-fill text-primary me-2"></i> إضافة مريض جديد</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div id="quickPatientModalError" class="alert alert-danger rounded-3 fw-bold small" style="display:none;"></div>
+                <form id="quickPatientForm" class="needs-validation" novalidate>
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <label class="form-label fw-bold small mb-1">الاسم بالكامل</label>
+                            <input type="text" id="quickPatientName" class="form-control" required placeholder="مثال: أحمد محمد">
+                            <div class="invalid-feedback text-danger fw-bold small mt-1"><i class="bi bi-exclamation-circle me-1"></i> اسم المريض مطلوب</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small mb-1">رقم الهاتف</label>
+                            <input type="tel" id="quickPatientPhone" class="form-control" required placeholder="09xxxxxxx">
+                            <div class="invalid-feedback text-danger fw-bold small mt-1"><i class="bi bi-exclamation-circle me-1"></i> رقم الهاتف مطلوب</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small mb-1">العمر</label>
+                            <input type="number" id="quickPatientAge" class="form-control" required placeholder="مثال: 30">
+                            <div class="invalid-feedback text-danger fw-bold small mt-1"><i class="bi bi-exclamation-circle me-1"></i> العمر مطلوب</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small mb-1">النوع</label>
+                            <select id="quickPatientGender" class="form-select">
+                                <option value="Male">ذكر</option>
+                                <option value="Female">أنثى</option>
+                            </select>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label fw-bold small mb-1">العنوان</label>
+                            <input type="text" id="quickPatientAddress" class="form-control" placeholder="مثال: الخرطوم - حي الرياض">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer pt-0 border-top-0 px-4 pb-4">
+                <button type="button" class="btn btn-outline-secondary px-3 btn-sm" data-bs-dismiss="modal">إغلاق</button>
+                <button type="button" class="btn btn-primary px-4 fw-bold btn-sm shadow-sm" onclick="quickCreatePatient()">
+                    <i class="bi bi-check-lg me-1"></i> حفظ المريض
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

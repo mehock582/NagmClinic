@@ -1,0 +1,85 @@
+@model NagmClinic.Models.Patient
+
+@{
+    ViewData["Title"] = "الملف الطبي للمريض";
+}
+
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm rounded-4 text-center h-100">
+            <div class="card-body p-4">
+                <div class="bg-primary bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                    <i class="bi bi-person-badge text-primary fs-1"></i>
+                </div>
+                <h4 class="fw-bold mb-1">@Model.FullName</h4>
+                <p class="text-muted small mb-3">@Model.PhoneNumber</p>
+                
+                <div class="d-flex flex-wrap gap-2 justify-content-center mb-4">
+                    <span class="badge rounded-pill bg-@(Model.Gender == NagmClinic.Models.Enums.Gender.Male ? "info" : "danger") bg-opacity-10 text-@(Model.Gender == NagmClinic.Models.Enums.Gender.Male ? "info" : "danger") px-3 py-2">
+                        <i class="bi bi-gender-@(Model.Gender == NagmClinic.Models.Enums.Gender.Male ? "male" : "female") me-1"></i>
+                        @(Model.Gender == NagmClinic.Models.Enums.Gender.Male ? "ذكر" : "أنثى")
+                    </span>
+                    <span class="badge rounded-pill bg-@(Model.IsActive ? "success" : "secondary") bg-opacity-10 text-@(Model.IsActive ? "success" : "secondary") px-3 py-2">
+                        @(Model.IsActive ? "حساب نشط" : "حساب معطل")
+                    </span>
+                </div>
+
+                <div class="text-end border-top pt-3">
+                    <p class="mb-1 text-muted small"><i class="bi bi-geo-alt me-1 text-primary"></i> <strong>العنوان:</strong> @(string.IsNullOrEmpty(Model.Address) ? "غير مسجل" : Model.Address)</p>
+                    <p class="mb-1 text-muted small"><i class="bi bi-calendar-event me-1 text-primary"></i> <strong>العمر:</strong> @Model.Age سنة</p>
+                    <p class="mb-0 text-muted small"><i class="bi bi-clock me-1 text-primary"></i> <strong>تاريخ التسجيل:</strong> @Model.CreatedAt.ToString("yyyy-MM-dd")</p>
+                </div>
+
+                <div class="mt-4 pt-3 d-grid">
+                    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning rounded-pill py-2 text-white fw-bold shadow-sm">تعديل البيانات</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm rounded-4 mb-4">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0"><i class="bi bi-calendar2-check text-primary me-2"></i> سجل الحجوزات</h5>
+                    <a asp-controller="Appointments" asp-action="Create" class="btn btn-primary btn-sm rounded-pill px-3">حجز جديد</a>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle small">
+                        <thead>
+                            <tr>
+                                <th>التاريخ</th>
+                                <th>الطبيب</th>
+                                <th>الإجراء</th>
+                                <th>الحالة</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.Appointments?.Any() == true)
+                            {
+                                @foreach (var apt in Model.Appointments.OrderByDescending(a => a.AppointmentDate))
+                                {
+                                    <tr>
+                                        <td>@apt.AppointmentDate.ToString("yyyy-MM-dd HH:mm")</td>
+                                        <td>@apt.Doctor?.NameAr</td>
+                                        <td><a asp-controller="Appointments" asp-action="Details" asp-route-id="@apt.Id" class="text-primary text-decoration-none fw-bold">عرض الفاتورة</a></td>
+                                        <td>
+                                            <span class="badge rounded-pill bg-info bg-opacity-10 text-info">@apt.Status.ToString()</span>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="4" class="text-center py-4 text-muted">لا يوجد سجلات حجوزات سابقة لهذا المريض</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

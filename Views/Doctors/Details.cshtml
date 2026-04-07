@@ -1,0 +1,93 @@
+@model NagmClinic.Models.Doctor
+@using NagmClinic.Models.Enums
+
+@{
+    ViewData["Title"] = "التاريخ الوظيفي للطبيب: " + Model.NameAr;
+}
+
+<div class="row justify-content-center">
+    <div class="col-12" style="max-width: 1000px;">
+        <div class="card border-0 shadow-sm rounded-4 mb-4">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="bg-primary bg-opacity-10 p-3 rounded-circle">
+                            <i class="bi bi-person-badge-fill text-primary fs-3"></i>
+                        </div>
+                        <div>
+                            <h4 class="fw-bold mb-1">د. @Model.NameAr</h4>
+                            <p class="text-muted mb-0"><i class="bi bi-tag me-1"></i> @Model.Specialty | <i class="bi bi-building me-1"></i> غرفة: @Model.RoomNumber</p>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-primary btn-sm rounded-pill px-3">تعديل البيانات</a>
+                        <a asp-action="Index" class="btn btn-outline-secondary btn-sm rounded-pill px-3">العودة</a>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <div class="border rounded-3 p-3 text-center">
+                            <h6 class="text-muted small mb-1">إجمالي الحجوزات</h6>
+                            <h3 class="fw-bold mb-0">@(Model.Appointments?.Count ?? 0)</h3>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="border rounded-3 p-3 text-center">
+                            <h6 class="text-muted small mb-1">حجوزات اليوم</h6>
+                            <h3 class="fw-bold text-primary mb-0">@(Model.Appointments?.Count(a => a.AppointmentDate.Date == DateTime.Today) ?? 0)</h3>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="border rounded-3 p-3 text-center">
+                            <h6 class="text-muted small mb-1">الحالة الحالية</h6>
+                            <span class="badge @(Model.IsActive ? "bg-success" : "bg-danger") rounded-pill px-3">@(Model.IsActive ? "نشط" : "غير نشط")</span>
+                        </div>
+                    </div>
+                </div>
+
+                <h6 class="fw-bold text-primary mb-3"><i class="bi bi-calendar-range me-2"></i> سجل الحجوزات الأخيرة</h6>
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm align-middle">
+                        <thead class="bg-light">
+                            <tr>
+                                <th>التاريخ</th>
+                                <th>المريض</th>
+                                <th>الحالة</th>
+                                <th class="text-center">إجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.Appointments != null && Model.Appointments.Any())
+                            {
+                                foreach (var appt in Model.Appointments.OrderByDescending(a => a.AppointmentDate).Take(15))
+                                {
+                                    <tr>
+                                        <td>@appt.AppointmentDate.ToString("yyyy-MM-dd HH:mm")</td>
+                                        <td class="fw-bold">@(appt.Patient?.FullName ?? "-")</td>
+                                        <td>
+                                            @switch (appt.Status)
+                                            {
+                                                case AppointmentStatus.Confirmed: <span class="badge bg-success rounded-pill">مؤكد</span> break;
+                                                case AppointmentStatus.Cancelled: <span class="badge bg-danger rounded-pill">ملغي</span> break;
+                                            }
+                                        </td>
+                                        <td class="text-center">
+                                            <a asp-controller="Appointments" asp-action="Details" asp-route-id="@appt.Id" class="text-decoration-none small">التفاصيل</a>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted py-4">لا توجد حجوزات مسجلة لهذا الطبيب حتى الآن</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,234 @@
+@model NagmClinic.ViewModels.PharmacySaleCreateViewModel
+
+@{
+    ViewData["Title"] = "إضافة فاتورة صرف";
+}
+
+<div class="row justify-content-center">
+    <div class="col-12 reception-container">
+        <form asp-action="Create" id="saleForm">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger rounded-3 p-2 small border-0 mb-3"></div>
+
+            <div class="card border-0 shadow-sm rounded-3 mb-3">
+                <div class="card-body p-3">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-3">
+                            <label asp-for="SaleDate" class="form-label small fw-bold"></label>
+                            <input asp-for="SaleDate" asp-format="{0:yyyy-MM-ddTHH:mm}" type="datetime-local" class="form-control form-control-sm" step="60" />
+                        </div>
+                        <div class="col-md-3">
+                            <label asp-for="CustomerName" class="form-label small fw-bold"></label>
+                            <input asp-for="CustomerName" class="form-control form-control-sm" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">مسح الباركود</label>
+                            <div class="input-group input-group-sm">
+                                <input type="text" id="barcodeInput" class="form-control" placeholder="امسح أو أدخل الباركود">
+                                <button type="button" class="btn btn-outline-primary" onclick="lookupBarcodeForSale()">
+                                    <i class="bi bi-upc-scan"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="button" class="btn btn-outline-primary btn-sm rounded-pill w-100" onclick="addLine()">
+                                <i class="bi bi-plus-lg me-1"></i> إضافة بند
+                            </button>
+                        </div>
+                    </div>
+                    <div class="row g-2 mt-1">
+                        <div class="col-12">
+                            <label asp-for="Notes" class="form-label small fw-bold"></label>
+                            <textarea asp-for="Notes" class="form-control form-control-sm" rows="2"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm rounded-3 mb-3">
+                <div class="card-body p-3">
+                    <h6 class="text-primary fw-bold mb-2"><i class="bi bi-list-check me-2"></i>بنود الصرف (FEFO)</h6>
+                    <div id="linesBody"></div>
+                </div>
+            </div>
+
+            <div class="row g-2 mb-3">
+                <div class="col-lg-7"></div>
+                <div class="col-lg-5">
+                    <div class="card border-0 shadow-sm rounded-3 total-box text-white h-100">
+                        <div class="card-body p-3 d-flex justify-content-between align-items-center">
+                            <div class="text-white-50 fw-bold small"><i class="bi bi-cash-coin me-2"></i>الإجمالي التقديري</div>
+                            <div class="text-end">
+                                <h2 class="mb-0 fw-bolder"><span id="estimatedTotal">0.00</span> <small class="fs-6 fw-normal op-70">ج.س</small></h2>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center mt-4">
+                <button type="submit" class="btn btn-success btn-lg rounded-pill fw-bold px-5 shadow-sm">
+                    <i class="bi bi-cloud-arrow-up me-2"></i> حفظ فاتورة الصرف
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        var itemLookup = @Html.Raw(Json.Serialize(Model.ItemLookup));
+        var lineCount = 0;
+
+        $(function () {
+            addLine();
+            $('#barcodeInput').on('keypress', function (e) {
+                if (e.which === 13) {
+                    e.preventDefault();
+                    lookupBarcodeForSale();
+                }
+            });
+        });
+
+        function addLine(prefill) {
+            const idx = lineCount;
+            const options = itemLookup.map(i => `<option value="${i.id}">${i.name}</option>`).join('');
+            const row = `
+                <div class="row g-2 p-2 align-items-end bg-light rounded-2 border service-row mb-1" id="line_${idx}">
+                    <div class="col-lg-4 col-md-6">
+                        <label class="form-label small fw-bold">الصنف</label>
+                        <select name="Lines[${idx}].ItemId" data-field="ItemId" class="form-select form-select-sm item-select" onchange="refreshFefo(${idx})" required>
+                            <option value="">-- اختر الصنف --</option>
+                            ${options}
+                        </select>
+                    </div>
+                    <div class="col-lg-1 col-md-3">
+                        <label class="form-label small fw-bold">الكمية</label>
+                        <input type="number" name="Lines[${idx}].Quantity" data-field="Quantity" class="form-control form-control-sm qty-input text-center" value="1" min="0.01" step="0.01" onchange="refreshFefo(${idx})" />
+                    </div>
+                    <div class="col-lg-2 col-md-3">
+                        <label class="form-label small fw-bold">المتاح</label>
+                        <div class="fw-bold text-dark available-info">-</div>
+                    </div>
+                    <div class="col-lg-2 col-md-3">
+                        <label class="form-label small fw-bold">الباتش المقترح</label>
+                        <div class="fw-bold text-primary batch-info">-</div>
+                    </div>
+                    <div class="col-lg-1 col-md-3">
+                        <label class="form-label small fw-bold">الانتهاء</label>
+                        <div class="small expiry-info">-</div>
+                    </div>
+                    <div class="col-lg-1 col-md-3">
+                        <label class="form-label small fw-bold">الموقع</label>
+                        <div class="small slot-info">-</div>
+                    </div>
+                    <div class="col-lg-1 col-md-3">
+                        <label class="form-label small fw-bold">تقديري</label>
+                        <div class="fw-bold text-success line-est-total">0.00</div>
+                    </div>
+                    <div class="col-lg-1 col-md-3 text-end">
+                        <button type="button" class="btn btn-link link-danger p-0 border-0" onclick="removeLine(${idx})"><i class="bi bi-x-circle-fill fs-5"></i></button>
+                    </div>
+                </div>`;
+
+            $('#linesBody').append(row);
+            if (prefill && prefill.itemId) {
+                $(`#line_${idx} .item-select`).val(prefill.itemId);
+                if (prefill.quantity) $(`#line_${idx} .qty-input`).val(prefill.quantity);
+            }
+            lineCount++;
+            refreshFefo(idx);
+        }
+
+        function removeLine(idx) {
+            $(`#line_${idx}`).fadeOut(120, function () {
+                $(this).remove();
+                recalcEstimatedTotal();
+            });
+        }
+
+        function refreshFefo(idx) {
+            const row = $(`#line_${idx}`);
+            const itemId = parseInt(row.find('.item-select').val());
+            const qty = parseFloat(row.find('.qty-input').val()) || 0;
+
+            row.find('.line-est-total').text('0.00');
+            if (!itemId || qty <= 0) {
+                row.find('.available-info,.batch-info,.expiry-info,.slot-info').text('-');
+                recalcEstimatedTotal();
+                return;
+            }
+
+            $.get('/PharmacySales/PreviewFefo', { itemId: itemId, quantity: qty }, function (res) {
+                row.find('.available-info').text((res.available || 0).toFixed ? res.available.toFixed(2) : res.available);
+                if (!res.success || !res.allocations || res.allocations.length === 0) {
+                    row.find('.batch-info').html('<span class="text-danger">غير متاح</span>');
+                    row.find('.expiry-info').text('-');
+                    row.find('.slot-info').text('-');
+                    row.find('.line-est-total').text('0.00');
+                    recalcEstimatedTotal();
+                    return;
+                }
+
+                const first = res.allocations[0];
+                row.find('.batch-info').text(first.batchNumber);
+                row.find('.expiry-info').text(first.expiryDate.substring(0, 10));
+                row.find('.slot-info').text(first.slotCode);
+
+                let lineTotal = 0;
+                res.allocations.forEach(a => lineTotal += (parseFloat(a.quantity) || 0) * (parseFloat(a.unitPrice) || 0));
+                row.find('.line-est-total').text(lineTotal.toFixed(2));
+                recalcEstimatedTotal();
+            });
+        }
+
+        function recalcEstimatedTotal() {
+            let total = 0;
+            $('.line-est-total').each(function () {
+                total += parseFloat($(this).text()) || 0;
+            });
+            $('#estimatedTotal').text(total.toFixed(2));
+        }
+
+        function lookupBarcodeForSale() {
+            const barcode = ($('#barcodeInput').val() || '').trim();
+            if (!barcode) return;
+
+            $.get('/PharmacySales/LookupByBarcode', { barcode: barcode }, function (res) {
+                if (!res.success) {
+                    Swal.fire('غير موجود', res.message, 'warning');
+                    return;
+                }
+
+                addLine({ itemId: res.data.itemId, quantity: 1 });
+                $('#barcodeInput').val('').focus();
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'تمت إضافة الصنف',
+                    html: `<div class="small text-start">
+                        <div><strong>${res.data.itemName}</strong></div>
+                        <div>الوحدة: ${res.data.unitName}</div>
+                        <div>المتاح: ${res.data.availableQuantity}</div>
+                        <div>الموقع: ${res.data.slotCode}</div>
+                    </div>`,
+                    timer: 1400,
+                    showConfirmButton: false
+                });
+            });
+        }
+
+        function reindexSaleLines() {
+            $('#linesBody > .row').each(function (rowIndex) {
+                $(this).find('[data-field]').each(function () {
+                    const field = $(this).data('field');
+                    $(this).attr('name', `Lines[${rowIndex}].${field}`);
+                });
+            });
+        }
+
+        $('#saleForm').on('submit', function () {
+            reindexSaleLines();
+        });
+    </script>
+}

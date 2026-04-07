@@ -1,0 +1,298 @@
+@{
+    ViewData["Title"] = "أصناف الصيدلية";
+    var units = ViewData["Units"] as IEnumerable<dynamic>;
+    var categories = ViewData["Categories"] as IEnumerable<dynamic>;
+    var locations = ViewData["Locations"] as IEnumerable<dynamic>;
+}
+
+<div class="card border-0 shadow-sm rounded-3 transition-hover">
+    <div class="card-body p-3">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold mb-0 text-primary">
+                <i class="bi bi-capsule-pill me-2"></i> أصناف الصيدلية
+            </h5>
+            <button type="button" class="btn btn-primary btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#quickCreateItemModal">
+                <i class="bi bi-plus-lg me-1"></i> إضافة صنف
+            </button>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle text-center small w-100">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="border-0">الصنف</th>
+                        <th class="border-0">الوحدة/التصنيف</th>
+                        <th class="border-0">الموقع</th>
+                        <th class="border-0">المخزون</th>
+                        <th class="border-0">سعر البيع</th>
+                        <th class="border-0">الحالة</th>
+                        <th class="border-0">الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="quickCreateItemModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold"><i class="bi bi-plus-circle-fill text-primary me-2"></i> إضافة صنف دوائي</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="quickCreateItemForm" class="needs-validation" novalidate>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">اسم الصنف *</label>
+                            <input type="text" id="itemName" class="form-control form-control-sm" required>
+                            <div class="invalid-feedback">يرجى إدخال اسم الصنف</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">الاسم العلمي</label>
+                            <input type="text" id="itemGenericName" class="form-control form-control-sm">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">الوحدة *</label>
+                            <select id="itemUnitId" class="form-select form-select-sm" required>
+                                <option value="">-- اختر --</option>
+                                @if (units != null)
+                                {
+                                    @foreach (var u in units)
+                                    {
+                                        <option value="@u.Id">@u.Name</option>
+                                    }
+                                }
+                            </select>
+                            <div class="invalid-feedback">يرجى اختيار الوحدة</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">التصنيف *</label>
+                            <select id="itemCategoryId" class="form-select form-select-sm" required>
+                                <option value="">-- اختر --</option>
+                                @if (categories != null)
+                                {
+                                    @foreach (var c in categories)
+                                    {
+                                        <option value="@c.Id">@c.Name</option>
+                                    }
+                                }
+                            </select>
+                            <div class="invalid-feedback">يرجى اختيار التصنيف</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">الموقع *</label>
+                            <select id="itemLocationId" class="form-select form-select-sm" required>
+                                <option value="">-- اختر --</option>
+                                @if (locations != null)
+                                {
+                                    @foreach (var l in locations)
+                                    {
+                                        <option value="@l.Id">@l.Code - @l.Description</option>
+                                    }
+                                }
+                            </select>
+                            <div class="invalid-feedback">يرجى اختيار الموقع</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">سعر البيع الافتراضي</label>
+                            <input type="number" id="itemPrice" class="form-control form-control-sm" step="0.01" value="0">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">حد إعادة الطلب</label>
+                            <input type="number" id="itemReorder" class="form-control form-control-sm" step="0.01" value="0">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light btn-sm rounded-pill px-3" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-primary btn-sm rounded-pill px-4 fw-bold" onclick="saveItem()">حفظ</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="quickEditItemModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold"><i class="bi bi-pencil-square text-primary me-2"></i> تعديل صنف</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="quickEditItemForm" class="needs-validation" novalidate>
+                    <input type="hidden" id="editItemId">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">اسم الصنف *</label>
+                            <input type="text" id="editItemName" class="form-control form-control-sm" required>
+                            <div class="invalid-feedback">يرجى إدخال اسم الصنف</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">الاسم العلمي</label>
+                            <input type="text" id="editItemGenericName" class="form-control form-control-sm">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">الوحدة *</label>
+                            <select id="editItemUnitId" class="form-select form-select-sm" required>
+                                <option value="">-- اختر --</option>
+                                @if (units != null)
+                                {
+                                    @foreach (var u in units)
+                                    {
+                                        <option value="@u.Id">@u.Name</option>
+                                    }
+                                }
+                            </select>
+                            <div class="invalid-feedback">يرجى اختيار الوحدة</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">التصنيف *</label>
+                            <select id="editItemCategoryId" class="form-select form-select-sm" required>
+                                <option value="">-- اختر --</option>
+                                @if (categories != null)
+                                {
+                                    @foreach (var c in categories)
+                                    {
+                                        <option value="@c.Id">@c.Name</option>
+                                    }
+                                }
+                            </select>
+                            <div class="invalid-feedback">يرجى اختيار التصنيف</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">الموقع *</label>
+                            <select id="editItemLocationId" class="form-select form-select-sm" required>
+                                <option value="">-- اختر --</option>
+                                @if (locations != null)
+                                {
+                                    @foreach (var l in locations)
+                                    {
+                                        <option value="@l.Id">@l.Code - @l.Description</option>
+                                    }
+                                }
+                            </select>
+                            <div class="invalid-feedback">يرجى اختيار الموقع</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">سعر البيع الافتراضي</label>
+                            <input type="number" id="editItemPrice" class="form-control form-control-sm" step="0.01">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">حد إعادة الطلب</label>
+                            <input type="number" id="editItemReorder" class="form-control form-control-sm" step="0.01">
+                        </div>
+                        <div class="col-12 mt-3">
+                            <div class="form-check form-switch p-3 bg-light rounded-3 d-flex justify-content-between align-items-center">
+                                <label class="form-check-label fw-bold mb-0" for="editItemActive">حالة الصنف</label>
+                                <input class="form-check-input ms-0 me-2" type="checkbox" role="switch" id="editItemActive">
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light btn-sm rounded-pill px-3" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-primary btn-sm rounded-pill px-4 fw-bold" onclick="updateItem()">حفظ التغييرات</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" />
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+    <script>
+        $(function () {
+            var columns = [
+                { "data": "name", "render": function(d, t, row) { return `<div class="fw-bold">${d}</div><div class="text-muted small">${row.genericName || '-'}</div>`; } },
+                { "data": "unitName", "render": function(d, t, row) { return `<div>${d}</div><div class="text-muted small">${row.categoryName}</div>`; } },
+                { "data": "locationCode", "render": function(d) { return `<span class="badge bg-light text-dark border">${d}</span>`; } },
+                { "data": "availableStock", "render": function(d, t, row) { var low = parseFloat(d) <= parseFloat(row.reorderLevel); return `<span class="badge ${low ? 'bg-warning text-dark' : 'bg-success'}">${parseFloat(d).toFixed(2)}</span><div class="text-muted small">حد الطلب: ${parseFloat(row.reorderLevel).toFixed(2)}</div>`; } },
+                { "data": "defaultSellingPrice", "render": function(d) { return `<span class="fw-bold text-primary">${parseFloat(d).toFixed(2)}</span>`; } },
+                { "data": "isActive", "render": function(d, t, row) { return `<div class="form-check form-switch d-flex justify-content-center"><input class="form-check-input" type="checkbox" role="switch" ${d ? 'checked' : ''} onchange="toggleStatus(${row.id})"></div>`; } },
+                { "data": "id", "orderable": false, "render": function(d, t, row) { return `<div class="action-group"><button type="button" class="btn-action btn-action-primary" data-label="تعديل" data-id="${d}" data-name="${row.name}" data-generic="${row.genericName || ''}" data-unitname="${row.unitName}" data-categoryname="${row.categoryName}" data-locationcode="${row.locationCode}" data-price="${row.defaultSellingPrice}" data-reorder="${row.reorderLevel}" data-active="${row.isActive}" data-unitid="${row.unitId}" data-categoryid="${row.categoryId}" data-locationid="${row.locationId}" onclick="openEditItem(this)"><i class="bi bi-pencil-fill"></i></button></div>`; } }
+            ];
+            initDataTable('.table', '/PharmacyItems/GetItemsData', columns, { "pageLength": 10 });
+        });
+
+        function toggleStatus(id) {
+            $.post('/PharmacyItems/ToggleStatus/' + id, function (res) {
+                if (!res.success) Swal.fire('خطأ', res.message || 'تعذر تغيير الحالة', 'error');
+            });
+        }
+
+        function saveItem() {
+            const form = document.getElementById('quickCreateItemForm');
+            if (!form.checkValidity()) { form.classList.add('was-validated'); return; }
+
+            const data = {
+                name: $('#itemName').val(),
+                genericName: $('#itemGenericName').val(),
+                unitId: parseInt($('#itemUnitId').val()),
+                categoryId: parseInt($('#itemCategoryId').val()),
+                locationId: parseInt($('#itemLocationId').val()),
+                defaultSellingPrice: parseFloat($('#itemPrice').val() || 0),
+                reorderLevel: parseFloat($('#itemReorder').val() || 0)
+            };
+
+            $.ajax({
+                url: '/PharmacyItems/QuickCreate',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(data),
+                success: function (res) {
+                    if (res.success) location.reload();
+                    else Swal.fire('خطأ', res.message, 'error');
+                }
+            });
+        }
+
+        function openEditItem(btn) {
+            const $btn = $(btn);
+            $('#editItemId').val($btn.data('id'));
+            $('#editItemName').val($btn.data('name'));
+            $('#editItemGenericName').val($btn.data('generic'));
+            $('#editItemUnitId').val($btn.data('unitid'));
+            $('#editItemCategoryId').val($btn.data('categoryid'));
+            $('#editItemLocationId').val($btn.data('locationid'));
+            $('#editItemPrice').val($btn.data('price'));
+            $('#editItemReorder').val($btn.data('reorder'));
+            $('#editItemActive').prop('checked', $btn.data('active') === true);
+            $('#quickEditItemForm').removeClass('was-validated');
+            new bootstrap.Modal(document.getElementById('quickEditItemModal')).show();
+        }
+
+        function updateItem() {
+            const form = document.getElementById('quickEditItemForm');
+            if (!form.checkValidity()) { form.classList.add('was-validated'); return; }
+
+            const data = {
+                id: parseInt($('#editItemId').val()),
+                name: $('#editItemName').val(),
+                genericName: $('#editItemGenericName').val(),
+                unitId: parseInt($('#editItemUnitId').val()),
+                categoryId: parseInt($('#editItemCategoryId').val()),
+                locationId: parseInt($('#editItemLocationId').val()),
+                defaultSellingPrice: parseFloat($('#editItemPrice').val() || 0),
+                reorderLevel: parseFloat($('#editItemReorder').val() || 0),
+                isActive: $('#editItemActive').is(':checked')
+            };
+
+            $.ajax({
+                url: '/PharmacyItems/QuickEdit',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(data),
+                success: function (res) {
+                    if (res.success) location.reload();
+                    else Swal.fire('خطأ', res.message, 'error');
+                }
+            });
+        }
+    </script>
+}

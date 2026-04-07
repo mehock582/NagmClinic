@@ -1,0 +1,224 @@
+@{
+    ViewData["Title"] = "قائمة المرضى";
+}
+
+<div class="row">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm rounded-4">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="fw-bold mb-0"><i class="bi bi-people-fill text-primary me-2"></i> قائمة المرضى المسجلين</h5>
+                    <button type="button" class="btn btn-primary rounded-pill px-4 shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#newPatientModal">
+                        <i class="bi bi-plus-lg me-1"></i> إضافة مريض جديد
+                    </button>
+                </div>
+
+
+
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle text-center small w-100">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="text-center align-middle text-nowrap">#</th>
+                                <th class="text-center align-middle text-nowrap">الاسم بالكامل</th>
+                                <th class="text-center align-middle text-nowrap">رقم الهاتف</th>
+                                <th class="text-center align-middle text-nowrap">العمر</th>
+                                <th class="text-center align-middle text-nowrap">النوع</th>
+                                <th class="text-center align-middle text-nowrap">العنوان</th>
+                                <th class="text-center align-middle text-nowrap">الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="patientsTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Create Patient Modal (Shared Partial) -->
+<partial name="_QuickCreatePatientModal" />
+
+
+<!-- Edit Patient Modal -->
+<div class="modal fade" id="editPatientModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-bottom-0 px-4 pt-4 pb-0">
+                <h5 class="modal-title fw-bold"><i class="bi bi-pencil-square text-warning me-2"></i> تعديل بيانات المريض</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div id="editModalError" class="alert alert-danger rounded-3 fw-bold small" style="display:none;"></div>
+                <form id="editPatientForm" class="needs-validation" novalidate>
+                    <input type="hidden" id="editId">
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <label class="form-label fw-bold small mb-1">الاسم بالكامل</label>
+                            <input type="text" id="editName" class="form-control" required placeholder="مثال: أحمد محمد">
+                            <div class="invalid-feedback text-danger fw-bold small mt-1"><i class="bi bi-exclamation-circle me-1"></i> اسم المريض مطلوب</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small mb-1">رقم الهاتف</label>
+                            <input type="tel" id="editPhone" class="form-control" required placeholder="09xxxxxxx">
+                            <div class="invalid-feedback text-danger fw-bold small mt-1"><i class="bi bi-exclamation-circle me-1"></i> رقم الهاتف مطلوب</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small mb-1">العمر</label>
+                            <input type="number" id="editAge" class="form-control" required placeholder="مثال: 30">
+                            <div class="invalid-feedback text-danger fw-bold small mt-1"><i class="bi bi-exclamation-circle me-1"></i> العمر مطلوب</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small mb-1">النوع</label>
+                            <select id="editGender" class="form-select">
+                                <option value="Male">ذكر</option>
+                                <option value="Female">أنثى</option>
+                            </select>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label fw-bold small mb-1">العنوان</label>
+                            <input type="text" id="editAddress" class="form-control" placeholder="مثال: الخرطوم - حي الرياض">
+                        </div>
+                        <div class="col-12 mt-3">
+                            <div class="form-check form-switch p-3 bg-light rounded-3 d-flex justify-content-between align-items-center">
+                                <label class="form-check-label fw-bold mb-0" for="editActive">حساب المريض نشط</label>
+                                <input class="form-check-input ms-0 me-2" type="checkbox" role="switch" id="editActive">
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer pt-0 border-top-0 px-4 pb-4">
+                <button type="button" class="btn btn-outline-secondary px-3 btn-sm" data-bs-dismiss="modal">إغلاق</button>
+                <button type="button" class="btn btn-warning px-4 fw-bold btn-sm shadow-sm text-white" onclick="submitEditPatient()">
+                    <i class="bi bi-check-lg me-1"></i> حفظ التغييرات
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- DataTables JS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" />
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            var columns = [
+                {
+                    "data": null,
+                    "render": function (data, type, row, meta) {
+                        return `<span class="badge bg-light text-dark rounded-pill">${meta.row + meta.settings._iDisplayStart + 1}</span>`;
+                    }
+                },
+                { 
+                    "data": "fullName",
+                    "render": function(data) {
+                        return `<span class="fw-bold">${data}</span>`;
+                    }
+                },
+                { "data": "phoneNumber" },
+                { 
+                    "data": "age",
+                    "render": function(data) {
+                        return `${data} سنة`;
+                    }
+                },
+                { 
+                    "data": "gender",
+                    "render": function(data) {
+                        if(data === 'Male') {
+                            return `<span class="badge rounded-pill bg-info bg-opacity-10 text-info px-3">ذكر</span>`;
+                        } else {
+                            return `<span class="badge rounded-pill bg-danger bg-opacity-10 text-danger px-3">أنثى</span>`;
+                        }
+                    }
+                },
+                { 
+                    "data": "address",
+                    "render": function(data) {
+                        return `<span class="text-muted small">${data || ''}</span>`;
+                    }
+                },
+                {
+                    "data": "id",
+                    "orderable": false,
+                    "render": function (data, type, row) {
+                        return `
+                            <div class="action-group">
+                                <a href="/Patients/Details/${data}" class="btn-action btn-action-info" data-label="ملف المريض">
+                                    <i class="bi bi-file-earmark-person"></i>
+                                </a>
+                                <button type="button" class="btn-action btn-action-warning"
+                                        onclick="openEditModal(this)"
+                                        data-id="${data}"
+                                        data-name="${row.fullName}"
+                                        data-phone="${row.phoneNumber}"
+                                        data-age="${row.age}"
+                                        data-gender="${row.gender}"
+                                        data-address="${row.address || ''}"
+                                        data-active="${row.isActive}"
+                                        data-label="تعديل البيانات">
+                                    <i class="bi bi-pencil-fill"></i>
+                                </button>
+                            </div>
+                        `;
+                    }
+                }
+            ];
+
+            initDataTable('.table', '/Patients/GetPatientsData', columns, { "pageLength": 10 });
+        });
+
+        function openEditModal(btn) {
+            var $btn = $(btn);
+            $('#editId').val($btn.data('id'));
+            $('#editName').val($btn.data('name'));
+            $('#editPhone').val($btn.data('phone'));
+            $('#editAge').val($btn.data('age'));
+            $('#editGender').val($btn.data('gender'));
+            $('#editAddress').val($btn.data('address'));
+            $('#editActive').prop('checked', $btn.data('active') === true);
+            
+            $('#editModalError').hide();
+            $('#editPatientForm').removeClass('was-validated');
+            new bootstrap.Modal(document.getElementById('editPatientModal')).show();
+        }
+
+        function submitEditPatient() {
+            var form = document.getElementById('editPatientForm');
+            if (!form.checkValidity()) {
+                form.classList.add('was-validated');
+                return;
+            }
+
+            var data = {
+                id: $('#editId').val(),
+                fullName: $('#editName').val(),
+                phoneNumber: $('#editPhone').val(),
+                genderString: $('#editGender').val(),
+                address: $('#editAddress').val(),
+                age: $('#editAge').val(),
+                isActive: $('#editActive').is(':checked')
+            };
+
+            var $btn = $('#editPatientModal .btn-warning');
+            $btn.prop('disabled', true).html('<i class="bi bi-arrow-repeat spin me-1"></i> جاري الحفظ...');
+
+            $.post('/Patients/QuickEdit', data, function (response) {
+                $btn.prop('disabled', false).html('<i class="bi bi-check-lg me-1"></i> حفظ التغييرات');
+                if (response.success) {
+                    location.reload(); 
+                } else {
+                    $('#editModalError').text(response.message).show();
+                }
+            }).fail(function (xhr) {
+                $btn.prop('disabled', false).html('<i class="bi bi-check-lg me-1"></i> حفظ التغييرات');
+                $('#editModalError').text('حدث خطأ في النظام.').show();
+            });
+        }
+    </script>
+}

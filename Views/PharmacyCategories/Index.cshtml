@@ -1,0 +1,170 @@
+@{
+    ViewData["Title"] = "تصنيفات الصيدلية";
+}
+
+<div class="card border-0 shadow-sm rounded-3">
+    <div class="card-body p-3">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold mb-0 text-primary">
+                <i class="bi bi-tags-fill me-2"></i> تصنيفات الصيدلية
+            </h5>
+            <button type="button" class="btn btn-primary btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#quickCreateCategoryModal">
+                <i class="bi bi-plus-lg me-1"></i> إضافة تصنيف
+            </button>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle text-center small w-100">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="border-0">اسم التصنيف</th>
+                        <th class="border-0">الوصف</th>
+                        <th class="border-0">الحالة</th>
+                        <th class="border-0">الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="quickCreateCategoryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold"><i class="bi bi-plus-circle-fill text-primary me-2"></i> إضافة تصنيف</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="quickCreateCategoryForm" class="needs-validation" novalidate>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">اسم التصنيف *</label>
+                            <input type="text" id="categoryName" class="form-control form-control-sm" required>
+                            <div class="invalid-feedback">يرجى إدخال اسم التصنيف</div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">الوصف</label>
+                            <textarea id="categoryDescription" class="form-control form-control-sm" rows="2"></textarea>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light btn-sm rounded-pill px-3" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-primary btn-sm rounded-pill px-4 fw-bold" onclick="saveCategory()">حفظ</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="quickEditCategoryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold"><i class="bi bi-pencil-square text-primary me-2"></i> تعديل تصنيف</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="quickEditCategoryForm" class="needs-validation" novalidate>
+                    <input type="hidden" id="editCategoryId">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">اسم التصنيف *</label>
+                            <input type="text" id="editCategoryName" class="form-control form-control-sm" required>
+                            <div class="invalid-feedback">يرجى إدخال اسم التصنيف</div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">الوصف</label>
+                            <textarea id="editCategoryDescription" class="form-control form-control-sm" rows="2"></textarea>
+                        </div>
+                        <div class="col-12 mt-3">
+                            <div class="form-check form-switch p-3 bg-light rounded-3 d-flex justify-content-between align-items-center">
+                                <label class="form-check-label fw-bold mb-0" for="editCategoryActive">حالة التصنيف</label>
+                                <input class="form-check-input ms-0 me-2" type="checkbox" role="switch" id="editCategoryActive">
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light btn-sm rounded-pill px-3" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-primary btn-sm rounded-pill px-4 fw-bold" onclick="updateCategory()">حفظ التغييرات</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" />
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+    <script>
+        $(function () {
+            var columns = [
+                { "data": "name", "render": function(d) { return `<span class="fw-bold">${d}</span>`; } },
+                { "data": "description", "render": function(d) { return d || '-'; } },
+                { "data": "isActive", "render": function(d, t, row) { return `<div class="form-check form-switch d-flex justify-content-center"><input class="form-check-input" type="checkbox" role="switch" ${d ? 'checked' : ''} onchange="toggleStatus(${row.id})"></div>`; } },
+                { "data": "id", "orderable": false, "render": function(d, t, row) { return `<div class="action-group"><button type="button" class="btn-action btn-action-primary" data-label="تعديل" data-id="${d}" data-name="${row.name}" data-description="${row.description || ''}" data-active="${row.isActive}" onclick="openEditCategory(this)"><i class="bi bi-pencil-fill"></i></button></div>`; } }
+            ];
+            initDataTable('.table', '/PharmacyCategories/GetCategoriesData', columns, { "pageLength": 10 });
+        });
+
+        function toggleStatus(id) {
+            $.post('/PharmacyCategories/ToggleStatus/' + id, function (res) {
+                if (!res.success) Swal.fire('خطأ', res.message || 'تعذر تغيير الحالة', 'error');
+            });
+        }
+
+        function saveCategory() {
+            const form = document.getElementById('quickCreateCategoryForm');
+            if (!form.checkValidity()) { form.classList.add('was-validated'); return; }
+
+            const data = { name: $('#categoryName').val(), description: $('#categoryDescription').val() };
+            $.ajax({
+                url: '/PharmacyCategories/QuickCreate',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(data),
+                success: function (res) {
+                    if (res.success) location.reload();
+                    else Swal.fire('خطأ', res.message, 'error');
+                }
+            });
+        }
+
+        function openEditCategory(btn) {
+            const $btn = $(btn);
+            $('#editCategoryId').val($btn.data('id'));
+            $('#editCategoryName').val($btn.data('name'));
+            $('#editCategoryDescription').val($btn.data('description'));
+            $('#editCategoryActive').prop('checked', $btn.data('active') === true);
+            $('#quickEditCategoryForm').removeClass('was-validated');
+            new bootstrap.Modal(document.getElementById('quickEditCategoryModal')).show();
+        }
+
+        function updateCategory() {
+            const form = document.getElementById('quickEditCategoryForm');
+            if (!form.checkValidity()) { form.classList.add('was-validated'); return; }
+
+            const data = {
+                id: parseInt($('#editCategoryId').val()),
+                name: $('#editCategoryName').val(),
+                description: $('#editCategoryDescription').val(),
+                isActive: $('#editCategoryActive').is(':checked')
+            };
+
+            $.ajax({
+                url: '/PharmacyCategories/QuickEdit',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(data),
+                success: function (res) {
+                    if (res.success) location.reload();
+                    else Swal.fire('خطأ', res.message, 'error');
+                }
+            });
+        }
+    </script>
+}

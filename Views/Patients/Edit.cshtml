@@ -1,0 +1,95 @@
+@model NagmClinic.Models.Patient
+
+@{
+    ViewData["Title"] = "تعديل بيانات مريض";
+}
+
+<!-- Auto-open Edit Modal -->
+<div class="modal fade" id="editPatientModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-bottom-0 px-4 pt-4 pb-0">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="bg-warning bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center" style="width: 42px; height: 42px;">
+                        <i class="bi bi-pencil-fill text-warning fs-5"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0">تعديل الملف الشخصي</h5>
+                        <p class="text-muted mb-0 small">@Model.FullName</p>
+                    </div>
+                </div>
+                <a asp-action="Index" class="btn-close" aria-label="Close"></a>
+            </div>
+            <div class="modal-body p-4">
+                <div id="editError" class="alert alert-danger rounded-3 fw-bold small" style="display:none;"></div>
+
+                <form asp-action="Edit" method="post" id="editPatientForm">
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
+                    <input type="hidden" asp-for="Id" />
+                    <input type="hidden" asp-for="CreatedAt" />
+
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label asp-for="FullName" class="form-label fw-bold small mb-1"></label>
+                            <span asp-validation-for="FullName" class="text-danger small d-block mb-1"></span>
+                            <input asp-for="FullName" class="form-control" placeholder="مثال: أحمد محمد" />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="PhoneNumber" class="form-label fw-bold small mb-1"></label>
+                            <span asp-validation-for="PhoneNumber" class="text-danger small d-block mb-1"></span>
+                            <input asp-for="PhoneNumber" class="form-control" placeholder="09xxxxxxx" />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="Age" class="form-label fw-bold small mb-1"></label>
+                            <span asp-validation-for="Age" class="text-danger small d-block mb-1"></span>
+                            <input asp-for="Age" type="number" class="form-control" />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="Gender" class="form-label fw-bold small mb-1"></label>
+                            <span asp-validation-for="Gender" class="text-danger small d-block mb-1"></span>
+                            <select asp-for="Gender" class="form-select">
+                                <option value="Male">ذكر</option>
+                                <option value="Female">أنثى</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="Address" class="form-label fw-bold small mb-1"></label>
+                            <span asp-validation-for="Address" class="text-danger small d-block mb-1"></span>
+                            <input asp-for="Address" class="form-control" placeholder="مثال: الخرطوم - حي الرياض" />
+                        </div>
+
+                        <div class="col-12">
+                            <div class="form-check form-switch p-3 bg-light rounded-3 d-flex justify-content-between align-items-center">
+                                <label class="form-check-label fw-bold mb-0" asp-for="IsActive">حساب نشط</label>
+                                <input class="form-check-input ms-0 me-2" type="checkbox" role="switch" asp-for="IsActive">
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer pt-0 border-top-0 px-4 pb-4">
+                <a asp-action="Index" class="btn btn-outline-secondary px-3 btn-sm rounded-pill">إغلاق</a>
+                <button type="submit" form="editPatientForm" class="btn btn-warning px-4 fw-bold btn-sm shadow-sm rounded-pill text-white">
+                    <i class="bi bi-check-lg me-1"></i> حفظ التغييرات
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        $(document).ready(function () {
+            var modal = new bootstrap.Modal(document.getElementById('editPatientModal'), { backdrop: 'static' });
+            modal.show();
+            document.getElementById('editPatientModal').addEventListener('hidden.bs.modal', function () {
+                window.location.href = '@Url.Action("Index")';
+            });
+        });
+    </script>
+}

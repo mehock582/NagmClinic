@@ -1,0 +1,350 @@
+@{
+    ViewData["Title"] = "الفحوصات المعملية";
+}
+
+<div class="card border-0 shadow-sm rounded-3 transition-hover">
+    <div class="card-body p-3">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold mb-0 text-info">
+                <i class="bi bi-microscope me-2"></i> الفحوصات المعملية
+            </h5>
+            <button type="button" class="btn btn-info text-white btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#quickCreateTestModal">
+                <i class="bi bi-plus-lg me-1"></i> إضافة فحص معملي
+            </button>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle text-center small w-100">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="text-center align-middle text-nowrap border-0">اسم الفحص</th>
+                        <th class="text-center align-middle text-nowrap border-0">نوع النتيجة</th>
+                        <th class="text-center align-middle text-nowrap border-0">التكلفة</th>
+                        <th class="text-center align-middle text-nowrap border-0">الحالة</th>
+                        <th class="text-center align-middle text-nowrap border-0">الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Create Modal -->
+<div class="modal fade" id="quickCreateTestModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-info"><i class="bi bi-plus-circle-fill me-2"></i> إضافة فحص معملي جديد</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="quickCreateTestForm" class="needs-validation" novalidate>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">اسم الفحص (عربي) *</label>
+                            <input type="text" id="testNameAr" class="form-control form-control-sm" required placeholder="مثال: صورة دم كاملة (CBC)">
+                            <div class="invalid-feedback text-danger fw-bold small mt-1"><i class="bi bi-exclamation-circle me-1"></i> يرجى إدخال اسم الفحص</div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">التكلفة *</label>
+                            <input type="number" id="testPrice" class="form-control form-control-sm text-center" required step="0.01" value="0">
+                            <div class="invalid-feedback text-danger fw-bold small mt-1"><i class="bi bi-exclamation-circle me-1"></i> يرجى إدخال التكلفة</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">الوحدة (اختياري)</label>
+                            <input type="text" id="testUnit" class="form-control form-control-sm" placeholder="مثل: mg/dL">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">المدى الطبيعي (اختياري)</label>
+                            <input type="text" id="testRange" class="form-control form-control-sm" placeholder="مثل: 70 - 100">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">ملاحظات التجهيز</label>
+                            <textarea id="testNotes" class="form-control form-control-sm" rows="2" placeholder="أية ملاحظات للمريض (مثلاً: صيام)"></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">نوع النتيجة</label>
+                            <select id="testResultType" class="form-select form-select-sm">
+                                <option value="1">نص (Text)</option>
+                                <option value="2">رقم (Number)</option>
+                                <option value="3">قائمة خيارات (Dropdown)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">القيم المحددة (للقائمة)</label>
+                            <input type="text" id="testPredefined" class="form-control form-control-sm" placeholder="مثال: Positive,Negative">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light btn-sm rounded-pill px-3" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-info text-white btn-sm rounded-pill px-4 fw-bold" onclick="saveTest()">حفظ الفحص</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Edit Modal -->
+<div class="modal fade" id="quickEditTestModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-info"><i class="bi bi-pencil-square me-2"></i> تعديل بيانات الفحص</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="quickEditTestForm" class="needs-validation" novalidate>
+                    <input type="hidden" id="editTestId">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">اسم الفحص (عربي) *</label>
+                            <input type="text" id="editTestNameAr" class="form-control form-control-sm" required placeholder="مثال: صورة دم كاملة (CBC)">
+                            <div class="invalid-feedback text-danger fw-bold small mt-1"><i class="bi bi-exclamation-circle me-1"></i> يرجى إدخال اسم الفحص</div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">التكلفة *</label>
+                            <input type="number" id="editTestPrice" class="form-control form-control-sm text-center" required step="0.01">
+                            <div class="invalid-feedback text-danger fw-bold small mt-1"><i class="bi bi-exclamation-circle me-1"></i> يرجى إدخال التكلفة</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">الوحدة (اختياري)</label>
+                            <input type="text" id="editTestUnit" class="form-control form-control-sm" placeholder="مثل: mg/dL">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">المدى الطبيعي (اختياري)</label>
+                            <input type="text" id="editTestRange" class="form-control form-control-sm" placeholder="مثل: 70 - 100">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">ملاحظات التجهيز</label>
+                            <textarea id="editTestNotes" class="form-control form-control-sm" rows="2" placeholder="أية ملاحظات للمريض (مثلاً: صيام)"></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">نوع النتيجة</label>
+                            <select id="editTestResultType" class="form-select form-select-sm">
+                                <option value="1">نص (Text)</option>
+                                <option value="2">رقم (Number)</option>
+                                <option value="3">قائمة خيارات (Dropdown)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">القيم المحددة (للقائمة)</label>
+                            <input type="text" id="editTestPredefined" class="form-control form-control-sm" placeholder="مثال: Positive,Negative">
+                        </div>
+                        <div class="col-12 mt-3">
+                            <div class="form-check form-switch p-3 bg-light rounded-3 d-flex justify-content-between align-items-center">
+                                <label class="form-check-label fw-bold mb-0" for="editTestActive">حالة الفحص (مفعل/معطل)</label>
+                                <input class="form-check-input ms-0 me-2" type="checkbox" role="switch" id="editTestActive">
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light btn-sm rounded-pill px-3" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-info text-white btn-sm rounded-pill px-4 fw-bold" onclick="updateTest()">حفظ التغييرات</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- View Test Details Modal -->
+<div class="modal fade" id="testDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-bottom-0 p-4">
+                <h5 class="modal-title fw-bold text-info"><i class="bi bi-info-circle me-2"></i> تفاصيل الفحص المعملي</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 pt-0">
+                <div class="list-group list-group-flush border rounded-3 overflow-hidden">
+                    <div class="list-group-item d-flex justify-content-between p-3">
+                        <span class="text-muted fw-bold">رقم الفحص:</span>
+                        <span id="detailId" class="fw-bold text-dark"></span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between p-3 bg-light bg-opacity-10">
+                        <span class="text-muted fw-bold">اسم الفحص:</span>
+                        <span id="detailName" class="fw-bold text-dark"></span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between p-3">
+                        <span class="text-muted fw-bold">نوع النتيجة:</span>
+                        <span id="detailResultType" class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 rounded-pill px-3"></span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between p-3 bg-light bg-opacity-10">
+                        <span class="text-muted fw-bold">الحالة:</span>
+                        <span id="detailStatus" class="badge rounded-pill px-3"></span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between p-3">
+                        <span class="text-muted fw-bold">التكلفة:</span>
+                        <span id="detailPrice" class="fw-bold text-success text-decoration-underline"></span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between p-3 bg-light bg-opacity-10">
+                        <span class="text-muted fw-bold">الوحدة:</span>
+                        <span id="detailUnit" class="text-dark"></span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between p-3">
+                        <span class="text-muted fw-bold">المدى الطبيعي:</span>
+                        <span id="detailRange" class="text-dark fw-bold"></span>
+                    </div>
+                    <div class="list-group-item p-3 bg-light bg-opacity-10">
+                        <div class="text-muted fw-bold mb-1">الخيارات المحددة:</div>
+                        <div id="detailPredefined" class="text-dark small"></div>
+                    </div>
+                    <div class="list-group-item p-3">
+                        <div class="text-muted fw-bold mb-1">ملاحظات التجهيز:</div>
+                        <div id="detailNotes" class="text-muted small"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-top-0 p-4 pt-0">
+                <button type="button" class="btn btn-info text-white rounded-pill px-5 fw-bold shadow-sm" data-bs-dismiss="modal">إغلاق</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- DataTables JS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" />
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            var columns = [
+                { "data": "nameAr", "render": function(d) { return `<span class="fw-bold">${d}</span>`; } },
+                { "data": "resultType", "render": function(d, t, row) {
+                    if (d == 2) return `<span class="badge bg-light text-info border"><i class="bi bi-123 me-1"></i> رقم (${row.unit || ''})</span>`;
+                    if (d == 3) return `<span class="badge bg-light text-primary border"><i class="bi bi-list-check me-1"></i> خيارات</span>`;
+                    return `<span class="badge bg-light text-dark border"><i class="bi bi-fonts me-1"></i> نص</span>`;
+                }},
+                { "data": "price", "render": function(d) { return `<span class="fw-bold text-info">${parseFloat(d).toFixed(2)}</span>`; } },
+                { "data": "isActive", "render": function(d, t, row) { return `<div class="form-check form-switch d-flex justify-content-center"><input class="form-check-input" type="checkbox" role="switch" ${d ? 'checked' : ''} onchange="toggleStatus(${row.id})"></div>`; } },
+                { "data": "id", "orderable": false, "render": function(d, t, row) {
+                    return `<div class="action-group">
+                        <button type="button" class="btn-action btn-action-info" onclick="viewTestDetails(this)" data-id="${d}" data-name="${row.nameAr}" data-price="${parseFloat(row.price).toFixed(2)}" data-unit="${row.unit || '-'}" data-range="${row.normalRange || '-'}" data-type="${row.resultType}" data-predefined="${row.predefinedValues || '-'}" data-notes="${row.notes || '-'}" data-status="${row.isActive}" data-label="تفاصيل"><i class="bi bi-eye-fill"></i></button>
+                        <button type="button" class="btn-action btn-action-primary" onclick="openEditTest(this)" data-id="${d}" data-name="${row.nameAr}" data-price="${row.price}" data-unit="${row.unit || ''}" data-range="${row.normalRange || ''}" data-notes="${row.notes || ''}" data-type="${row.resultType}" data-predefined="${row.predefinedValues || ''}" data-active="${row.isActive}" data-label="تعديل"><i class="bi bi-pencil-fill"></i></button>
+                    </div>`;
+                }}
+            ];
+            initDataTable('.table', '/LabTests/GetLabTestsData', columns, { "pageLength": 10 });
+        });
+
+
+        function toggleStatus(id) {
+            $.post('/LabTests/ToggleStatus/' + id, function (res) {
+                if (!res.success) {
+                    Swal.fire('خطأ', 'تعذر تغيير الحالة', 'error');
+                }
+            });
+        }
+
+        function saveTest() {
+            const form = document.getElementById('quickCreateTestForm');
+            if (!form.checkValidity()) {
+                form.classList.add('was-validated');
+                return;
+            }
+
+            const data = {
+                nameAr: $('#testNameAr').val(),
+                price: parseFloat($('#testPrice').val()),
+                notes: $('#testNotes').val(),
+                unit: $('#testUnit').val(),
+                normalRange: $('#testRange').val(),
+                resultType: parseInt($('#testResultType').val()),
+                predefinedValues: $('#testPredefined').val()
+            };
+
+            $.ajax({
+                url: '/LabTests/QuickCreate',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(data),
+                success: function (res) {
+                    if (res.success) {
+                        location.reload();
+                    } else {
+                        Swal.fire('خطأ', res.message, 'error');
+                    }
+                }
+            });
+        }
+
+        function openEditTest(btn) {
+            const $btn = $(btn);
+            $('#editTestId').val($btn.data('id'));
+            $('#editTestNameAr').val($btn.data('name'));
+            $('#editTestPrice').val($btn.data('price'));
+            $('#editTestUnit').val($btn.data('unit'));
+            $('#editTestRange').val($btn.data('range'));
+            $('#editTestNotes').val($btn.data('notes'));
+            $('#editTestResultType').val($btn.data('type'));
+            $('#editTestPredefined').val($btn.data('predefined'));
+            $('#editTestActive').prop('checked', $btn.data('active') === true);
+            
+            $('#quickEditTestForm').removeClass('was-validated');
+            new bootstrap.Modal(document.getElementById('quickEditTestModal')).show();
+        }
+
+        function viewTestDetails(btn) {
+            const $btn = $(btn);
+            $('#detailId').text($btn.data('id'));
+            $('#detailName').text($btn.data('name'));
+            $('#detailPrice').text($btn.data('price') + ' ج.س');
+            $('#detailUnit').text($btn.data('unit'));
+            $('#detailRange').text($btn.data('range'));
+            $('#detailPredefined').text($btn.data('predefined'));
+            $('#detailNotes').text($btn.data('notes'));
+
+            const isActive = ($btn.data('status') === true || $btn.data('status') === 'true');
+            const statusElement = $('#detailStatus');
+            statusElement
+                .text(isActive ? 'مفعل' : 'معطل')
+                .removeClass('bg-success text-white bg-secondary')
+                .addClass(isActive ? 'bg-success text-white' : 'bg-secondary text-white');
+            
+            const type = $btn.data('type');
+            let typeText = "نص (Text)";
+            if (type == "Number" || type == 2) typeText = "رقم (Number)";
+            if (type == "Dropdown" || type == 3) typeText = "خيارات (Dropdown)";
+            $('#detailResultType').text(typeText);
+
+            new bootstrap.Modal(document.getElementById('testDetailsModal')).show();
+        }
+
+        function updateTest() {
+            const form = document.getElementById('quickEditTestForm');
+            if (!form.checkValidity()) {
+                form.classList.add('was-validated');
+                return;
+            }
+
+            const data = {
+                id: $('#editTestId').val(),
+                nameAr: $('#editTestNameAr').val(),
+                price: parseFloat($('#editTestPrice').val()),
+                notes: $('#editTestNotes').val(),
+                unit: $('#editTestUnit').val(),
+                normalRange: $('#editTestRange').val(),
+                resultType: parseInt($('#editTestResultType').val()),
+                predefinedValues: $('#editTestPredefined').val(),
+                isActive: $('#editTestActive').is(':checked')
+            };
+
+            $.ajax({
+                url: '/LabTests/QuickEdit',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(data),
+                success: function (res) {
+                    if (res.success) {
+                        location.reload();
+                    } else {
+                        Swal.fire('خطأ', res.message, 'error');
+                    }
+                }
+            });
+        }
+    </script>
+}

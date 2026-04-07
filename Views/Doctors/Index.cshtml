@@ -1,0 +1,291 @@
+@{
+    ViewData["Title"] = "الطاقم الطبي";
+}
+
+<div class="card border-0 shadow-sm rounded-3">
+    <div class="card-body p-3">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold mb-0 text-primary">
+                <i class="bi bi-person-badge-fill me-2"></i> الطاقم الطبي
+            </h5>
+            <button type="button" class="btn btn-primary btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#quickCreateDoctorModal">
+                <i class="bi bi-plus-lg me-1"></i> إضافة طبيب جديد
+            </button>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle text-center small w-100">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="text-center align-middle text-nowrap border-0">بيانات الطبيب</th>
+                        <th class="text-center align-middle text-nowrap border-0">التخصص</th>
+                        <th class="text-center align-middle text-nowrap border-0">سعر الكشف</th>
+                        <th class="text-center align-middle text-nowrap border-0">رقم الغرفة</th>
+                        <th class="text-center align-middle text-nowrap border-0">الحالة</th>
+                        <th class="text-center align-middle text-nowrap border-0">الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody id="doctorsTableBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Create Modal -->
+<div class="modal fade" id="quickCreateDoctorModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold"><i class="bi bi-person-plus-fill text-primary me-2"></i> إضافة طبيب جديد</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="quickCreateDoctorForm" class="needs-validation" novalidate>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">الاسم (عربي) *</label>
+                            <input type="text" id="doctorNameAr" class="form-control form-control-sm" required placeholder="اسم الطبيب كاملاً">
+                            <div class="invalid-feedback text-danger fw-bold small mt-1"><i class="bi bi-exclamation-circle me-1"></i> يرجى إدخال اسم الطبيب</div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">التخصص *</label>
+                            <input type="text" id="doctorSpecialty" class="form-control form-control-sm" required placeholder="مثال: باطنية، أطفال...">
+                            <div class="invalid-feedback text-danger fw-bold small mt-1"><i class="bi bi-exclamation-circle me-1"></i> يرجى إدخال تخصص الطبيب</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">رقم الهاتف</label>
+                            <input type="tel" id="doctorPhone" class="form-control form-control-sm" placeholder="09xxxxxxx">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">سعر الكشف *</label>
+                            <input type="number" id="doctorFee" class="form-control form-control-sm" required placeholder="0.00">
+                            <div class="invalid-feedback text-danger fw-bold small mt-1"><i class="bi bi-exclamation-circle me-1"></i> يرجى تحديد سعر الكشف</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">رقم الغرفة</label>
+                            <input type="text" id="doctorRoom" class="form-control form-control-sm" placeholder="101">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light btn-sm rounded-pill px-3" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-primary btn-sm rounded-pill px-4 fw-bold" onclick="saveDoctor()">حفظ البيانات</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Edit Modal -->
+<div class="modal fade" id="quickEditDoctorModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold"><i class="bi bi-pencil-square text-primary me-2"></i> تعديل بيانات الطبيب</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="quickEditDoctorForm" class="needs-validation" novalidate>
+                    <input type="hidden" id="editDoctorId">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">الاسم (عربي) *</label>
+                            <input type="text" id="editDoctorNameAr" class="form-control form-control-sm" required placeholder="اسم الطبيب كاملاً">
+                            <div class="invalid-feedback text-danger fw-bold small mt-1"><i class="bi bi-exclamation-circle me-1"></i> يرجى إدخال اسم الطبيب</div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">التخصص *</label>
+                            <input type="text" id="editDoctorSpecialty" class="form-control form-control-sm" required placeholder="مثال: باطنية، أطفال...">
+                            <div class="invalid-feedback text-danger fw-bold small mt-1"><i class="bi bi-exclamation-circle me-1"></i> يرجى إدخال تخصص الطبيب</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">رقم الهاتف</label>
+                            <input type="tel" id="editDoctorPhone" class="form-control form-control-sm" placeholder="09xxxxxxx">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">سعر الكشف *</label>
+                            <input type="number" id="editDoctorFee" class="form-control form-control-sm" required placeholder="0.00">
+                            <div class="invalid-feedback text-danger fw-bold small mt-1"><i class="bi bi-exclamation-circle me-1"></i> يرجى تحديد سعر الكشف</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">رقم الغرفة</label>
+                            <input type="text" id="editDoctorRoom" class="form-control form-control-sm" placeholder="101">
+                        </div>
+                        <div class="col-12 mt-3">
+                            <div class="form-check form-switch p-3 bg-light rounded-3 d-flex justify-content-between align-items-center">
+                                <label class="form-check-label fw-bold mb-0" for="editDoctorActive">حالة الطبيب (مفعل/معطل)</label>
+                                <input class="form-check-input ms-0 me-2" type="checkbox" role="switch" id="editDoctorActive">
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light btn-sm rounded-pill px-3" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-primary btn-sm rounded-pill px-4 fw-bold" onclick="updateDoctor()">حفظ التغييرات</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- DataTables JS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" />
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            var columns = [
+                { 
+                    "data": "nameAr",
+                    "render": function(data, type, row) {
+                        return `<div class="fw-bold">${data}</div><div class="text-muted small">${row.phoneNumber || ''}</div>`;
+                    }
+                },
+                { 
+                    "data": "specialty",
+                    "render": function(data) {
+                        return `<span class="badge bg-info bg-opacity-10 text-info px-3">${data || ''}</span>`;
+                    }
+                },
+                { 
+                    "data": "consultationFee",
+                    "render": function(data) {
+                        return `<span class="fw-bold text-primary">${parseFloat(data).toFixed(2)}</span>`;
+                    }
+                },
+                { 
+                    "data": "roomNumber",
+                    "render": function(data) {
+                         return `<span class="fw-bold text-dark">${data || ''}</span>`;
+                    }
+                },
+                { 
+                    "data": "isActive",
+                    "render": function(data, type, row) {
+                        var isChecked = data ? "checked" : "";
+                        return `
+                            <div class="form-check form-switch d-flex justify-content-center">
+                                <input class="form-check-input" type="checkbox" role="switch" ${isChecked} onchange="toggleStatus(${row.id})">
+                            </div>
+                        `;
+                    }
+                },
+                {
+                    "data": "id",
+                    "orderable": false,
+                    "render": function (data, type, row) {
+                        return `
+                            <div class="action-group">
+                                <button type="button" class="btn-action btn-action-primary"
+                                        onclick="openEditDoctor(this)"
+                                        data-id="${data}"
+                                        data-name="${row.nameAr}"
+                                        data-specialty="${row.specialty}"
+                                        data-phone="${row.phoneNumber || ''}"
+                                        data-fee="${row.consultationFee}"
+                                        data-room="${row.roomNumber || ''}"
+                                        data-active="${row.isActive}"
+                                        data-label="تعديل">
+                                    <i class="bi bi-pencil-fill"></i>
+                                </button>
+                                <a href="/Doctors/Details/${data}" class="btn-action btn-action-info" data-label="التاريخ المرضي">
+                                    <i class="bi bi-info-circle-fill"></i>
+                                </a>
+                            </div>
+                        `;
+                    }
+                }
+            ];
+
+            initDataTable('.table', '/Doctors/GetDoctorsData', columns, { "pageLength": 10 });
+        });
+
+
+        function toggleStatus(id) {
+            $.post('/Doctors/ToggleStatus/' + id, function (res) {
+                if (!res.success) {
+                    Swal.fire('خطأ', 'تعذر تغيير الحالة', 'error');
+                }
+            });
+        }
+
+        function saveDoctor() {
+            const form = document.getElementById('quickCreateDoctorForm');
+            if (!form.checkValidity()) {
+                form.classList.add('was-validated');
+                return;
+            }
+
+            const data = {
+                nameAr: $('#doctorNameAr').val(),
+                specialty: $('#doctorSpecialty').val(),
+                phoneNumber: $('#doctorPhone').val(),
+                consultationFee: $('#doctorFee').val(),
+                roomNumber: $('#doctorRoom').val()
+            };
+
+            $.ajax({
+                url: '/Doctors/QuickCreate',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(data),
+                success: function (res) {
+                    if (res.success) {
+                        location.reload();
+                    } else {
+                        Swal.fire('خطأ', res.message, 'error');
+                    }
+                }
+            });
+        }
+
+        function openEditDoctor(btn) {
+            const $btn = $(btn);
+            $('#editDoctorId').val($btn.data('id'));
+            $('#editDoctorNameAr').val($btn.data('name'));
+            $('#editDoctorSpecialty').val($btn.data('specialty'));
+            $('#editDoctorPhone').val($btn.data('phone'));
+            $('#editDoctorFee').val($btn.data('fee'));
+            $('#editDoctorRoom').val($btn.data('room'));
+            $('#editDoctorActive').prop('checked', $btn.data('active') === true);
+            
+            $('#quickEditDoctorForm').removeClass('was-validated');
+            new bootstrap.Modal(document.getElementById('quickEditDoctorModal')).show();
+        }
+
+        function updateDoctor() {
+            const form = document.getElementById('quickEditDoctorForm');
+            if (!form.checkValidity()) {
+                form.classList.add('was-validated');
+                return;
+            }
+
+            const data = {
+                id: $('#editDoctorId').val(),
+                nameAr: $('#editDoctorNameAr').val(),
+                specialty: $('#editDoctorSpecialty').val(),
+                phoneNumber: $('#editDoctorPhone').val(),
+                consultationFee: $('#editDoctorFee').val(),
+                roomNumber: $('#editDoctorRoom').val(),
+                isActive: $('#editDoctorActive').is(':checked')
+            };
+
+            $.ajax({
+                url: '/Doctors/QuickEdit',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(data),
+                success: function (res) {
+                    if (res.success) {
+                        location.reload();
+                    } else {
+                        Swal.fire('خطأ', res.message, 'error');
+                    }
+                }
+            });
+        }
+    </script>
+}

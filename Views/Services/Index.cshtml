@@ -1,0 +1,207 @@
+@{
+    ViewData["Title"] = "الخدمات العادية";
+}
+
+<div class="card border-0 shadow-sm rounded-3">
+    <div class="card-body p-3">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold mb-0 text-primary">
+                <i class="bi bi-clipboard2-pulse-fill me-2"></i> الخدمات العادية
+            </h5>
+            <button type="button" class="btn btn-primary btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#quickCreateServiceModal">
+                <i class="bi bi-plus-lg me-1"></i> إضافة خدمة جديدة
+            </button>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle text-center small w-100">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="text-center align-middle text-nowrap border-0">اسم الخدمة</th>
+                        <th class="text-center align-middle text-nowrap border-0">السعر</th>
+                        <th class="text-center align-middle text-nowrap border-0">الحالة</th>
+                        <th class="text-center align-middle text-nowrap border-0">الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Create Modal -->
+<div class="modal fade" id="quickCreateServiceModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold"><i class="bi bi-plus-circle-fill text-primary me-2"></i> إضافة خدمة جديدة</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="quickCreateServiceForm" class="needs-validation" novalidate>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">اسم الخدمة (عربي) *</label>
+                            <input type="text" id="serviceNameAr" class="form-control form-control-sm" required placeholder="مثال: استشارة باطنية">
+                            <div class="invalid-feedback text-danger fw-bold small mt-1"><i class="bi bi-exclamation-circle me-1"></i> يرجى إدخال اسم الخدمة</div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">السعر *</label>
+                            <input type="number" id="servicePrice" class="form-control form-control-sm text-center" required step="0.01" value="0">
+                            <div class="invalid-feedback text-danger fw-bold small mt-1"><i class="bi bi-exclamation-circle me-1"></i> يرجى تحديد السعر</div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">ملاحظات</label>
+                            <textarea id="serviceNotes" class="form-control form-control-sm" rows="2"></textarea>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light btn-sm rounded-pill px-3" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-primary btn-sm rounded-pill px-4 fw-bold" onclick="saveService()">حفظ البيانات</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Edit Modal -->
+<div class="modal fade" id="quickEditServiceModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold"><i class="bi bi-pencil-square text-primary me-2"></i> تعديل بيانات الخدمة</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="quickEditServiceForm" class="needs-validation" novalidate>
+                    <input type="hidden" id="editServiceId">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">اسم الخدمة (عربي) *</label>
+                            <input type="text" id="editServiceNameAr" class="form-control form-control-sm" required placeholder="مثال: استشارة باطنية">
+                            <div class="invalid-feedback text-danger fw-bold small mt-1"><i class="bi bi-exclamation-circle me-1"></i> يرجى إدخال اسم الخدمة</div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">السعر *</label>
+                            <input type="number" id="editServicePrice" class="form-control form-control-sm text-center" required step="0.01">
+                            <div class="invalid-feedback text-danger fw-bold small mt-1"><i class="bi bi-exclamation-circle me-1"></i> يرجى تحديد السعر</div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">ملاحظات</label>
+                            <textarea id="editServiceNotes" class="form-control form-control-sm" rows="2"></textarea>
+                        </div>
+                        <div class="col-12 mt-3">
+                            <div class="form-check form-switch p-3 bg-light rounded-3 d-flex justify-content-between align-items-center">
+                                <label class="form-check-label fw-bold mb-0" for="editServiceActive">حالة الخدمة (مفعلة/معطلة)</label>
+                                <input class="form-check-input ms-0 me-2" type="checkbox" role="switch" id="editServiceActive">
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light btn-sm rounded-pill px-3" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-primary btn-sm rounded-pill px-4 fw-bold" onclick="updateService()">حفظ التغييرات</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- DataTables JS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" />
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            var columns = [
+                { "data": "nameAr", "render": function(d) { return `<span class="fw-bold">${d}</span>`; } },
+                { "data": "price", "render": function(d) { return `<span class="fw-bold text-primary">${parseFloat(d).toFixed(2)}</span>`; } },
+                { "data": "isActive", "render": function(d, t, row) { return `<div class="form-check form-switch d-flex justify-content-center"><input class="form-check-input" type="checkbox" role="switch" ${d ? 'checked' : ''} onchange="toggleStatus(${row.id})"></div>`; } },
+                { "data": "id", "orderable": false, "render": function(d, t, row) { return `<div class="action-group"><button type="button" class="btn-action btn-action-primary" onclick="openEditService(this)" data-id="${d}" data-name="${row.nameAr}" data-price="${row.price}" data-notes="${row.notes || ''}" data-active="${row.isActive}" data-label="تعديل"><i class="bi bi-pencil-fill"></i></button></div>`; } }
+            ];
+            initDataTable('.table', '/Services/GetServicesData', columns, { "pageLength": 10 });
+        });
+
+
+        function toggleStatus(id) {
+            $.post('/Services/ToggleStatus/' + id, function (res) {
+                if (!res.success) {
+                    Swal.fire('خطأ', 'تعذر تغيير الحالة', 'error');
+                }
+            });
+        }
+
+        function saveService() {
+            const form = document.getElementById('quickCreateServiceForm');
+            if (!form.checkValidity()) {
+                form.classList.add('was-validated');
+                return;
+            }
+
+            const data = {
+                nameAr: $('#serviceNameAr').val(),
+                price: parseFloat($('#servicePrice').val()),
+                notes: $('#serviceNotes').val()
+            };
+
+            $.ajax({
+                url: '/Services/QuickCreate',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(data),
+                success: function (res) {
+                    if (res.success) {
+                        location.reload();
+                    } else {
+                        Swal.fire('خطأ', res.message, 'error');
+                    }
+                }
+            });
+        }
+
+        function openEditService(btn) {
+            const $btn = $(btn);
+            $('#editServiceId').val($btn.data('id'));
+            $('#editServiceNameAr').val($btn.data('name'));
+            $('#editServicePrice').val($btn.data('price'));
+            $('#editServiceNotes').val($btn.data('notes'));
+            $('#editServiceActive').prop('checked', $btn.data('active') === true);
+            
+            $('#quickEditServiceForm').removeClass('was-validated');
+            new bootstrap.Modal(document.getElementById('quickEditServiceModal')).show();
+        }
+
+        function updateService() {
+            const form = document.getElementById('quickEditServiceForm');
+            if (!form.checkValidity()) {
+                form.classList.add('was-validated');
+                return;
+            }
+
+            const data = {
+                id: $('#editServiceId').val(),
+                nameAr: $('#editServiceNameAr').val(),
+                price: parseFloat($('#editServicePrice').val()),
+                notes: $('#editServiceNotes').val(),
+                isActive: $('#editServiceActive').is(':checked')
+            };
+
+            $.ajax({
+                url: '/Services/QuickEdit',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(data),
+                success: function (res) {
+                    if (res.success) {
+                        location.reload();
+                    } else {
+                        Swal.fire('خطأ', res.message, 'error');
+                    }
+                }
+            });
+        }
+    </script>
+}

@@ -1,0 +1,129 @@
+@using NagmClinic.Models.Enums
+@{
+    ViewData["Title"] = "قائمة المواعيد اليومية";
+}
+
+<div class="row">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm rounded-4">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="fw-bold mb-0 text-primary">
+                        <i class="bi bi-calendar2-week me-2"></i> إدارة المواعيد والحجوزات
+                    </h5>
+                    <a asp-action="Create" class="btn btn-primary rounded-pill px-4 fw-bold">
+                        <i class="bi bi-plus-lg me-1"></i> حجز جديد
+                    </a>
+                </div>
+
+                <div class="table-responsive">
+                    <table id="appointmentsTable" class="table table-hover align-middle text-center small w-100">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="text-center align-middle text-nowrap">رقم الحجز</th>
+                                <th class="text-center align-middle text-nowrap">التاريخ والوقت</th>
+                                <th class="text-center align-middle text-nowrap">المريض</th>
+                                <th class="text-center align-middle text-nowrap">الطبيب</th>
+                                <th class="text-center align-middle text-nowrap">المستحق</th>
+                                <th class="text-center align-middle text-nowrap">الحالة</th>
+                                <th class="text-center align-middle text-nowrap">الإجراءات</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- DataTables JS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" />
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            var columns = [
+                { 
+                    "data": "dailyNumber",
+                    "render": function(data, type, row) {
+                        var cls = row.status === 'Cancelled' ? 'bg-secondary' : 'bg-dark';
+                        return `<span class="badge ${cls} rounded-pill px-3">${data}</span>`;
+                    }
+                },
+                { 
+                    "data": "appointmentDate",
+                    "render": function(data, type, row) {
+                        return row.status === 'Cancelled' ? `<span class="text-muted text-decoration-line-through">${data}</span>` : data;
+                    }
+                },
+                { 
+                    "data": "patientName",
+                    "render": function(data, type, row) {
+                        if (row.status === 'Cancelled') {
+                            return `<div class="fw-bold text-muted text-decoration-line-through">${data}</div><small class="text-muted">${row.patientPhone}</small>`;
+                        }
+                        return `<div class="fw-bold">${data}</div><small class="text-muted">${row.patientPhone}</small>`;
+                    }
+                },
+                { "data": "doctorName" },
+                {
+                    "data": "billableTotal",
+                    "render": function(data, type, row) {
+                        if (row.status === 'Cancelled') {
+                            return '<span class="text-muted"><s>0.00</s> <i class="bi bi-x-circle text-danger small"></i></span>';
+                        }
+                        return `<span class="fw-bold text-primary">${parseFloat(data).toFixed(2)}</span>`;
+                    }
+                },
+                { 
+                    "data": "status",
+                    "render": function(data) {
+                        var badges = {
+                            'Confirmed': '<span class="badge bg-success rounded-pill">مؤكد</span>',
+                            'Cancelled': '<span class="badge bg-danger rounded-pill">ملغي</span>'
+                        };
+                        return badges[data] || data;
+                    }
+                },
+                {
+                    "data": "id",
+                    "orderable": false,
+                    "render": function (data, type, row) {
+                        var actions = `
+                            <div class="action-group">
+                                <a href="/Appointments/Details/${data}" class="btn-action btn-action-view" data-label="التفاصيل / الفاتورة">
+                                    <i class="bi bi-receipt"></i>
+                                </a>
+                                <a href="/Appointments/Edit/${data}" class="btn-action btn-action-edit" data-label="إضافة خدمات / متابعة">
+                                    <i class="bi bi-plus-circle"></i>
+                                </a>`;
+                        
+                        if (row.status !== 'Cancelled') {
+                            actions += `
+                                <button type="button" class="btn-action btn-action-delete" data-label="إلغاء الحجز" onclick="updateStatus(${data}, 'Cancelled')">
+                                    <i class="bi bi-x-circle"></i>
+                                </button>`;
+                        }
+
+                        actions += `</div>`;
+                        return actions;
+                    }
+                }
+            ];
+
+            initDataTable('#appointmentsTable', '/Appointments/GetAppointmentsData', columns, { "pageLength": 5, "order": [[1, "desc"]] });
+        });
+
+        function updateStatus(id, newStatus) {
+            confirmAction('هل أنت متأكد؟', 'سيتم تغيير حالة الحجز', 'نعم، قم بالتغيير', function() {
+                $.post('/Appointments/UpdateStatus', { id: id, status: newStatus }, function(response) {
+                    if (response.success) {
+                         $('#appointmentsTable').DataTable().ajax.reload();
+                    }
+                });
+            });
+        }
+    </script>
+}
