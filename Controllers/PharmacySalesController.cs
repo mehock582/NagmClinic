@@ -87,13 +87,20 @@ namespace NagmClinic.Controllers
         [HttpGet]
         public async Task<IActionResult> LookupByBarcode(string barcode)
         {
-            var result = await _stockService.LookupByBarcodeAsync(barcode);
-            if (result == null)
+            var results = await _stockService.LookupAllByBarcodeAsync(barcode);
+
+            if (results == null || results.Count == 0)
             {
-                return Json(new { success = false, message = "لم يتم العثور على الباركود" });
+                return Json(new { success = false, message = "لم يتم العثور على دواء بهذا الباركود" });
             }
 
-            return Json(new { success = true, data = result });
+            if (results.Count == 1)
+            {
+                return Json(new { success = true, multiMatch = false, data = results[0] });
+            }
+
+            // Multiple batches matched — let the client pick
+            return Json(new { success = true, multiMatch = true, matches = results });
         }
 
         [HttpGet]

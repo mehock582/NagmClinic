@@ -26,7 +26,7 @@ namespace NagmClinic.Services.Appointments
             return model;
         }
 
-        public async Task<AppointmentCreateViewModel> BuildEditViewModelAsync(int appointmentId)
+        public async Task<AppointmentCreateViewModel?> BuildEditViewModelAsync(int appointmentId)
         {
             var appointment = await _context.Appointments
                 .Include(a => a.AppointmentItems)

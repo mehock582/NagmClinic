@@ -9,6 +9,34 @@
         <form asp-action="Create" id="saleForm">
             <div asp-validation-summary="ModelOnly" class="alert alert-danger rounded-3 p-2 small border-0 mb-3"></div>
 
+            @* ── Barcode Scanner Zone ── *@
+            <div class="barcode-scanner-zone mb-3" id="scannerZone">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="barcode-scanner-icon">
+                        <i class="bi bi-upc-scan"></i>
+                    </div>
+                    <div class="barcode-input-wrapper">
+                        <input type="text" id="barcodeInput"
+                               class="form-control"
+                               placeholder="امسح الباركود أو أدخله يدوياً ثم اضغط Enter"
+                               autocomplete="off" autofocus />
+                    </div>
+                    <button type="button" class="btn btn-primary rounded-pill px-3" onclick="lookupBarcodeForSale()" title="بحث">
+                        <i class="bi bi-search me-1"></i> بحث
+                    </button>
+                    <div class="d-flex flex-column align-items-center gap-1">
+                        <span class="barcode-scan-count" id="scanCount">0</span>
+                        <span class="barcode-status-indicator status-ready" id="scanStatus">
+                            <i class="bi bi-wifi"></i> جاهز
+                        </span>
+                    </div>
+                </div>
+                <div class="mt-2 d-flex align-items-center gap-3">
+                    <small class="text-muted"><i class="bi bi-info-circle me-1"></i>يدعم: ماسح USB، بلوتوث، لاسلكي، هاتف كماسح — أي جهاز يرسل النص تلقائياً</small>
+                </div>
+            </div>
+
+            @* ── Sale Header ── *@
             <div class="card border-0 shadow-sm rounded-3 mb-3">
                 <div class="card-body p-3">
                     <div class="row g-2 align-items-end">
@@ -21,29 +49,19 @@
                             <input asp-for="CustomerName" class="form-control form-control-sm" />
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label small fw-bold">مسح الباركود</label>
-                            <div class="input-group input-group-sm">
-                                <input type="text" id="barcodeInput" class="form-control" placeholder="امسح أو أدخل الباركود">
-                                <button type="button" class="btn btn-outline-primary" onclick="lookupBarcodeForSale()">
-                                    <i class="bi bi-upc-scan"></i>
-                                </button>
-                            </div>
+                            <label asp-for="Notes" class="form-label small fw-bold"></label>
+                            <input asp-for="Notes" class="form-control form-control-sm" placeholder="ملاحظات اختيارية" />
                         </div>
                         <div class="col-md-2">
                             <button type="button" class="btn btn-outline-primary btn-sm rounded-pill w-100" onclick="addLine()">
-                                <i class="bi bi-plus-lg me-1"></i> إضافة بند
+                                <i class="bi bi-plus-lg me-1"></i> إضافة بند يدوي
                             </button>
-                        </div>
-                    </div>
-                    <div class="row g-2 mt-1">
-                        <div class="col-12">
-                            <label asp-for="Notes" class="form-label small fw-bold"></label>
-                            <textarea asp-for="Notes" class="form-control form-control-sm" rows="2"></textarea>
                         </div>
                     </div>
                 </div>
             </div>
 
+            @* ── Sale Lines (FEFO) ── *@
             <div class="card border-0 shadow-sm rounded-3 mb-3">
                 <div class="card-body p-3">
                     <h6 class="text-primary fw-bold mb-2"><i class="bi bi-list-check me-2"></i>بنود الصرف (FEFO)</h6>
@@ -51,6 +69,7 @@
                 </div>
             </div>
 
+            @* ── Total ── *@
             <div class="row g-2 mb-3">
                 <div class="col-lg-7"></div>
                 <div class="col-lg-5">
@@ -74,22 +93,100 @@
     </div>
 </div>
 
+@* ── Multi-Match Selection Modal ── *@
+<div class="modal fade" id="batchSelectModal" tabindex="-1" aria-labelledby="batchSelectModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title fw-bold" id="batchSelectModalLabel">
+                    <i class="bi bi-boxes me-2 text-primary"></i>تم العثور على أكثر من باتش — اختر الباتش المطلوب
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+            </div>
+            <div class="modal-body p-3" id="batchSelectBody">
+                <!-- populated dynamically -->
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script>
         var itemLookup = @Html.Raw(Json.Serialize(Model.ItemLookup));
         var lineCount = 0;
+        var totalScans = 0;
 
+        // ── Audio feedback (Web Audio API — no external files) ──
+        var audioCtx = null;
+        function playBeep(freq, duration, type) {
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                var osc = audioCtx.createOscillator();
+                var gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.type = type || 'sine';
+                osc.frequency.value = freq || 800;
+                gain.gain.value = 0.12;
+                osc.start();
+                osc.stop(audioCtx.currentTime + (duration || 0.12));
+            } catch (e) { /* audio not supported */ }
+        }
+        function beepSuccess() { playBeep(880, 0.1, 'sine'); setTimeout(() => playBeep(1100, 0.12, 'sine'), 110); }
+        function beepError() { playBeep(300, 0.25, 'square'); }
+        function beepIncrement() { playBeep(660, 0.08, 'sine'); }
+
+        // ── Status indicator helpers ──
+        function setStatus(type, text) {
+            var el = $('#scanStatus');
+            el.removeClass('status-ready status-success status-error');
+            el.addClass('status-' + type);
+            if (type === 'ready') el.html('<i class="bi bi-wifi"></i> ' + (text || 'جاهز'));
+            else if (type === 'success') el.html('<i class="bi bi-check-circle-fill"></i> ' + (text || 'تمت الإضافة'));
+            else if (type === 'error') el.html('<i class="bi bi-exclamation-triangle-fill"></i> ' + (text || 'غير موجود'));
+
+            if (type !== 'ready') {
+                setTimeout(() => setStatus('ready'), 2500);
+            }
+        }
+
+        function flashZone(type) {
+            var zone = $('#scannerZone');
+            zone.addClass('barcode-flash-' + type);
+            setTimeout(() => zone.removeClass('barcode-flash-success barcode-flash-error'), 600);
+        }
+
+        function updateScanCount() {
+            var el = $('#scanCount');
+            var count = $('#linesBody > .row').length;
+            el.text(count);
+            if (count > 0) el.addClass('has-items'); else el.removeClass('has-items');
+        }
+
+        // ── Init ──
         $(function () {
-            addLine();
-            $('#barcodeInput').on('keypress', function (e) {
-                if (e.which === 13) {
+            // Focus barcode input on page load
+            setTimeout(() => $('#barcodeInput').focus(), 200);
+
+            // Listen for barcode input (Enter key = scanner suffix or manual submit)
+            $('#barcodeInput').on('keydown', function (e) {
+                if (e.key === 'Enter' || e.which === 13) {
                     e.preventDefault();
+                    e.stopPropagation();
                     lookupBarcodeForSale();
+                }
+            });
+
+            // Prevent form submit when barcode input is focused and Enter is pressed
+            $('#saleForm').on('keydown', function (e) {
+                if ((e.key === 'Enter' || e.which === 13) && e.target.id === 'barcodeInput') {
+                    e.preventDefault();
                 }
             });
         });
 
+        // ── Add a sale line ──
         function addLine(prefill) {
             const idx = lineCount;
             const options = itemLookup.map(i => `<option value="${i.id}">${i.name}</option>`).join('');
@@ -138,15 +235,19 @@
             }
             lineCount++;
             refreshFefo(idx);
+            updateScanCount();
+            return idx;
         }
 
         function removeLine(idx) {
             $(`#line_${idx}`).fadeOut(120, function () {
                 $(this).remove();
                 recalcEstimatedTotal();
+                updateScanCount();
             });
         }
 
+        // ── FEFO preview ──
         function refreshFefo(idx) {
             const row = $(`#line_${idx}`);
             const itemId = parseInt(row.find('.item-select').val());
@@ -190,34 +291,173 @@
             $('#estimatedTotal').text(total.toFixed(2));
         }
 
+        // ── Barcode Lookup (Main Scanner Logic) ──
         function lookupBarcodeForSale() {
             const barcode = ($('#barcodeInput').val() || '').trim();
             if (!barcode) return;
 
+            // Check if this item already exists in the cart — auto-increment quantity
+            var existingLine = findExistingLineByItemBarcode(barcode);
+
             $.get('/PharmacySales/LookupByBarcode', { barcode: barcode }, function (res) {
                 if (!res.success) {
-                    Swal.fire('غير موجود', res.message, 'warning');
+                    // Not found
+                    beepError();
+                    setStatus('error', 'غير موجود');
+                    flashZone('error');
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'لم يتم العثور على دواء بهذا الباركود',
+                        text: barcode,
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                    clearAndRefocusBarcode();
                     return;
                 }
 
-                addLine({ itemId: res.data.itemId, quantity: 1 });
-                $('#barcodeInput').val('').focus();
+                if (res.multiMatch) {
+                    // Multiple batches found — show selection modal
+                    showBatchSelectionModal(res.matches);
+                    clearAndRefocusBarcode();
+                    return;
+                }
 
+                // Single match — check if already in cart
+                var existingRow = findExistingLineByItemId(res.data.itemId);
+                if (existingRow) {
+                    // Increment quantity
+                    incrementLineQuantity(existingRow);
+                    beepIncrement();
+                    setStatus('success', '+1 ' + res.data.itemName);
+                    flashZone('success');
+                } else {
+                    // Add new line
+                    addLine({ itemId: res.data.itemId, quantity: 1 });
+                    beepSuccess();
+                    setStatus('success', res.data.itemName);
+                    flashZone('success');
+                }
+
+                totalScans++;
+                clearAndRefocusBarcode();
+
+                // Quick toast confirmation
                 Swal.fire({
+                    toast: true,
+                    position: 'top-end',
                     icon: 'success',
-                    title: 'تمت إضافة الصنف',
-                    html: `<div class="small text-start">
-                        <div><strong>${res.data.itemName}</strong></div>
-                        <div>الوحدة: ${res.data.unitName}</div>
-                        <div>المتاح: ${res.data.availableQuantity}</div>
-                        <div>الموقع: ${res.data.slotCode}</div>
-                    </div>`,
-                    timer: 1400,
-                    showConfirmButton: false
+                    title: res.data.itemName,
+                    html: `<span class="small text-muted">${res.data.unitName} · المتاح: ${res.data.availableQuantity} · ${res.data.slotCode}</span>`,
+                    timer: 1200,
+                    showConfirmButton: false,
+                    timerProgressBar: true
                 });
+            }).fail(function () {
+                beepError();
+                setStatus('error', 'خطأ في الاتصال');
+                flashZone('error');
+                clearAndRefocusBarcode();
             });
         }
 
+        // ── Find existing line by ItemId (for auto-increment) ──
+        function findExistingLineByItemId(itemId) {
+            var found = null;
+            $('#linesBody > .row').each(function () {
+                var select = $(this).find('.item-select');
+                if (parseInt(select.val()) === itemId) {
+                    found = $(this);
+                    return false; // break
+                }
+            });
+            return found;
+        }
+
+        function findExistingLineByItemBarcode(barcode) {
+            // This is resolved server-side; we only use findExistingLineByItemId after lookup
+            return null;
+        }
+
+        // ── Increment quantity on existing line ──
+        function incrementLineQuantity(row) {
+            var qtyInput = row.find('.qty-input');
+            var currentQty = parseFloat(qtyInput.val()) || 0;
+            qtyInput.val((currentQty + 1).toFixed(2));
+
+            // Flash the row
+            row.css('background-color', '#dcfce7');
+            setTimeout(() => row.css('background-color', ''), 400);
+
+            // Refresh FEFO for updated qty
+            var lineId = row.attr('id').replace('line_', '');
+            refreshFefo(parseInt(lineId));
+            updateScanCount();
+        }
+
+        // ── Multi-match batch selection modal ──
+        function showBatchSelectionModal(matches) {
+            var body = $('#batchSelectBody');
+            body.empty();
+
+            matches.forEach(function (m) {
+                var expiryStr = m.suggestedBatch ? m.suggestedBatch.expiryDate.substring(0, 10) : '-';
+                var remaining = m.suggestedBatch ? m.suggestedBatch.quantity : 0;
+                var card = $(`
+                    <div class="batch-match-card mb-2" data-item-id="${m.itemId}">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="batch-match-name">${m.itemName}</div>
+                                <div class="batch-match-meta">
+                                    <i class="bi bi-box-seam me-1"></i>باتش: ${m.batchNumber}
+                                    · <i class="bi bi-calendar3 me-1"></i>الانتهاء: ${expiryStr}
+                                    · <i class="bi bi-archive me-1"></i>المتبقي: ${remaining}
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <div class="fw-bold text-primary">${m.defaultSellingPrice.toFixed(2)}</div>
+                                <div class="small text-muted">${m.slotCode}</div>
+                            </div>
+                        </div>
+                    </div>
+                `);
+
+                card.on('click', function () {
+                    var existingRow = findExistingLineByItemId(m.itemId);
+                    if (existingRow) {
+                        incrementLineQuantity(existingRow);
+                        beepIncrement();
+                        setStatus('success', '+1 ' + m.itemName);
+                    } else {
+                        addLine({ itemId: m.itemId, quantity: 1 });
+                        beepSuccess();
+                        setStatus('success', m.itemName);
+                    }
+                    flashZone('success');
+                    totalScans++;
+                    bootstrap.Modal.getInstance(document.getElementById('batchSelectModal')).hide();
+                    setTimeout(() => $('#barcodeInput').focus(), 200);
+                });
+
+                body.append(card);
+            });
+
+            var modal = new bootstrap.Modal(document.getElementById('batchSelectModal'));
+            modal.show();
+
+            // When modal closes, refocus barcode
+            document.getElementById('batchSelectModal').addEventListener('hidden.bs.modal', function () {
+                $('#barcodeInput').focus();
+            }, { once: true });
+        }
+
+        // ── Clear barcode input and return focus ──
+        function clearAndRefocusBarcode() {
+            $('#barcodeInput').val('');
+            setTimeout(() => $('#barcodeInput').focus(), 50);
+        }
+
+        // ── Reindex lines before submit ──
         function reindexSaleLines() {
             $('#linesBody > .row').each(function (rowIndex) {
                 $(this).find('[data-field]').each(function () {

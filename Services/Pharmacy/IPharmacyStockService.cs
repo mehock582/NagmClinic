@@ -8,6 +8,11 @@ namespace NagmClinic.Services.Pharmacy
 
         Task<BarcodeLookupResult?> LookupByBarcodeAsync(string barcode, CancellationToken cancellationToken = default);
 
+        /// <summary>
+        /// Returns ALL matching batches for a barcode (supports multi-batch scenarios).
+        /// </summary>
+        Task<List<BarcodeLookupResult>> LookupAllByBarcodeAsync(string barcode, CancellationToken cancellationToken = default);
+
         Task<decimal> GetAvailableStockAsync(int itemId, DateTime? asOfDate = null, CancellationToken cancellationToken = default);
 
         Task<FefoAllocationResult> PreviewFefoAllocationAsync(int itemId, decimal requestedQuantity, DateTime? asOfDate = null, CancellationToken cancellationToken = default);

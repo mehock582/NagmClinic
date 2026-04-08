@@ -198,8 +198,8 @@ namespace NagmClinic.Controllers
             if (!ModelState.IsValid)
             {
                 var repopulatedModel = await _appointmentService.BuildEditViewModelAsync(id);
-                model.AvailableDoctors = repopulatedModel?.AvailableDoctors;
-                model.AvailableServices = repopulatedModel?.AvailableServices;
+                model.AvailableDoctors = repopulatedModel?.AvailableDoctors ?? new List<SelectListItem>();
+                model.AvailableServices = repopulatedModel?.AvailableServices ?? new List<SelectListItem>();
                 return View(model);
             }
 
@@ -211,8 +211,8 @@ namespace NagmClinic.Controllers
 
             ModelState.AddModelError("", result.Message);
             var repop = await _appointmentService.BuildEditViewModelAsync(id);
-            model.AvailableDoctors = repop?.AvailableDoctors;
-            model.AvailableServices = repop?.AvailableServices;
+            model.AvailableDoctors = repop?.AvailableDoctors ?? new List<SelectListItem>();
+            model.AvailableServices = repop?.AvailableServices ?? new List<SelectListItem>();
             return View(model);
         }
 

@@ -73,6 +73,62 @@ namespace NagmClinic.Services.Pharmacy
             };
         }
 
+        public async Task<List<BarcodeLookupResult>> LookupAllByBarcodeAsync(string barcode, CancellationToken cancellationToken = default)
+        {
+            var normalized = barcode?.Trim();
+            if (string.IsNullOrWhiteSpace(normalized))
+            {
+                return new List<BarcodeLookupResult>();
+            }
+
+            var today = DateTime.Today;
+
+            var batches = await _context.ItemBatches
+                .Include(b => b.Item)
+                    .ThenInclude(i => i!.Unit)
+                .Include(b => b.Item)
+                    .ThenInclude(i => i!.Location)
+                .Where(b => b.Barcode == normalized
+                         && b.QuantityRemaining > 0
+                         && b.ExpiryDate.Date >= today
+                         && b.Item != null
+                         && b.Item.IsActive)
+                .OrderBy(b => b.ExpiryDate)
+                .ToListAsync(cancellationToken);
+
+            var results = new List<BarcodeLookupResult>();
+
+            foreach (var batch in batches)
+            {
+                var item = batch.Item!;
+                var available = await GetAvailableStockAsync(item.Id, today, cancellationToken);
+
+                results.Add(new BarcodeLookupResult
+                {
+                    ItemId = item.Id,
+                    ItemName = item.Name,
+                    Barcode = batch.Barcode,
+                    BatchNumber = batch.BatchNumber,
+                    UnitName = item.Unit?.Name ?? "-",
+                    SlotCode = item.Location?.Code ?? "-",
+                    DefaultSellingPrice = batch.SellingPrice > 0 ? batch.SellingPrice : item.DefaultSellingPrice,
+                    AvailableQuantity = available,
+                    SuggestedBatch = new FefoAllocationLine
+                    {
+                        BatchId = batch.Id,
+                        BatchNumber = batch.BatchNumber,
+                        Barcode = batch.Barcode,
+                        ExpiryDate = batch.ExpiryDate,
+                        Quantity = batch.QuantityRemaining,
+                        UnitPrice = batch.SellingPrice > 0 ? batch.SellingPrice : item.DefaultSellingPrice,
+                        SlotCode = item.Location?.Code ?? "-"
+                    }
+                });
+            }
+
+            return results;
+        }
+
         public async Task<decimal> GetAvailableStockAsync(int itemId, DateTime? asOfDate = null, CancellationToken cancellationToken = default)
         {
             var date = (asOfDate ?? DateTime.Today).Date;

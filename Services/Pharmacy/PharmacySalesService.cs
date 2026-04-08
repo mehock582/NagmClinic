@@ -29,7 +29,7 @@ namespace NagmClinic.Services.Pharmacy
 
             if (!string.IsNullOrEmpty(searchValue))
             {
-                query = query.Where(s => s.CustomerName.Contains(searchValue) || s.Id.ToString().Contains(searchValue));
+                query = query.Where(s => (s.CustomerName != null && s.CustomerName.Contains(searchValue)) || s.Id.ToString().Contains(searchValue));
             }
 
             int recordsTotal = await query.CountAsync();

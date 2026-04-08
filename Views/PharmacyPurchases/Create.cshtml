@@ -236,6 +236,30 @@
 
         <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 px-3 small mb-2"></div>
 
+        @* ── Quick Barcode Scanner (Re-Purchase Lookup) ── *@
+        <div class="barcode-scanner-zone mb-2" id="purchaseScannerZone">
+            <div class="d-flex align-items-center gap-3">
+                <div class="barcode-scanner-icon">
+                    <i class="bi bi-upc-scan"></i>
+                </div>
+                <div class="barcode-input-wrapper" style="flex:1;">
+                    <input type="text" id="purchaseBarcodeInput"
+                           class="form-control form-control-sm"
+                           placeholder="امسح باركود صنف موجود لإضافة بند جديد تلقائياً"
+                           autocomplete="off" />
+                </div>
+                <button type="button" class="btn btn-primary btn-sm rounded-pill px-3" onclick="lookupPurchaseBarcode()" title="بحث">
+                    <i class="bi bi-search me-1"></i> بحث
+                </button>
+                <span class="barcode-status-indicator status-ready" id="purchaseScanStatus">
+                    <i class="bi bi-wifi"></i> جاهز
+                </span>
+            </div>
+            <div class="mt-1">
+                <small class="text-muted"><i class="bi bi-info-circle me-1"></i>امسح باركود صنف سبق شراؤه لتعبئة البند تلقائياً (الصنف + السعر). أو أدخل الباركود يدوياً في البند مباشرة.</small>
+            </div>
+        </div>
+
         <div class="card erp-section mb-2">
            
             <div class="card-body py-2 px-3">
@@ -335,6 +359,9 @@
                                 <td data-label="الباركود">
                                     <div class="input-group input-group-sm">
                                         <input asp-for="Lines[i].Barcode" data-field="Barcode" type="text" class="form-control erp-input line-barcode-input" autocomplete="off" placeholder="ادخل أو امسح الباركود" />
+                                        <button type="button" class="btn btn-outline-secondary btn-generate-barcode" title="توليد باركود جديد تلقائياً">
+                                            <i class="bi bi-magic"></i>
+                                        </button>
                                     </div>
                                     <span asp-validation-for="Lines[i].Barcode" data-valmsg-field="Barcode" class="text-danger small field-validation-inline"></span>
                                 </td>
@@ -399,8 +426,12 @@
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
+    <script id="item-lookup-data" type="application/json">
+        @Html.Raw(Json.Serialize(Model.ItemLookup))
+    </script>
+
     <script>
-        const rawItemLookup = @Html.Raw(Json.Serialize(Model.ItemLookup));
+        const rawItemLookup = JSON.parse(document.getElementById('item-lookup-data').textContent);
         const itemLookup = normalizeItemLookup(rawItemLookup || []);
 
         const $form = $('#purchaseForm');
@@ -460,13 +491,64 @@
                 }
 
                 e.preventDefault();
-                const $row = $(this).closest('tr.line-row');
-                const $quantity = $row.find('[data-field="Quantity"]');
-                $(this).valid();
+                const $input = $(this);
+                const $row = $input.closest('tr.line-row');
+                const barcode = ($input.val() || '').trim();
+                $input.valid();
 
-                if ($quantity.length) {
-                    $quantity.trigger('focus').select();
+                if (!barcode) {
+                    const $qty = $row.find('[data-field="Quantity"]');
+                    if ($qty.length) $qty.trigger('focus').select();
+                    return;
                 }
+
+                // Try to lookup this barcode for pre-fill (re-purchase scenario)
+                $.get('/PharmacyPurchases/LookupByBarcode', { barcode: barcode }, function (res) {
+                    if (res.success && res.data) {
+                        // Pre-fill item if not already selected
+                        const $itemSelect = $row.find('[data-field="ItemId"]');
+                        if (parseInt($itemSelect.val()) === 0) {
+                            $itemSelect.val(res.data.itemId);
+                            if ($itemSelect.data('select2')) $itemSelect.trigger('change.select2');
+                            syncRowItemMeta($row);
+                        }
+                        // Pre-fill selling price
+                        if (res.data.defaultSellingPrice > 0) {
+                            $row.find('[data-field="SellingPrice"]').val(res.data.defaultSellingPrice.toFixed(2));
+                        }
+                        // Flash row green
+                        $row.css('background-color', '#dcfce7');
+                        setTimeout(() => $row.css('background-color', ''), 400);
+                    }
+                    // Move to quantity regardless
+                    const $qty = $row.find('[data-field="Quantity"]');
+                    if ($qty.length) $qty.trigger('focus').select();
+                }).fail(function() {
+                    const $qty = $row.find('[data-field="Quantity"]');
+                    if ($qty.length) $qty.trigger('focus').select();
+                });
+            });
+
+            // Auto-generate barcode button
+            $tableBody.on('click', '.btn-generate-barcode', function () {
+                const $btn = $(this);
+                const $row = $btn.closest('tr.line-row');
+                const $barcodeInput = $row.find('[data-field="Barcode"]');
+                $btn.prop('disabled', true);
+
+                $.get('/PharmacyPurchases/GetNextBarcode', function (res) {
+                    if (res.success) {
+                        $barcodeInput.val(res.barcode);
+                        $barcodeInput.valid();
+                        // Flash
+                        $barcodeInput.css('background-color', '#dcfce7');
+                        setTimeout(() => $barcodeInput.css('background-color', ''), 400);
+                    } else {
+                        Swal.fire({ icon: 'error', title: 'خطأ', text: res.message || 'تعذر توليد الباركود', timer: 2000, showConfirmButton: false });
+                    }
+                }).always(function () {
+                    $btn.prop('disabled', false);
+                });
             });
 
             $form.on('submit', function (e) {
@@ -625,6 +707,9 @@
                     <td data-label="الباركود">
                         <div class="input-group input-group-sm">
                             <input id="Lines_${idx}__Barcode" name="Lines[${idx}].Barcode" data-field="Barcode" type="text" class="form-control erp-input line-barcode-input" value="" autocomplete="off" placeholder="ادخل أو امسح الباركود" data-val="true" data-val-required="الباركود مطلوب" />
+                            <button type="button" class="btn btn-outline-secondary btn-generate-barcode" title="توليد باركود جديد تلقائياً">
+                                <i class="bi bi-magic"></i>
+                            </button>
                         </div>
                         <span class="text-danger small field-validation-valid field-validation-inline" data-valmsg-for="Lines[${idx}].Barcode" data-valmsg-replace="true" data-valmsg-field="Barcode"></span>
                     </td>
@@ -779,6 +864,134 @@
             const day = String(date.getDate()).padStart(2, '0');
             return `${year}-${month}-${day}`;
         }
+
+        // ── Quick-scan barcode for purchases (top zone) ──
+        function lookupPurchaseBarcode() {
+            const barcode = ($('#purchaseBarcodeInput').val() || '').trim();
+            if (!barcode) return;
+
+            var $status = $('#purchaseScanStatus');
+            $status.removeClass('status-ready status-success status-error').addClass('status-ready');
+            $status.html('<i class="bi bi-hourglass-split"></i> جاري البحث...');
+
+            $.get('/PharmacyPurchases/LookupByBarcode', { barcode: barcode }, function (res) {
+                if (res.success && res.data) {
+                    // Found — add a new line with pre-filled data
+                    addNewLineWithPrefill(res.data, barcode);
+                    $status.removeClass('status-ready').addClass('status-success');
+                    $status.html('<i class="bi bi-check-circle-fill"></i> ' + res.data.itemName);
+                    $('#purchaseScannerZone').addClass('barcode-flash-success');
+                    setTimeout(() => $('#purchaseScannerZone').removeClass('barcode-flash-success'), 600);
+                } else {
+                    // Not found — add a new line with just the barcode pre-filled
+                    addNewLineWithBarcode(barcode);
+                    $status.removeClass('status-ready').addClass('status-error');
+                    $status.html('<i class="bi bi-info-circle"></i> صنف جديد — أكمل البيانات');
+                }
+
+                $('#purchaseBarcodeInput').val('').focus();
+                setTimeout(function () {
+                    $status.removeClass('status-success status-error').addClass('status-ready');
+                    $status.html('<i class="bi bi-wifi"></i> جاهز');
+                }, 2500);
+            }).fail(function () {
+                $status.removeClass('status-ready').addClass('status-error');
+                $status.html('<i class="bi bi-exclamation-triangle-fill"></i> خطأ في الاتصال');
+                $('#purchaseBarcodeInput').val('').focus();
+                setTimeout(function () {
+                    $status.removeClass('status-error').addClass('status-ready');
+                    $status.html('<i class="bi bi-wifi"></i> جاهز');
+                }, 2500);
+            });
+        }
+
+        async function addNewLineWithPrefill(data, barcode) {
+            try {
+                const batchResponse = await $.get('/PharmacyPurchases/GetNextBatchNumber');
+                if (!batchResponse.success) {
+                    Swal.fire({ icon: 'error', title: 'خطأ', text: batchResponse.message || 'تعذر توليد رقم الباتش', timer: 2000, showConfirmButton: false });
+                    return;
+                }
+
+                const idx = nextLineIndex;
+                const rowHtml = buildRowHtml(idx, batchResponse.batchNumber);
+                $tableBody.append(rowHtml);
+
+                const $newRow = $tableBody.find(`tr#line_row_${idx}`);
+                initializeSelect2($newRow);
+
+                // Pre-fill item
+                const $itemSelect = $newRow.find('[data-field="ItemId"]');
+                $itemSelect.val(data.itemId);
+                if ($itemSelect.data('select2')) $itemSelect.trigger('change.select2');
+                syncRowItemMeta($newRow);
+
+                // Pre-fill barcode
+                $newRow.find('[data-field="Barcode"]').val(barcode);
+
+                // Pre-fill selling price
+                if (data.defaultSellingPrice > 0) {
+                    $newRow.find('[data-field="SellingPrice"]').val(data.defaultSellingPrice.toFixed(2));
+                }
+
+                updateLineTotal($newRow);
+
+                // Flash and focus purchase price
+                $newRow.css('background-color', '#dcfce7');
+                setTimeout(() => $newRow.css('background-color', ''), 500);
+                $newRow.find('[data-field="PurchasePrice"]').trigger('focus').select();
+
+                nextLineIndex += 1;
+                refreshValidation();
+                toggleEmptyState();
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function addNewLineWithBarcode(barcode) {
+            try {
+                const batchResponse = await $.get('/PharmacyPurchases/GetNextBatchNumber');
+                if (!batchResponse.success) return;
+
+                const idx = nextLineIndex;
+                const rowHtml = buildRowHtml(idx, batchResponse.batchNumber);
+                $tableBody.append(rowHtml);
+
+                const $newRow = $tableBody.find(`tr#line_row_${idx}`);
+                initializeSelect2($newRow);
+                syncRowItemMeta($newRow);
+
+                // Pre-fill barcode only
+                $newRow.find('[data-field="Barcode"]').val(barcode);
+                updateLineTotal($newRow);
+
+                // Focus item select for the user to pick the item
+                const $itemSelect = $newRow.find('[data-field="ItemId"]');
+                if ($itemSelect.data('select2')) {
+                    $itemSelect.select2('open');
+                } else {
+                    $itemSelect.trigger('focus');
+                }
+
+                nextLineIndex += 1;
+                refreshValidation();
+                toggleEmptyState();
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // Bind Enter on the quick-scan input
+        $(function () {
+            $('#purchaseBarcodeInput').on('keydown', function (e) {
+                if (e.key === 'Enter' || e.which === 13) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    lookupPurchaseBarcode();
+                }
+            });
+        });
 
         function escapeHtml(text) {
             return String(text ?? '')
