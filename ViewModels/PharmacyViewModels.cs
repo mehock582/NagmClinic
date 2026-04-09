@@ -167,9 +167,6 @@ namespace NagmClinic.ViewModels
         [Range(0.01, 999999, ErrorMessage = "سعر الشراء يجب أن يكون أكبر من صفر")]
         public decimal PurchasePrice { get; set; }
 
-        [Range(0, 999999, ErrorMessage = "سعر البيع غير صحيح")]
-        public decimal SellingPrice { get; set; }
-
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
         {
             if (ExpiryDate == default)
@@ -198,11 +195,14 @@ namespace NagmClinic.ViewModels
 
     public class PharmacySaleLineInputViewModel
     {
-        [Required]
+        [Range(1, int.MaxValue, ErrorMessage = "يرجى اختيار الصنف")]
         public int ItemId { get; set; }
 
         [Range(0.01, 999999, ErrorMessage = "الكمية يجب أن تكون أكبر من صفر")]
         public decimal Quantity { get; set; }
+
+        [Range(0.01, 999999, ErrorMessage = "سعر البيع يجب أن يكون أكبر من صفر")]
+        public decimal SellingPrice { get; set; }
     }
 
     public class PharmacyInventoryItemViewModel

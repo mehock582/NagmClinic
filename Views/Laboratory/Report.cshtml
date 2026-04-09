@@ -1,0 +1,149 @@
+@model NagmClinic.ViewModels.LabReportPrintViewModel
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lab Report - @Model.Meta.LabNumber</title>
+    <link href="~/css/cairo-font.css" rel="stylesheet" />
+    <link href="~/css/print-branding.css" rel="stylesheet" />
+    <link href="~/css/lab-report-print.css" rel="stylesheet" />
+</head>
+<body class="lab-report-page">
+    <div class="lab-report-print-controls">
+        <button type="button" onclick="window.print()">طباعة / Print</button>
+    </div>
+
+    <article class="lab-report-sheet">
+        @await Html.PartialAsync("_PrintBrandingHeader", new PrintBrandingHeaderViewModel
+        {
+            DocumentTitleAr = "تقرير نتائج المختبر",
+            DocumentTitleEn = "Laboratory Report",
+            DocumentNumber = Model.Meta.LabNumber,
+            Compact = false
+        })
+
+        <section class="lab-patient-block">
+            <div class="lab-patient-grid">
+                <div class="lab-info-cell info-pid">
+                    <span class="lab-info-label">Patient ID / رقم المريض</span>
+                    <span class="lab-info-value ltr">@Model.Patient.PatientId</span>
+                </div>
+                <div class="lab-info-cell info-name">
+                    <span class="lab-info-label">Patient Name / اسم المريض</span>
+                    <span class="lab-info-value">@Model.Patient.PatientName</span>
+                </div>
+                <div class="lab-info-cell info-gender">
+                    <span class="lab-info-label">Gender / النوع</span>
+                    <span class="lab-info-value">@Model.Patient.GenderAr <span class="ltr">(@Model.Patient.GenderEn)</span></span>
+                </div>
+                <div class="lab-info-cell lab-info-cell-qr">
+                    <span class="lab-info-label">QR Code</span>
+                    @if (!string.IsNullOrWhiteSpace(Model.Patient.QrCodeDataUri))
+                    {
+                        <img src="@Model.Patient.QrCodeDataUri" alt="Report QR Code" class="lab-qr-image" />
+                    }
+                    else
+                    {
+                        <span class="lab-qr-placeholder">QR</span>
+                    }
+                    <span class="lab-qr-caption ltr">@Model.Meta.LabNumber</span>
+                </div>
+                <div class="lab-info-cell info-age">
+                    <span class="lab-info-label">Age / العمر</span>
+                    <span class="lab-info-value ltr">@Model.Patient.Age Y</span>
+                </div>
+                <div class="lab-info-cell info-doctor">
+                    <span class="lab-info-label">Attending Physician / الطبيب المعالج</span>
+                    <span class="lab-info-value">@Model.Patient.AttendingPhysician</span>
+                </div>
+                <div class="lab-info-cell info-visit">
+                    <span class="lab-info-label">Visit Number / رقم الحجز</span>
+                    <span class="lab-info-value ltr">@Model.Meta.DailyNumber</span>
+                </div>
+                <div class="lab-info-cell info-lab">
+                    <span class="lab-info-label">Lab Number / رقم المعمل</span>
+                    <span class="lab-info-value ltr">@Model.Meta.LabNumber</span>
+                </div>
+                <div class="lab-info-cell info-date">
+                    <span class="lab-info-label">Report Date / تاريخ التقرير</span>
+                    <span class="lab-info-value ltr">@Model.Meta.ReportDate.ToString("dd/MM/yyyy HH:mm")</span>
+                </div>
+            </div>
+        </section>
+
+        <h2 class="lab-section-title">نتائج المختبر / Laboratory Results</h2>
+
+        <table class="lab-results-table">
+            <thead>
+                <tr>
+                    <th style="text-align:left; direction:ltr;">Test Name</th>
+                    <th style="text-align:center; direction:ltr;">Reading</th>
+                    <th style="text-align:center; direction:ltr;">FLG</th>
+                    <th style="text-align:center; direction:ltr;">Unit</th>
+                    <th style="text-align:center; direction:ltr;">Reff. Ranges</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var group in Model.ResultGroups)
+                {
+                    <tr class="lab-group-row">
+                        <td colspan="5">
+                            @group.GroupNameAr
+                            @if (!string.IsNullOrWhiteSpace(group.GroupNameEn))
+                            {
+                                <span class="ltr"> / @group.GroupNameEn</span>
+                            }
+                        </td>
+                    </tr>
+
+                    @foreach (var row in group.Rows)
+                    {
+                        var flagCss = row.Flag == "H" ? "flag-h" : row.Flag == "L" ? "flag-l" : string.Empty;
+                        <tr>
+                            <td class="lab-test-col">
+                                <span class="ar">@row.TestNameAr</span>
+                                @if (!string.IsNullOrWhiteSpace(row.TestNameEn))
+                                {
+                                    <span class="en">@row.TestNameEn</span>
+                                }
+                            </td>
+                            <td class="lab-reading-col">@row.Reading</td>
+                            <td class="lab-flag-col">
+                                @if (!string.IsNullOrWhiteSpace(row.Flag))
+                                {
+                                    <span class="lab-flag-pill @flagCss">@row.Flag</span>
+                                }
+                            </td>
+                            <td class="lab-unit-col">@row.Unit</td>
+                            <td class="lab-range-col">@row.ReferenceRange</td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+
+        <div class="lab-results-divider"></div>
+
+        @await Html.PartialAsync("_PrintBrandingFooter", new PrintBrandingFooterViewModel
+        {
+            PrintedAt = Model.Meta.PrintedAt,
+            LeftTitle = "Signature / التوقيع:",
+            LeftValue = "________________",
+            Compact = false
+        })
+    </article>
+
+    <script>
+        (function () {
+            var autoPrint = (new URLSearchParams(window.location.search).get('autoPrint') || '').toLowerCase();
+            if (autoPrint === 'true' || autoPrint === '1') {
+                window.print();
+            }
+        })();
+    </script>
+</body>
+</html>

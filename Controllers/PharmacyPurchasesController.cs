@@ -100,6 +100,50 @@ namespace NagmClinic.Controllers
         }
 
         [HttpGet]
+        public async Task<IActionResult> ValidateBarcodeUnique(string barcode, int? itemId = null)
+        {
+            var normalized = (barcode ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(normalized))
+            {
+                return Json(new { success = false, exists = false, message = "الباركود مطلوب" });
+            }
+            var normalizedLower = normalized.ToLower();
+
+            var existing = await _context.ItemBatches
+                .Include(b => b.Item)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(b => (b.Barcode ?? string.Empty).ToLower() == normalizedLower);
+
+            if (existing == null)
+            {
+                return Json(new { success = true, exists = false });
+            }
+
+            var sameItem = itemId.HasValue && itemId.Value > 0 && existing.ItemId == itemId.Value;
+            var itemName = existing.Item?.Name ?? $"#{existing.ItemId}";
+            var message = sameItem
+                ? $"تم العثور على هذا الباركود مسبقاً للصنف: {itemName} - باتش: {existing.BatchNumber}"
+                : $"تم العثور على هذا الباركود مسبقاً لصنف آخر: {itemName} - باتش: {existing.BatchNumber}";
+
+            return Json(new
+            {
+                success = true,
+                exists = true,
+                sameItem,
+                message,
+                data = new
+                {
+                    existing.ItemId,
+                    ItemName = itemName,
+                    existing.BatchNumber,
+                    ExpiryDate = existing.ExpiryDate.ToString("yyyy-MM-dd"),
+                    existing.PurchasePrice,
+                    existing.QuantityRemaining
+                }
+            });
+        }
+
+        [HttpGet]
         public async Task<IActionResult> GetNextBatchNumber()
         {
             try
@@ -141,8 +185,7 @@ namespace NagmClinic.Controllers
                 {
                     i.Id,
                     i.Name,
-                    UnitName = i.Unit != null ? i.Unit.Name : "-",
-                    i.DefaultSellingPrice
+                    UnitName = i.Unit != null ? i.Unit.Name : "-"
                 })
                 .ToListAsync();
 

@@ -179,12 +179,31 @@ namespace NagmClinic.Services.Appointments
                 appointment.ZeroFeeReason = model.ConsultationFee == 0 ? model.ZeroFeeReason : null;
                 appointment.Notes = model.Notes;
                 
-                _context.AppointmentItems.RemoveRange(appointment.AppointmentItems);
+                var existingItems = appointment.AppointmentItems.ToList();
+                var incomingItems = model.Items ?? new List<AppointmentItemViewModel>();
 
-                if (model.Items != null && model.Items.Any())
+                // 1. Remove items that are no longer in the request
+                var incomingServiceIds = incomingItems.Select(i => i.ServiceId).ToList();
+                var itemsToRemove = existingItems.Where(ei => !incomingServiceIds.Contains(ei.ServiceId)).ToList();
+                _context.AppointmentItems.RemoveRange(itemsToRemove);
+
+                // 2. Add or Update
+                foreach (var item in incomingItems)
                 {
-                    foreach (var item in model.Items)
+                    var existingItem = existingItems.FirstOrDefault(ei => ei.ServiceId == item.ServiceId);
+                    
+                    if (existingItem != null)
                     {
+                        // Update existing, preserves the attached LabResult
+                        existingItem.Quantity = item.Quantity;
+                        existingItem.UnitPrice = item.UnitPrice;
+                        existingItem.TotalPrice = item.Quantity * item.UnitPrice;
+                        
+                        existingItems.Remove(existingItem); // Remove from our local list to handle duplicates just in case
+                    }
+                    else
+                    {
+                        // Add new item
                         var appointmentItem = new AppointmentItem
                         {
                             AppointmentId = appointment.Id,
@@ -194,6 +213,8 @@ namespace NagmClinic.Services.Appointments
                             TotalPrice = item.Quantity * item.UnitPrice
                         };
                         _context.AppointmentItems.Add(appointmentItem);
+                        
+                        // Save changes to get the AppointmentItem.Id generated for LabResult linking
                         await _context.SaveChangesAsync();
 
                         var service = await _context.ClinicServices.FindAsync(item.ServiceId);

@@ -1,0 +1,41 @@
+@using NagmClinic.Services.Branding
+@model NagmClinic.ViewModels.PrintBrandingFooterViewModel
+@inject IClinicBrandingService BrandingService
+
+@{
+    var branding = BrandingService.GetBranding();
+    var cssMode = Model.Compact ? "is-compact" : "is-standard";
+}
+
+<footer class="print-branding-footer @cssMode">
+    <div class="print-branding-footer-left">
+        @if (!string.IsNullOrWhiteSpace(Model.LeftTitle) || !string.IsNullOrWhiteSpace(Model.LeftValue))
+        {
+            <div>
+                @if (!string.IsNullOrWhiteSpace(Model.LeftTitle))
+                {
+                    <strong>@Model.LeftTitle</strong>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.LeftValue))
+                {
+                    <span class="ltr">@Model.LeftValue</span>
+                }
+            </div>
+        }
+
+        @if (Model.PrintedAt.HasValue)
+        {
+            <div><strong>Print Date:</strong> <span class="ltr">@Model.PrintedAt.Value.ToString("dd/MM/yyyy HH:mm")</span></div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(Model.SecondaryLine))
+        {
+            <div class="print-branding-secondary">@Model.SecondaryLine</div>
+        }
+    </div>
+
+    <div class="print-branding-footer-right">
+        <div>@branding.AddressAr</div>
+        <div><strong>الهاتف:</strong> <span class="ltr">@branding.Phone</span></div>
+    </div>
+</footer>

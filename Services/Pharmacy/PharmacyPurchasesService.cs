@@ -94,8 +94,7 @@ namespace NagmClinic.Services.Pharmacy
                 Barcode = l.Barcode.Trim(),
                 ExpiryDate = l.ExpiryDate.Date,
                 Quantity = l.Quantity,
-                PurchasePrice = l.PurchasePrice,
-                SellingPrice = l.SellingPrice
+                PurchasePrice = l.PurchasePrice
             }).ToList();
 
             return await _stockService.ExecutePurchaseAsync(purchase, requestLines);
@@ -103,16 +102,17 @@ namespace NagmClinic.Services.Pharmacy
 
         public async Task<string> GenerateBatchNumberAsync()
         {
-            string datePart = DateTime.Today.ToString("yyyyMMdd");
+            string datePart = DateTime.Today.ToString("yyMMdd");
             int attempt = 1;
-            while (attempt < 1000)
+            while (attempt < 10000)
             {
-                string candidate = $"BATCH-{datePart}-{attempt:D3}";
+                string candidate = $"{datePart}{attempt:D3}";
                 bool exists = await _context.ItemBatches.AnyAsync(b => b.BatchNumber == candidate);
                 if (!exists) return candidate;
                 attempt++;
             }
-            return $"BATCH-{datePart}-{Guid.NewGuid().ToString("N").Substring(0, 4).ToUpper()}";
+            // fallback if extremely high volume today
+            return $"{datePart}{new Random().Next(10000, 99999)}";
         }
 
         public async Task<string> GenerateBarcodeAsync()
@@ -136,8 +136,7 @@ namespace NagmClinic.Services.Pharmacy
                 {
                     i.Id,
                     i.Name,
-                    UnitName = i.Unit != null ? i.Unit.Name : "-",
-                    i.DefaultSellingPrice
+                    UnitName = i.Unit != null ? i.Unit.Name : "-"
                 })
                 .ToListAsync();
         }

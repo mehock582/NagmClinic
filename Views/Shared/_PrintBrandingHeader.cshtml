@@ -1,0 +1,50 @@
+@using NagmClinic.Services.Branding
+@model NagmClinic.ViewModels.PrintBrandingHeaderViewModel
+@inject IClinicBrandingService BrandingService
+
+@{
+    var branding = BrandingService.GetBranding();
+    var cssMode = Model.Compact ? "is-compact" : "is-standard";
+}
+
+<header class="print-branding-header @cssMode">
+    <div class="print-branding-logo-box">
+        @if (!string.IsNullOrWhiteSpace(branding.LogoUrl))
+        {
+            <img src="@branding.LogoUrl" alt="Clinic Logo" />
+        }
+        else
+        {
+            <span>LOGO</span>
+        }
+    </div>
+
+    <div class="print-branding-center">
+        <h1>@branding.CenterNameAr</h1>
+        @if (!string.IsNullOrWhiteSpace(branding.CenterNameEn))
+        {
+            <p class="ltr">@branding.CenterNameEn</p>
+        }
+        @if (!string.IsNullOrWhiteSpace(Model.DocumentTitleAr) || !string.IsNullOrWhiteSpace(Model.DocumentTitleEn))
+        {
+            <div class="print-branding-doc-title">
+                @if (!string.IsNullOrWhiteSpace(Model.DocumentTitleAr))
+                {
+                    <strong>@Model.DocumentTitleAr</strong>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.DocumentTitleEn))
+                {
+                    <span class="ltr">@Model.DocumentTitleEn</span>
+                }
+            </div>
+        }
+    </div>
+
+    <div class="print-branding-doc-meta">
+        @if (!string.IsNullOrWhiteSpace(Model.DocumentNumber))
+        {
+            <span>Report No.</span>
+            <strong class="ltr">@Model.DocumentNumber</strong>
+        }
+    </div>
+</header>

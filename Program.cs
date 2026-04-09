@@ -1,9 +1,12 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using NagmClinic.Data;
+using NagmClinic.Models.Configuration;
 using NagmClinic.Services.Pharmacy;
 using NagmClinic.Services.Appointments;
 using NagmClinic.Services.Patients;
+using NagmClinic.Services.Branding;
+using NagmClinic.Services.Reports;
 
 namespace NagmClinic
 {
@@ -27,6 +30,9 @@ namespace NagmClinic
             builder.Services.AddScoped<IPatientService, PatientService>();
             builder.Services.AddScoped<IPharmacySalesService, PharmacySalesService>();
             builder.Services.AddScoped<IPharmacyPurchasesService, PharmacyPurchasesService>();
+            builder.Services.Configure<ClinicBrandingOptions>(builder.Configuration.GetSection("ClinicBranding"));
+            builder.Services.AddSingleton<IClinicBrandingService, ClinicBrandingService>();
+            builder.Services.AddScoped<IQrCodeService, QrCodeService>();
 
             var app = builder.Build();
 

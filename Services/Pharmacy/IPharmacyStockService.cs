@@ -68,13 +68,13 @@ namespace NagmClinic.Services.Pharmacy
         public DateTime ExpiryDate { get; set; }
         public decimal Quantity { get; set; }
         public decimal PurchasePrice { get; set; }
-        public decimal SellingPrice { get; set; }
     }
 
     public sealed class PharmacySaleRequestLine
     {
         public int ItemId { get; set; }
         public decimal Quantity { get; set; }
+        public decimal SellingPrice { get; set; }
     }
 
     public sealed class PurchaseExecutionResult

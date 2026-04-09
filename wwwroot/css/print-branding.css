@@ -1,0 +1,159 @@
+.print-branding-header {
+    display: grid;
+    grid-template-columns: 96px 1fr 112px;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 2px solid #12314a;
+    padding-bottom: 6px;
+}
+
+.print-branding-header.is-compact {
+    grid-template-columns: 56px 1fr 82px;
+    border-bottom-style: dashed;
+    border-bottom-width: 1px;
+    padding-bottom: 4px;
+}
+
+.print-branding-logo-box {
+    width: 82px;
+    height: 82px;
+    border: 1px solid #cad5e2;
+    border-radius: 10px;
+    background: #f8fbff;
+    overflow: hidden;
+    display: grid;
+    place-items: center;
+    color: #486581;
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+.print-branding-header.is-compact .print-branding-logo-box {
+    width: 50px;
+    height: 50px;
+    border-radius: 8px;
+    font-size: 0.56rem;
+}
+
+.print-branding-logo-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.print-branding-center {
+    text-align: center;
+}
+
+.print-branding-center h1 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #102a43;
+    line-height: 1.2;
+}
+
+.print-branding-header.is-compact .print-branding-center h1 {
+    font-size: 0.78rem;
+}
+
+.print-branding-center p {
+    margin: 1px 0 0;
+    font-size: 0.7rem;
+    color: #52606d;
+}
+
+.print-branding-header.is-compact .print-branding-center p {
+    font-size: 0.6rem;
+}
+
+.print-branding-doc-title {
+    margin-top: 2px;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.print-branding-doc-title strong {
+    font-size: 0.76rem;
+    color: #1f3a56;
+}
+
+.print-branding-doc-title span {
+    font-size: 0.62rem;
+    color: #627d98;
+}
+
+.print-branding-header.is-compact .print-branding-doc-title strong {
+    font-size: 0.66rem;
+}
+
+.print-branding-doc-meta {
+    justify-self: end;
+    text-align: center;
+    border: 1px solid #cad5e2;
+    border-radius: 10px;
+    padding: 6px 8px;
+    min-height: 50px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    font-size: 0.64rem;
+    color: #486581;
+    background: #f8fafc;
+}
+
+.print-branding-doc-meta strong {
+    font-size: 0.76rem;
+    color: #102a43;
+    line-height: 1.2;
+}
+
+.print-branding-header.is-compact .print-branding-doc-meta {
+    min-height: 38px;
+    border-radius: 8px;
+    font-size: 0.56rem;
+    padding: 4px 6px;
+}
+
+.print-branding-header.is-compact .print-branding-doc-meta strong {
+    font-size: 0.62rem;
+}
+
+.print-branding-footer {
+    margin-top: 12px;
+    border-top: 1px solid #cad5e2;
+    padding-top: 7px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    font-size: 0.74rem;
+}
+
+.print-branding-footer.is-compact {
+    margin-top: 8px;
+    padding-top: 6px;
+    font-size: 0.64rem;
+    border-top-style: dashed;
+}
+
+.print-branding-footer-left,
+.print-branding-footer-right {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.print-branding-secondary {
+    color: #52606d;
+}
+
+.print-branding-footer-right {
+    text-align: right;
+}
+
+.ltr {
+    direction: ltr;
+    unicode-bidi: embed;
+}

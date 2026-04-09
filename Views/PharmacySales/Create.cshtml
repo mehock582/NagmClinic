@@ -2,11 +2,13 @@
 
 @{
     ViewData["Title"] = "إضافة فاتورة صرف";
+    <link href="~/css/pharmacy-transaction.css" rel="stylesheet" />
 }
 
-<div class="row justify-content-center">
-    <div class="col-12 reception-container">
-        <form asp-action="Create" id="saleForm">
+<div class="container-fluid erp-transaction-page py-2">
+    <div class="row justify-content-center">
+        <div class="col-12">
+            <form asp-action="Create" id="saleForm">
             <div asp-validation-summary="ModelOnly" class="alert alert-danger rounded-3 p-2 small border-0 mb-3"></div>
 
             @* ── Barcode Scanner Zone ── *@
@@ -37,35 +39,50 @@
             </div>
 
             @* ── Sale Header ── *@
-            <div class="card border-0 shadow-sm rounded-3 mb-3">
+            <div class="card erp-section shadow-sm mb-3">
                 <div class="card-body p-3">
                     <div class="row g-2 align-items-end">
                         <div class="col-md-3">
-                            <label asp-for="SaleDate" class="form-label small fw-bold"></label>
-                            <input asp-for="SaleDate" asp-format="{0:yyyy-MM-ddTHH:mm}" type="datetime-local" class="form-control form-control-sm" step="60" />
+                            <label asp-for="SaleDate" class="erp-label"></label>
+                            <input asp-for="SaleDate" asp-format="{0:yyyy-MM-ddTHH:mm}" type="datetime-local" class="form-control form-control-sm erp-input" step="60" />
                         </div>
                         <div class="col-md-3">
-                            <label asp-for="CustomerName" class="form-label small fw-bold"></label>
-                            <input asp-for="CustomerName" class="form-control form-control-sm" />
+                            <label asp-for="CustomerName" class="erp-label"></label>
+                            <input asp-for="CustomerName" class="form-control form-control-sm erp-input" />
                         </div>
                         <div class="col-md-4">
-                            <label asp-for="Notes" class="form-label small fw-bold"></label>
-                            <input asp-for="Notes" class="form-control form-control-sm" placeholder="ملاحظات اختيارية" />
+                            <label asp-for="Notes" class="erp-label"></label>
+                            <input asp-for="Notes" class="form-control form-control-sm erp-input" placeholder="ملاحظات اختيارية" />
                         </div>
                         <div class="col-md-2">
-                            <button type="button" class="btn btn-outline-primary btn-sm rounded-pill w-100" onclick="addLine()">
-                                <i class="bi bi-plus-lg me-1"></i> إضافة بند يدوي
+                            <button type="button" class="btn btn-outline-primary btn-sm rounded-pill w-100 mt-2" onclick="PharmacyTransaction.addRow()">
+                                <i class="bi bi-plus-lg me-1"></i> إضافة صنف يدوي
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            @* ── Sale Lines (FEFO) ── *@
-            <div class="card border-0 shadow-sm rounded-3 mb-3">
-                <div class="card-body p-3">
+            @* ── Sale Lines ── *@
+            <div class="card erp-section shadow-sm mb-3">
+                <div class="card-header bg-transparent d-flex justify-content-between align-items-center border-0 pb-0">
                     <h6 class="text-primary fw-bold mb-2"><i class="bi bi-list-check me-2"></i>بنود الصرف (FEFO)</h6>
-                    <div id="linesBody"></div>
+                </div>
+                <div class="card-body p-2" id="linesContainer">
+                    <div class="sales-lines-head px-2 py-1 mb-2 rounded-2 d-none d-xl-grid">
+                        <span class="head-item">الصنف</span>
+                        <span class="head-qty">الكمية</span>
+                        <span class="head-price">سعر البيع</span>
+                        <span class="head-fefo">المتاح / الباتش / الانتهاء / الموقع</span>
+                        <span class="head-total text-end">التقديري</span>
+                        <span class="head-action text-center">حذف</span>
+                    </div>
+                    <div id="linesBody" class="p-1 sales-lines-body"></div>
+                    <div id="emptyContainer" class="erp-empty" style="display:none;">
+                        <i class="bi bi-basket3 fs-3 d-block mb-2 text-muted"></i>
+                        لم يتم إضافة أصناف للصرف بعد.
+                        <div id="linesClientValidation" class="text-danger mt-1 fw-bold"></div>
+                    </div>
                 </div>
             </div>
 
@@ -110,32 +127,73 @@
     </div>
 </div>
 
+<template id="rowTemplate">
+    <div class="erp-line-row service-row sale-service-row" id="line_row_{idx}" data-line-index="{idx}">
+        <div class="sale-line-grid">
+            <div class="sale-line-item">
+                <label class="line-field-label line-micro-label">الصنف <span class="text-danger">*</span></label>
+                <select id="Lines_{idx}__ItemId" name="Lines[{idx}].ItemId" data-field="ItemId" class="form-select form-select-sm erp-input item-select sale-item-select" required data-val="true" data-val-range="يرجى اختيار الصنف" data-val-range-min="1" data-val-range-max="2147483647">
+                    <option value="">-- اختر الصنف --</option>
+                    {options}
+                </select>
+                <span class="text-danger small field-validation-valid field-validation-inline" data-valmsg-for="Lines[{idx}].ItemId" data-valmsg-replace="true" data-valmsg-field="ItemId"></span>
+            </div>
+            <div class="sale-line-qty">
+                <label class="line-field-label line-micro-label">الكمية <span class="text-danger">*</span></label>
+                <input id="Lines_{idx}__Quantity" name="Lines[{idx}].Quantity" data-field="Quantity" type="number" class="form-control form-control-sm erp-input qty-input sale-qty-input text-center" value="1" min="0.01" step="0.01" required data-val="true" data-val-number="قيمة الكمية غير صحيحة" data-val-required="الكمية مطلوبة" data-val-range="الكمية يجب أن تكون أكبر من صفر" data-val-range-min="0.01" data-val-range-max="999999" />
+                <span class="text-danger small field-validation-valid field-validation-inline" data-valmsg-for="Lines[{idx}].Quantity" data-valmsg-replace="true" data-valmsg-field="Quantity"></span>
+            </div>
+            <div class="sale-line-price">
+                <label class="line-field-label line-micro-label">سعر البيع <span class="text-danger">*</span></label>
+                <input id="Lines_{idx}__SellingPrice" name="Lines[{idx}].SellingPrice" data-field="SellingPrice" type="number" class="form-control form-control-sm erp-input sale-price-input text-center" value="0.00" min="0.01" step="0.01" required data-val="true" data-val-number="قيمة سعر البيع غير صحيحة" data-val-required="سعر البيع مطلوب" data-val-range="سعر البيع يجب أن يكون أكبر من صفر" data-val-range-min="0.01" data-val-range-max="999999" />
+                <span class="text-danger small field-validation-valid field-validation-inline" data-valmsg-for="Lines[{idx}].SellingPrice" data-valmsg-replace="true" data-valmsg-field="SellingPrice"></span>
+            </div>
+            <div class="sale-line-fefo">
+                <span class="line-field-label line-micro-label">تفاصيل FEFO</span>
+                <div class="sale-fefo-badges">
+                    <div class="fefo-chip fefo-chip-stock">
+                        <span class="fefo-chip-label"><i class="bi bi-box-seam"></i> المتاح</span>
+                        <span class="available-info">-</span>
+                    </div>
+                    <div class="fefo-chip fefo-chip-batch">
+                        <span class="fefo-chip-label"><i class="bi bi-upc"></i> الباتش</span>
+                        <span class="batch-info">-</span>
+                    </div>
+                </div>
+                <div class="sale-fefo-meta">
+                    <div class="sale-fefo-meta-item">
+                        <span class="meta-label"><i class="bi bi-calendar3"></i> الانتهاء</span>
+                        <span class="expiry-info">-</span>
+                    </div>
+                    <div class="sale-fefo-meta-item">
+                        <span class="meta-label"><i class="bi bi-geo-alt"></i> الموقع</span>
+                        <span class="slot-info">-</span>
+                    </div>
+                </div>
+            </div>
+            <div class="sale-line-total text-end">
+                <span class="line-field-label line-micro-label">التقديري</span>
+                <div class="line-est-total-wrap">
+                    <span class="line-est-total line-total-display">0.00</span>
+                    <small class="line-currency">ج.س</small>
+                </div>
+            </div>
+            <div class="sale-line-actions">
+                <button type="button" class="btn btn-sm btn-outline-secondary rounded-circle btn-remove-line line-delete-btn" title="حذف الصنف">
+                    <i class="bi bi-trash3"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</template>
+
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/pharmacy-transaction.js"></script>
+    <script src="~/js/barcode-scanner.js"></script>
     <script>
         var itemLookup = @Html.Raw(Json.Serialize(Model.ItemLookup));
-        var lineCount = 0;
         var totalScans = 0;
-
-        // ── Audio feedback (Web Audio API — no external files) ──
-        var audioCtx = null;
-        function playBeep(freq, duration, type) {
-            try {
-                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                var osc = audioCtx.createOscillator();
-                var gain = audioCtx.createGain();
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.type = type || 'sine';
-                osc.frequency.value = freq || 800;
-                gain.gain.value = 0.12;
-                osc.start();
-                osc.stop(audioCtx.currentTime + (duration || 0.12));
-            } catch (e) { /* audio not supported */ }
-        }
-        function beepSuccess() { playBeep(880, 0.1, 'sine'); setTimeout(() => playBeep(1100, 0.12, 'sine'), 110); }
-        function beepError() { playBeep(300, 0.25, 'square'); }
-        function beepIncrement() { playBeep(660, 0.08, 'sine'); }
 
         // ── Status indicator helpers ──
         function setStatus(type, text) {
@@ -159,17 +217,141 @@
 
         function updateScanCount() {
             var el = $('#scanCount');
-            var count = $('#linesBody > .row').length;
+            var count = PharmacyTransaction.getLineCount();
             el.text(count);
             if (count > 0) el.addClass('has-items'); else el.removeClass('has-items');
         }
 
+        function formatNumber(val, digits) {
+            var num = parseFloat(val);
+            if (isNaN(num)) return '0.00';
+            return num.toLocaleString('en-US', { minimumFractionDigits: digits || 2, maximumFractionDigits: digits || 2 });
+        }
+
+        function normalizeDate(dateStr) {
+            if (!dateStr) return '-';
+            if (typeof dateStr === 'string' && dateStr.length >= 10) return dateStr.substring(0, 10);
+            var d = new Date(dateStr);
+            if (isNaN(d.getTime())) return '-';
+            return d.toISOString().substring(0, 10);
+        }
+
+        function daysUntil(dateStr) {
+            if (!dateStr) return null;
+            var d = new Date(dateStr);
+            if (isNaN(d.getTime())) return null;
+            var today = new Date();
+            today.setHours(0, 0, 0, 0);
+            d.setHours(0, 0, 0, 0);
+            return Math.ceil((d - today) / 86400000);
+        }
+
+        function updateEstimatedTotalQuick() {
+            var total = 0;
+            $('#linesBody .line-est-total').each(function () {
+                var numeric = parseFloat(($(this).text() || '0').replace(/,/g, ''));
+                if (!isNaN(numeric)) total += numeric;
+            });
+            $('#estimatedTotal').text(formatNumber(total));
+        }
+
+        function getItemDefaultPrice(itemId) {
+            var id = parseInt(itemId);
+            if (!id) return 0;
+            var found = itemLookup.find(function (i) { return parseInt(i.id) === id; });
+            if (!found) return 0;
+            var parsed = parseFloat(found.defaultSellingPrice || found.DefaultSellingPrice || 0);
+            return isNaN(parsed) ? 0 : parsed;
+        }
+
+        function updateLineEstimatedTotal($row) {
+            var qty = parseFloat($row.find('.qty-input').val()) || 0;
+            var price = parseFloat($row.find('.sale-price-input').val()) || 0;
+            var lineTotal = qty > 0 && price > 0 ? qty * price : 0;
+            $row.find('.line-est-total').text(formatNumber(lineTotal));
+            return lineTotal;
+        }
+
+        function ensureSellingPrice($row, fallbackPrice) {
+            var current = parseFloat($row.find('.sale-price-input').val()) || 0;
+            var price = parseFloat(fallbackPrice) || 0;
+            if (current <= 0 && price > 0) {
+                $row.find('.sale-price-input').val(price.toFixed(2));
+            }
+        }
+
+        function resetFefoDisplay($row) {
+            $row.removeClass('is-low-stock is-near-expiry is-no-batch');
+            $row.removeData('fefoKey');
+            $row.find('.available-info').text('-');
+            $row.find('.batch-info').html('-');
+            $row.find('.expiry-info').text('-');
+            $row.find('.slot-info').text('-');
+            updateLineEstimatedTotal($row);
+            updateEstimatedTotalQuick();
+        }
+
+        function highlightLine($row, className) {
+            if (!$row || !$row.length) return;
+            $row.removeClass('line-added-highlight line-scan-highlight');
+            $row.addClass(className || 'line-added-highlight');
+            setTimeout(function () {
+                $row.removeClass('line-added-highlight line-scan-highlight');
+            }, 1200);
+        }
+
         // ── Init ──
         $(function () {
-            // Focus barcode input on page load
+            // Setup generic pharmacy transaction
+            PharmacyTransaction.init({
+                mode: 'sale',
+                formId: '#saleForm',
+                tableBodyId: '#linesBody',
+                emptyContainerId: '#emptyContainer',
+                subTotalId: null, // Subtotal is essentially Estimated total
+                grandTotalId: '#estimatedTotal',
+                emptyValidationMessage: 'يجب اختيار صنف واحد على الأقل للصرف',
+                callbacks: {
+                    calculateLineTotal: function ($row) {
+                        refreshFefo($row);
+                    },
+                    onRowAdded: function ($newRow, prefillData, idx) {
+                        const options = itemLookup.map(i => `<option value="${i.id}">${i.name}</option>`).join('');
+                        $newRow.html($newRow.html().replace('{options}', options));
+                        
+                        if (prefillData && prefillData.itemId) {
+                            $newRow.find('.item-select').val(prefillData.itemId);
+                        }
+                        if (prefillData && prefillData.quantity) {
+                            $newRow.find('.qty-input').val(prefillData.quantity);
+                        }
+                        if (prefillData && prefillData.sellingPrice) {
+                            $newRow.find('.sale-price-input').val(parseFloat(prefillData.sellingPrice).toFixed(2));
+                        }
+                        if (prefillData && prefillData.barcode) {
+                            $newRow.attr('data-barcode', prefillData.barcode);
+                        }
+
+                        ensureSellingPrice($newRow, getItemDefaultPrice($newRow.find('.item-select').val()));
+
+                        refreshFefo($newRow);
+                        highlightLine($newRow, 'line-added-highlight');
+                        
+                        updateScanCount();
+                    },
+                    onRowRemoved: function() {
+                        updateScanCount();
+                        updateEstimatedTotalQuick();
+                    }
+                }
+            });
+
+            if ($('#linesBody .erp-line-row').length === 0) {
+                PharmacyTransaction.addRow({ quantity: 1 });
+            }
+
             setTimeout(() => $('#barcodeInput').focus(), 200);
 
-            // Listen for barcode input (Enter key = scanner suffix or manual submit)
             $('#barcodeInput').on('keydown', function (e) {
                 if (e.key === 'Enter' || e.which === 13) {
                     e.preventDefault();
@@ -178,117 +360,100 @@
                 }
             });
 
-            // Prevent form submit when barcode input is focused and Enter is pressed
             $('#saleForm').on('keydown', function (e) {
                 if ((e.key === 'Enter' || e.which === 13) && e.target.id === 'barcodeInput') {
                     e.preventDefault();
                 }
             });
+
+            $('#linesBody').on('change', '.item-select', function () {
+                var $row = $(this).closest('.erp-line-row');
+                ensureSellingPrice($row, getItemDefaultPrice($(this).val()));
+                updateLineEstimatedTotal($row);
+                updateEstimatedTotalQuick();
+            });
         });
 
-        // ── Add a sale line ──
-        function addLine(prefill) {
-            const idx = lineCount;
-            const options = itemLookup.map(i => `<option value="${i.id}">${i.name}</option>`).join('');
-            const row = `
-                <div class="row g-2 p-2 align-items-end bg-light rounded-2 border service-row mb-1" id="line_${idx}">
-                    <div class="col-lg-4 col-md-6">
-                        <label class="form-label small fw-bold">الصنف</label>
-                        <select name="Lines[${idx}].ItemId" data-field="ItemId" class="form-select form-select-sm item-select" onchange="refreshFefo(${idx})" required>
-                            <option value="">-- اختر الصنف --</option>
-                            ${options}
-                        </select>
-                    </div>
-                    <div class="col-lg-1 col-md-3">
-                        <label class="form-label small fw-bold">الكمية</label>
-                        <input type="number" name="Lines[${idx}].Quantity" data-field="Quantity" class="form-control form-control-sm qty-input text-center" value="1" min="0.01" step="0.01" onchange="refreshFefo(${idx})" />
-                    </div>
-                    <div class="col-lg-2 col-md-3">
-                        <label class="form-label small fw-bold">المتاح</label>
-                        <div class="fw-bold text-dark available-info">-</div>
-                    </div>
-                    <div class="col-lg-2 col-md-3">
-                        <label class="form-label small fw-bold">الباتش المقترح</label>
-                        <div class="fw-bold text-primary batch-info">-</div>
-                    </div>
-                    <div class="col-lg-1 col-md-3">
-                        <label class="form-label small fw-bold">الانتهاء</label>
-                        <div class="small expiry-info">-</div>
-                    </div>
-                    <div class="col-lg-1 col-md-3">
-                        <label class="form-label small fw-bold">الموقع</label>
-                        <div class="small slot-info">-</div>
-                    </div>
-                    <div class="col-lg-1 col-md-3">
-                        <label class="form-label small fw-bold">تقديري</label>
-                        <div class="fw-bold text-success line-est-total">0.00</div>
-                    </div>
-                    <div class="col-lg-1 col-md-3 text-end">
-                        <button type="button" class="btn btn-link link-danger p-0 border-0" onclick="removeLine(${idx})"><i class="bi bi-x-circle-fill fs-5"></i></button>
-                    </div>
-                </div>`;
-
-            $('#linesBody').append(row);
-            if (prefill && prefill.itemId) {
-                $(`#line_${idx} .item-select`).val(prefill.itemId);
-                if (prefill.quantity) $(`#line_${idx} .qty-input`).val(prefill.quantity);
+        function resolveSaleRow(rowOrIndex) {
+            if (!rowOrIndex && rowOrIndex !== 0) return $();
+            if (rowOrIndex.jquery) return rowOrIndex;
+            if (typeof rowOrIndex === 'number' || /^\d+$/.test(rowOrIndex)) {
+                return $('#line_row_' + rowOrIndex);
             }
-            lineCount++;
-            refreshFefo(idx);
-            updateScanCount();
-            return idx;
-        }
-
-        function removeLine(idx) {
-            $(`#line_${idx}`).fadeOut(120, function () {
-                $(this).remove();
-                recalcEstimatedTotal();
-                updateScanCount();
-            });
+            return $(rowOrIndex).closest('.erp-line-row');
         }
 
         // ── FEFO preview ──
-        function refreshFefo(idx) {
-            const row = $(`#line_${idx}`);
-            const itemId = parseInt(row.find('.item-select').val());
-            const qty = parseFloat(row.find('.qty-input').val()) || 0;
+        function refreshFefo(rowOrIndex) {
+            var $row = resolveSaleRow(rowOrIndex);
+            if (!$row.length) return;
 
-            row.find('.line-est-total').text('0.00');
+            const itemId = parseInt($row.find('.item-select').val());
+            const qty = parseFloat($row.find('.qty-input').val()) || 0;
+
             if (!itemId || qty <= 0) {
-                row.find('.available-info,.batch-info,.expiry-info,.slot-info').text('-');
-                recalcEstimatedTotal();
+                resetFefoDisplay($row);
                 return;
             }
 
+            var fefoKey = itemId + '|' + qty.toFixed(2);
+            if ($row.data('fefoKey') === fefoKey) {
+                updateLineEstimatedTotal($row);
+                updateEstimatedTotalQuick();
+                return;
+            }
+            $row.data('fefoKey', fefoKey);
+
             $.get('/PharmacySales/PreviewFefo', { itemId: itemId, quantity: qty }, function (res) {
-                row.find('.available-info').text((res.available || 0).toFixed ? res.available.toFixed(2) : res.available);
-                if (!res.success || !res.allocations || res.allocations.length === 0) {
-                    row.find('.batch-info').html('<span class="text-danger">غير متاح</span>');
-                    row.find('.expiry-info').text('-');
-                    row.find('.slot-info').text('-');
-                    row.find('.line-est-total').text('0.00');
-                    recalcEstimatedTotal();
-                    return;
+                $row.removeClass('is-low-stock is-near-expiry is-no-batch');
+
+                var available = parseFloat(res.available || 0) || 0;
+                $row.find('.available-info').text(formatNumber(available));
+                if (available < qty) {
+                    $row.addClass('is-low-stock');
                 }
 
-                const first = res.allocations[0];
-                row.find('.batch-info').text(first.batchNumber);
-                row.find('.expiry-info').text(first.expiryDate.substring(0, 10));
-                row.find('.slot-info').text(first.slotCode);
+                if (!res.success || !res.allocations || res.allocations.length === 0) {
+                    $row.addClass('is-no-batch');
+                    $row.find('.batch-info').html('<span class="fefo-empty">غير متاح</span>');
+                    $row.find('.expiry-info').text('-');
+                    $row.find('.slot-info').text('-');
+                } else {
+                    var batchHtml = [];
+                    var exps = [];
+                    var slots = [];
+                    var nearExpiry = false;
 
-                let lineTotal = 0;
-                res.allocations.forEach(a => lineTotal += (parseFloat(a.quantity) || 0) * (parseFloat(a.unitPrice) || 0));
-                row.find('.line-est-total').text(lineTotal.toFixed(2));
-                recalcEstimatedTotal();
-            });
-        }
+                    res.allocations.forEach(function (a) {
+                        if (a.batchNumber && !batchHtml.includes(a.batchNumber)) {
+                            batchHtml.push(a.batchNumber);
+                        }
+                        var expiry = normalizeDate(a.expiryDate);
+                        if (expiry !== '-' && !exps.includes(expiry)) {
+                            exps.push(expiry);
+                            var d = daysUntil(expiry);
+                            if (d !== null && d <= 60) nearExpiry = true;
+                        }
+                        if (a.slotCode && !slots.includes(a.slotCode)) slots.push(a.slotCode);
+                    });
 
-        function recalcEstimatedTotal() {
-            let total = 0;
-            $('.line-est-total').each(function () {
-                total += parseFloat($(this).text()) || 0;
+                    if (nearExpiry) {
+                        $row.addClass('is-near-expiry');
+                    }
+
+                    var batchesMarkup = batchHtml.length
+                        ? batchHtml.map(function (b) { return `<span class="fefo-badge fefo-badge-primary">${b}</span>`; }).join('')
+                        : '<span class="fefo-empty">-</span>';
+
+                    $row.find('.batch-info').html(batchesMarkup);
+                    $row.find('.expiry-info').html(exps.length ? exps.join(' / ') : '-');
+                    $row.find('.slot-info').html(slots.length ? slots.join(' / ') : '-');
+                }
+                updateLineEstimatedTotal($row);
+                updateEstimatedTotalQuick();
+            }).fail(function () {
+                resetFefoDisplay($row);
             });
-            $('#estimatedTotal').text(total.toFixed(2));
         }
 
         // ── Barcode Lookup (Main Scanner Logic) ──
@@ -296,87 +461,85 @@
             const barcode = ($('#barcodeInput').val() || '').trim();
             if (!barcode) return;
 
-            // Check if this item already exists in the cart — auto-increment quantity
-            var existingLine = findExistingLineByItemBarcode(barcode);
-
-            $.get('/PharmacySales/LookupByBarcode', { barcode: barcode }, function (res) {
-                if (!res.success) {
-                    // Not found
-                    beepError();
-                    setStatus('error', 'غير موجود');
-                    flashZone('error');
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'لم يتم العثور على دواء بهذا الباركود',
-                        text: barcode,
-                        timer: 2000,
-                        showConfirmButton: false
+            BarcodeScanner.processScan(barcode, {
+                lookupUrl: '/PharmacySales/LookupByBarcode',
+                findRowByBarcode: function(bc) {
+                    var $found = null;
+                    $('#linesBody > .erp-line-row').each(function () {
+                        var rowBc = ($(this).attr('data-barcode') || '').trim();
+                        if (rowBc.toLowerCase() === bc.toLowerCase() && rowBc !== '') {
+                            $found = $(this);
+                            return false;
+                        }
                     });
-                    clearAndRefocusBarcode();
-                    return;
-                }
+                    return $found;
+                },
+                findActiveOrEmptyRow: function () {
+                    var active = $('.sale-service-row :focus').closest('.sale-service-row');
+                    if (active.length) return active;
 
-                if (res.multiMatch) {
-                    // Multiple batches found — show selection modal
-                    showBatchSelectionModal(res.matches);
-                    clearAndRefocusBarcode();
-                    return;
-                }
-
-                // Single match — check if already in cart
-                var existingRow = findExistingLineByItemId(res.data.itemId);
-                if (existingRow) {
-                    // Increment quantity
-                    incrementLineQuantity(existingRow);
-                    beepIncrement();
-                    setStatus('success', '+1 ' + res.data.itemName);
+                    var empty = null;
+                    $('#linesBody > .erp-line-row').each(function () {
+                        if (!$(this).find('.item-select').val()) {
+                            empty = $(this);
+                            return false;
+                        }
+                    });
+                    return empty;
+                },
+                fillRow: function ($row, data, bc) {
+                    $row.attr('data-barcode', bc);
+                    $row.find('.item-select').val(data.itemId);
+                    $row.find('.qty-input').val(1);
+                    ensureSellingPrice($row, data.defaultSellingPrice || getItemDefaultPrice(data.itemId));
+                    refreshFefo($row);
+                    highlightLine($row, 'line-scan-highlight');
+                },
+                incrementQuantity: incrementLineQuantity,
+                addRowWithData: function(data, bc) {
+                    PharmacyTransaction.addRow({
+                        itemId: data.itemId,
+                        quantity: 1,
+                        barcode: bc,
+                        sellingPrice: data.defaultSellingPrice || getItemDefaultPrice(data.itemId)
+                    });
+                },
+                onMultiMatch: function(matches, bc) {
+                    showBatchSelectionModal(matches, bc);
+                },
+                onSuccess: function(type, $row, bc, data) {
+                    if (type === 'increment') {
+                        var select = $row.find('.item-select');
+                        var itemName = select.find('option:selected').text();
+                        setStatus('success', '+1 ' + itemName);
+                    } else if (data) {
+                        setStatus('success', data.itemName);
+                    }
                     flashZone('success');
-                } else {
-                    // Add new line
-                    addLine({ itemId: res.data.itemId, quantity: 1 });
-                    beepSuccess();
-                    setStatus('success', res.data.itemName);
-                    flashZone('success');
+                    totalScans++;
+                    clearAndRefocusBarcode();
+                },
+                onError: function(type, bc) {
+                    if (type === 'not_found') {
+                        setStatus('error', 'غير موجود');
+                        flashZone('error');
+                    }
+                    clearAndRefocusBarcode();
                 }
-
-                totalScans++;
-                clearAndRefocusBarcode();
-
-                // Quick toast confirmation
-                Swal.fire({
-                    toast: true,
-                    position: 'top-end',
-                    icon: 'success',
-                    title: res.data.itemName,
-                    html: `<span class="small text-muted">${res.data.unitName} · المتاح: ${res.data.availableQuantity} · ${res.data.slotCode}</span>`,
-                    timer: 1200,
-                    showConfirmButton: false,
-                    timerProgressBar: true
-                });
-            }).fail(function () {
-                beepError();
-                setStatus('error', 'خطأ في الاتصال');
-                flashZone('error');
-                clearAndRefocusBarcode();
             });
         }
 
-        // ── Find existing line by ItemId (for auto-increment) ──
+        // ── Find existing line by ItemId ──
         function findExistingLineByItemId(itemId) {
             var found = null;
-            $('#linesBody > .row').each(function () {
+            $('#linesBody > .erp-line-row').each(function () {
                 var select = $(this).find('.item-select');
                 if (parseInt(select.val()) === itemId) {
                     found = $(this);
-                    return false; // break
+                    return false;
                 }
             });
             return found;
-        }
-
-        function findExistingLineByItemBarcode(barcode) {
-            // This is resolved server-side; we only use findExistingLineByItemId after lookup
-            return null;
         }
 
         // ── Increment quantity on existing line ──
@@ -384,19 +547,32 @@
             var qtyInput = row.find('.qty-input');
             var currentQty = parseFloat(qtyInput.val()) || 0;
             qtyInput.val((currentQty + 1).toFixed(2));
-
-            // Flash the row
-            row.css('background-color', '#dcfce7');
-            setTimeout(() => row.css('background-color', ''), 400);
+            qtyInput.trigger('change');
+            highlightLine(row, 'line-scan-highlight');
 
             // Refresh FEFO for updated qty
-            var lineId = row.attr('id').replace('line_', '');
-            refreshFefo(parseInt(lineId));
+            refreshFefo(row);
             updateScanCount();
         }
 
+        // Compatibility helper for legacy calls like refreshFefo(index)
+        function refreshFefoByIndex(index) {
+            var $row = resolveSaleRow(index);
+            if ($row.length) {
+                refreshFefo($row);
+            }
+        }
+
+        // Compatibility helper for legacy removeLine(index) usage
+        function removeLine(index) {
+            var $row = $('#line_row_' + index);
+            if ($row.length) {
+                $row.find('.btn-remove-line').trigger('click');
+            }
+        }
+
         // ── Multi-match batch selection modal ──
-        function showBatchSelectionModal(matches) {
+        function showBatchSelectionModal(matches, barcodeScanned) {
             var body = $('#batchSelectBody');
             body.empty();
 
@@ -426,11 +602,16 @@
                     var existingRow = findExistingLineByItemId(m.itemId);
                     if (existingRow) {
                         incrementLineQuantity(existingRow);
-                        beepIncrement();
+                        BarcodeScanner.beepIncrement();
                         setStatus('success', '+1 ' + m.itemName);
                     } else {
-                        addLine({ itemId: m.itemId, quantity: 1 });
-                        beepSuccess();
+                        PharmacyTransaction.addRow({
+                            itemId: m.itemId,
+                            quantity: 1,
+                            barcode: barcodeScanned,
+                            sellingPrice: m.defaultSellingPrice || getItemDefaultPrice(m.itemId)
+                        });
+                        BarcodeScanner.beepSuccess();
                         setStatus('success', m.itemName);
                     }
                     flashZone('success');
@@ -457,18 +638,5 @@
             setTimeout(() => $('#barcodeInput').focus(), 50);
         }
 
-        // ── Reindex lines before submit ──
-        function reindexSaleLines() {
-            $('#linesBody > .row').each(function (rowIndex) {
-                $(this).find('[data-field]').each(function () {
-                    const field = $(this).data('field');
-                    $(this).attr('name', `Lines[${rowIndex}].${field}`);
-                });
-            });
-        }
-
-        $('#saleForm').on('submit', function () {
-            reindexSaleLines();
-        });
     </script>
 }

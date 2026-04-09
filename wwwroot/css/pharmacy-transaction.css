@@ -1,0 +1,628 @@
+:root {
+    --erp-bg: #f2f5f4;
+    --erp-card: #ffffff;
+    --erp-border: #d7dde3;
+    --erp-title: #0f172a;
+    --erp-muted: #5f6b7a;
+    --erp-primary: #1769aa;
+    --erp-danger: #b42318;
+    --erp-success: #127a4a;
+}
+
+.erp-transaction-page {
+    background: var(--erp-bg);
+}
+
+.erp-section,
+.erp-summary {
+    border: 1px solid var(--erp-border);
+    border-radius: 10px;
+    background: var(--erp-card);
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+}
+
+.erp-section .card-header {
+    border-bottom: 1px solid #e9edf2;
+    background: #fbfcfe;
+    padding: 0.6rem 0.9rem;
+}
+
+.erp-label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 0.2rem;
+    text-align: right;
+}
+
+.erp-input,
+.erp-transaction-page .form-select,
+.erp-transaction-page .form-control {
+    border-color: #c8d2dd;
+    font-size: 0.82rem;
+    min-height: 32px;
+}
+
+.erp-input:focus,
+.erp-transaction-page .form-select:focus,
+.erp-transaction-page .form-control:focus {
+    border-color: var(--erp-primary);
+    box-shadow: 0 0 0 0.15rem rgba(23, 105, 170, 0.13);
+}
+
+.erp-input-readonly {
+    background-color: #f3f6f9 !important;
+    color: #475569;
+}
+
+/* Compact Line Row Structure */
+.erp-line-row {
+    background: #fff;
+    border: 1px solid #e4eaf1;
+    border-radius: 8px;
+    padding: 0.45rem;
+    margin-bottom: 0.45rem;
+    transition: background-color 0.2s ease;
+}
+
+.erp-line-row:hover {
+    background-color: #fcfdff;
+    border-color: #d1d9e2;
+}
+
+.line-field-label {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #64748b;
+    margin-bottom: 0.2rem;
+    text-align: right;
+}
+
+.field-validation-inline {
+    display: block;
+    min-height: 16px;
+    margin-top: 0.1rem;
+    line-height: 1.15;
+    text-align: right;
+}
+
+.line-total-display, .line-est-total {
+    font-weight: 700;
+    color: #0b5d91;
+    font-size: 0.84rem;
+    display: inline-block;
+    padding-top: 0.1rem;
+}
+
+.btn-line-action {
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-line-remove {
+    color: var(--erp-danger);
+    border-color: #f1b7b2;
+    background: #fff;
+}
+
+.btn-line-remove:hover {
+    color: #fff;
+    background: var(--erp-danger);
+    border-color: var(--erp-danger);
+}
+
+.erp-empty {
+    color: #64748b;
+    text-align: center;
+    padding: 1rem;
+    border-top: 1px dashed #d4dce5;
+    background: #fcfdff;
+    font-size: 0.85rem;
+    border-radius: 8px;
+}
+
+/* Totals */
+.erp-total-title {
+    font-size: 0.75rem;
+    color: #64748b;
+    margin-bottom: 0;
+}
+
+.erp-total-value {
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--erp-success);
+    margin-bottom: 0;
+    line-height: 1.1;
+}
+
+/* Barcode Scanner Zone */
+.barcode-scanner-zone {
+    background: #fff;
+    border: 1px dashed #d7dde3;
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    transition: background-color 0.25s ease;
+}
+
+.barcode-flash-success {
+    background-color: #dcfce7 !important;
+}
+
+.barcode-flash-error {
+    background-color: #fee2e2 !important;
+}
+
+.barcode-scanner-icon {
+    font-size: 1.5rem;
+    color: #64748b;
+}
+
+.barcode-status-indicator {
+    padding: 0.2rem 0.6rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.status-ready { background-color: #e2e8f0; color: #475569; }
+.status-success { background-color: #dcfce7; color: #166534; }
+.status-error { background-color: #fee2e2; color: #991b1b; }
+
+.select2-container--bootstrap-5 .select2-selection {
+    min-height: 32px !important;
+    border-color: #c8d2dd !important;
+    font-size: 0.82rem;
+}
+
+.select2-container--bootstrap-5 .select2-selection--single {
+    padding-top: 0.2rem;
+}
+
+html[dir="rtl"] .select2-container .select2-selection--single .select2-selection__rendered {
+    text-align: right;
+}
+
+/* Sales Specific Compact Badges */
+.fefo-badge {
+    display: inline-block;
+    padding: 0.15rem 0.35rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: #f1f5f9;
+    color: #334155;
+    border: 1px solid #e2e8f0;
+}
+
+.fefo-badge-primary {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border-color: #bfdbfe;
+}
+
+.fefo-info-group {
+    height: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2rem;
+    align-items: center;
+}
+
+/* Sales POS compact rows */
+.sales-lines-head {
+    background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+    border: 1px solid #e2e8f0;
+    color: #475569;
+    font-size: 0.73rem;
+    font-weight: 700;
+    display: grid;
+    grid-template-columns: minmax(240px, 2.2fr) minmax(95px, 0.7fr) minmax(120px, 0.9fr) minmax(250px, 1.9fr) minmax(110px, 0.8fr) 44px;
+    gap: 0.55rem;
+}
+
+.sales-lines-head .head-item,
+.sales-lines-head .head-qty,
+.sales-lines-head .head-price,
+.sales-lines-head .head-fefo,
+.sales-lines-head .head-total,
+.sales-lines-head .head-action {
+    white-space: nowrap;
+}
+
+#saleForm .service-row.sale-service-row,
+#purchaseForm .service-row.purchase-service-row {
+    border: 1px solid #dbe4ee;
+    border-radius: 12px;
+    padding: 0.5rem 0.55rem;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+#saleForm .service-row.sale-service-row:hover,
+#purchaseForm .service-row.purchase-service-row:hover {
+    border-color: #c7d4e2;
+    box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08);
+}
+
+#saleForm .service-row.sale-service-row:focus-within,
+#purchaseForm .service-row.purchase-service-row:focus-within {
+    border-color: #1769aa;
+    box-shadow: 0 0 0 0.16rem rgba(23, 105, 170, 0.15);
+}
+
+#saleForm .sale-line-grid {
+    display: grid;
+    grid-template-columns: minmax(240px, 2.2fr) minmax(95px, 0.7fr) minmax(120px, 0.9fr) minmax(250px, 1.9fr) minmax(120px, 0.85fr) 44px;
+    gap: 0.55rem;
+    align-items: center;
+}
+
+#saleForm .line-micro-label,
+#purchaseForm .line-micro-label {
+    font-size: 0.67rem;
+    color: #64748b;
+    margin-bottom: 0.18rem;
+    font-weight: 700;
+}
+
+#saleForm .sale-item-select,
+#saleForm .sale-qty-input,
+#saleForm .sale-price-input {
+    min-height: 34px;
+    font-size: 0.82rem;
+}
+
+#saleForm .sale-qty-input,
+#saleForm .sale-price-input {
+    font-weight: 700;
+}
+
+#saleForm .sale-fefo-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.28rem;
+    margin-bottom: 0.25rem;
+}
+
+#saleForm .fefo-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.28rem;
+    padding: 0.2rem 0.42rem;
+    border-radius: 8px;
+    border: 1px solid #dbe5ef;
+    background: #f8fafc;
+    font-size: 0.73rem;
+    line-height: 1.2;
+    min-height: 29px;
+}
+
+#saleForm .fefo-chip-label {
+    color: #64748b;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+}
+
+#saleForm .available-info {
+    color: #0f172a;
+    font-weight: 800;
+}
+
+#saleForm .batch-info {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.2rem;
+}
+
+#saleForm .sale-fefo-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    font-size: 0.74rem;
+}
+
+#saleForm .sale-fefo-meta-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+#saleForm .sale-fefo-meta-item .meta-label {
+    color: #64748b;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+}
+
+#saleForm .expiry-info,
+#saleForm .slot-info {
+    color: #0f172a;
+    font-weight: 700;
+}
+
+#saleForm .line-est-total-wrap {
+    display: inline-flex;
+    align-items: baseline;
+    justify-content: flex-end;
+    gap: 0.18rem;
+}
+
+#saleForm .sale-line-total .line-est-total {
+    font-size: 1.03rem;
+    color: #0b5d91;
+    font-weight: 800;
+}
+
+#saleForm .line-currency {
+    color: #64748b;
+    font-size: 0.67rem;
+    font-weight: 700;
+}
+
+#saleForm .sale-line-actions {
+    display: flex;
+    justify-content: center;
+}
+
+#saleForm .line-delete-btn,
+#purchaseForm .line-delete-btn {
+    width: 32px;
+    height: 32px;
+    color: #64748b;
+    border-color: #d1dae5;
+    background: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#saleForm .line-delete-btn:hover,
+#saleForm .line-delete-btn:focus,
+#purchaseForm .line-delete-btn:hover,
+#purchaseForm .line-delete-btn:focus {
+    color: #b42318;
+    border-color: #f1b7b2;
+    background: #fff7f7;
+}
+
+#saleForm .fefo-empty {
+    color: #b42318;
+    font-weight: 700;
+}
+
+#saleForm .sale-service-row.is-low-stock .fefo-chip-stock {
+    background: #fff7ed;
+    border-color: #fdba74;
+}
+
+#saleForm .sale-service-row.is-low-stock .available-info {
+    color: #b45309;
+}
+
+#saleForm .sale-service-row.is-near-expiry .expiry-info {
+    color: #b45309;
+}
+
+#saleForm .sale-service-row.is-no-batch .fefo-chip-batch {
+    border-color: #fecaca;
+    background: #fef2f2;
+}
+
+#saleForm .line-added-highlight,
+#purchaseForm .line-added-highlight {
+    animation: lineAddedPulse 1.1s ease;
+}
+
+#saleForm .line-scan-highlight,
+#purchaseForm .line-scan-highlight {
+    animation: lineScanPulse 0.8s ease;
+}
+
+@keyframes lineAddedPulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(23, 105, 170, 0.28);
+        border-color: #93c5fd;
+    }
+    100% {
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+        border-color: #dbe4ee;
+    }
+}
+
+@keyframes lineScanPulse {
+    0% {
+        background: #ecfdf3;
+        border-color: #86efac;
+    }
+    100% {
+        background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+        border-color: #dbe4ee;
+    }
+}
+
+/* Purchase POS compact rows */
+.purchase-lines-head {
+    background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+    border: 1px solid #e2e8f0;
+    color: #475569;
+    font-size: 0.73rem;
+    font-weight: 700;
+    display: grid;
+    grid-template-columns: minmax(180px, 1.9fr) minmax(78px, 0.62fr) minmax(100px, 0.8fr) minmax(120px, 0.86fr) minmax(200px, 1.62fr) minmax(96px, 0.74fr) 40px;
+    gap: 0.55rem;
+}
+
+#purchaseForm .purchase-line-grid {
+    display: grid;
+    grid-template-columns: minmax(180px, 1.9fr) minmax(78px, 0.62fr) minmax(100px, 0.8fr) minmax(120px, 0.86fr) minmax(200px, 1.62fr) minmax(96px, 0.74fr) 40px;
+    gap: 0.55rem;
+    align-items: center;
+}
+
+#purchaseForm .purchase-item-select,
+#purchaseForm .purchase-qty-input,
+#purchaseForm .purchase-price-input {
+    min-height: 34px;
+    font-size: 0.82rem;
+}
+
+#purchaseForm .purchase-qty-input,
+#purchaseForm .purchase-price-input {
+    font-weight: 700;
+}
+
+#purchaseForm .purchase-line-expiry,
+#purchaseForm .purchase-line-batchbarcode,
+#purchaseForm .purchase-line-batchno,
+#purchaseForm .purchase-line-barcode {
+    min-width: 0;
+}
+
+#purchaseForm .purchase-line-batchbarcode {
+    display: flex;
+    flex-direction: column;
+    gap: 0.28rem;
+}
+
+#purchaseForm .purchase-line-total {
+    text-align: end;
+}
+
+#purchaseForm .purchase-line-total .line-total-display {
+    font-size: 1.03rem;
+    color: #0b5d91;
+    font-weight: 800;
+}
+
+#purchaseForm .purchase-line-actions {
+    display: flex;
+    justify-content: center;
+    justify-self: center;
+    align-self: center;
+}
+
+#purchaseForm .compact-input-group .btn-generate-barcode {
+    min-width: 36px;
+}
+
+#purchaseForm .purchase-barcode-input {
+    min-height: 34px;
+}
+
+#purchaseForm .barcode-dup-msg {
+    min-height: 16px;
+    margin-top: 0.2rem;
+    font-size: 0.72rem;
+    color: #b42318;
+    font-weight: 700;
+    line-height: 1.25;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+#purchaseForm .barcode-dup-msg.barcode-msg-success {
+    color: #047857;
+}
+
+#purchaseForm .barcode-dup-msg.barcode-msg-warning {
+    color: #b42318;
+}
+
+#purchaseForm .purchase-barcode-input.duplicate-barcode {
+    border-color: #ef4444;
+    box-shadow: 0 0 0 0.14rem rgba(239, 68, 68, 0.12);
+    background: #fff6f6;
+}
+
+#purchaseForm .row-has-duplicate-barcode {
+    border-color: #fecaca !important;
+    background: linear-gradient(180deg, #fffefe 0%, #fff8f8 100%) !important;
+}
+
+@media (max-width: 1399.98px) {
+    #saleForm .sale-line-grid {
+        grid-template-columns: minmax(190px, 1.7fr) minmax(82px, 0.62fr) minmax(105px, 0.8fr) minmax(220px, 1.6fr) minmax(102px, 0.8fr) 40px;
+    }
+
+    #purchaseForm .purchase-line-grid {
+        grid-template-columns: minmax(160px, 1.45fr) minmax(72px, 0.58fr) minmax(90px, 0.7fr) minmax(112px, 0.82fr) minmax(176px, 1.36fr) minmax(86px, 0.66fr) 38px;
+    }
+}
+
+@media (max-width: 991.98px) {
+    #saleForm .sale-line-grid {
+        grid-template-columns: 1fr 110px 110px 40px;
+        grid-template-areas:
+            "item item item item"
+            "qty price total action"
+            "fefo fefo fefo fefo";
+        gap: 0.4rem;
+    }
+
+    #saleForm .sale-line-item { grid-area: item; }
+    #saleForm .sale-line-qty { grid-area: qty; }
+    #saleForm .sale-line-price { grid-area: price; }
+    #saleForm .sale-line-fefo { grid-area: fefo; }
+    #saleForm .sale-line-total { grid-area: total; }
+    #saleForm .sale-line-actions { grid-area: action; justify-content: center; align-self: end; }
+
+    #saleForm .sale-line-total .line-est-total {
+        font-size: 0.93rem;
+    }
+
+    #purchaseForm .purchase-line-grid {
+        grid-template-columns: 1fr 112px 112px 40px;
+        grid-template-areas:
+            "item item item item"
+            "qty pprice total action"
+            "expiry batchbar batchbar batchbar";
+        gap: 0.4rem;
+    }
+
+    #purchaseForm .purchase-line-item { grid-area: item; }
+    #purchaseForm .purchase-line-qty { grid-area: qty; }
+    #purchaseForm .purchase-line-price { grid-area: pprice; }
+    #purchaseForm .purchase-line-expiry { grid-area: expiry; }
+    #purchaseForm .purchase-line-batchbarcode { grid-area: batchbar; }
+    #purchaseForm .purchase-line-total { grid-area: total; align-self: end; }
+    #purchaseForm .purchase-line-actions { grid-area: action; align-self: end; }
+}
+
+@media (max-width: 575.98px) {
+    #saleForm .service-row.sale-service-row,
+    #purchaseForm .service-row.purchase-service-row {
+        padding: 0.45rem;
+    }
+
+    #saleForm .sale-fefo-meta {
+        gap: 0.25rem;
+    }
+
+    #saleForm .fefo-chip {
+        font-size: 0.69rem;
+        padding: 0.18rem 0.35rem;
+    }
+
+    #saleForm .line-micro-label,
+    #purchaseForm .line-micro-label {
+        font-size: 0.64rem;
+    }
+
+    #purchaseForm .barcode-dup-msg { font-size: 0.68rem; }
+}

@@ -239,6 +239,21 @@ namespace NagmClinic.Services.Pharmacy
                 return new PurchaseExecutionResult { Success = false, Message = "بيانات البنود (باتش وباركود) غير مكتملة" };
             }
 
+            var duplicateBarcodeInRequest = cleanedLines
+                .Select(l => (l.Barcode ?? string.Empty).Trim())
+                .Where(b => !string.IsNullOrWhiteSpace(b))
+                .GroupBy(b => b, StringComparer.OrdinalIgnoreCase)
+                .FirstOrDefault(g => g.Count() > 1);
+
+            if (duplicateBarcodeInRequest != null)
+            {
+                return new PurchaseExecutionResult
+                {
+                    Success = false,
+                    Message = $"الباركود {duplicateBarcodeInRequest.Key} مكرر داخل نفس الفاتورة. يجب استخدام باركود فريد لكل باتش."
+                };
+            }
+
             await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
             try
             {
@@ -260,7 +275,7 @@ namespace NagmClinic.Services.Pharmacy
                         };
                     }
 
-                    if (line.Quantity <= 0 || line.PurchasePrice < 0 || line.SellingPrice < 0)
+                    if (line.Quantity <= 0 || line.PurchasePrice < 0)
                     {
                         await transaction.RollbackAsync(cancellationToken);
                         return new PurchaseExecutionResult
@@ -269,6 +284,30 @@ namespace NagmClinic.Services.Pharmacy
                             Message = $"بيانات الكمية أو الأسعار غير صحيحة للصنف رقم {line.ItemId}"
                         };
                     }
+
+                    var itemDefaultSellingPrice = await _context.PharmacyItems
+                        .Where(i => i.Id == line.ItemId)
+                        .Select(i => (decimal?)i.DefaultSellingPrice)
+                        .FirstOrDefaultAsync(cancellationToken);
+
+                    if (!itemDefaultSellingPrice.HasValue)
+                    {
+                        await transaction.RollbackAsync(cancellationToken);
+                        return new PurchaseExecutionResult
+                        {
+                            Success = false,
+                            Message = $"الصنف رقم {line.ItemId} غير موجود"
+                        };
+                    }
+
+                    var batch = await _context.ItemBatches
+                        .FirstOrDefaultAsync(
+                            b => b.ItemId == line.ItemId && b.BatchNumber == line.BatchNumber.Trim() && b.Barcode == line.Barcode.Trim(),
+                            cancellationToken);
+
+                    var effectiveSellingPrice = batch != null
+                        ? (batch.SellingPrice > 0 ? batch.SellingPrice : itemDefaultSellingPrice.Value)
+                        : itemDefaultSellingPrice.Value;
 
                     var purchaseLine = new PharmacyPurchaseLine
                     {
@@ -280,18 +319,13 @@ namespace NagmClinic.Services.Pharmacy
                         Quantity = line.Quantity,
                         BonusQuantity = 0,
                         PurchasePrice = line.PurchasePrice,
-                        SellingPrice = line.SellingPrice,
+                        SellingPrice = effectiveSellingPrice,
                         LineTotal = line.Quantity * line.PurchasePrice,
                         CreatedAt = DateTime.Now
                     };
 
                     _context.PharmacyPurchaseLines.Add(purchaseLine);
                     await _context.SaveChangesAsync(cancellationToken);
-
-                    var batch = await _context.ItemBatches
-                        .FirstOrDefaultAsync(
-                            b => b.ItemId == line.ItemId && b.BatchNumber == purchaseLine.BatchNumber && b.Barcode == purchaseLine.Barcode,
-                            cancellationToken);
 
                     var receivedTotal = purchaseLine.Quantity;
 
@@ -307,7 +341,7 @@ namespace NagmClinic.Services.Pharmacy
                             BonusQuantity = 0,
                             QuantityRemaining = receivedTotal,
                             PurchasePrice = purchaseLine.PurchasePrice,
-                            SellingPrice = purchaseLine.SellingPrice,
+                            SellingPrice = effectiveSellingPrice,
                             SupplierId = purchase.SupplierId,
                             ReceivedAt = DateTime.Now,
                             UpdatedAt = DateTime.Now
@@ -322,7 +356,10 @@ namespace NagmClinic.Services.Pharmacy
                         batch.BonusQuantity = 0;
                         batch.QuantityRemaining += receivedTotal;
                         batch.PurchasePrice = purchaseLine.PurchasePrice;
-                        batch.SellingPrice = purchaseLine.SellingPrice;
+                        if (batch.SellingPrice <= 0 && effectiveSellingPrice > 0)
+                        {
+                            batch.SellingPrice = effectiveSellingPrice;
+                        }
                         batch.SupplierId = purchase.SupplierId;
                         batch.UpdatedAt = DateTime.Now;
                     }
@@ -359,7 +396,7 @@ namespace NagmClinic.Services.Pharmacy
                 return new SaleExecutionResult { Success = false, Message = "يجب إضافة بند واحد على الأقل" };
             }
 
-            var lines = requestedLines.Where(l => l.ItemId > 0 && l.Quantity > 0).ToList();
+            var lines = requestedLines.Where(l => l.ItemId > 0 && l.Quantity > 0 && l.SellingPrice > 0).ToList();
             if (lines.Count == 0)
             {
                 return new SaleExecutionResult { Success = false, Message = "بيانات البنود غير صحيحة" };
@@ -416,14 +453,16 @@ namespace NagmClinic.Services.Pharmacy
                         batch.QuantityRemaining -= alloc.Quantity;
                         batch.UpdatedAt = DateTime.Now;
 
+                        var unitPrice = line.SellingPrice > 0 ? line.SellingPrice : alloc.UnitPrice;
+
                         var saleLine = new PharmacySaleLine
                         {
                             SaleId = sale.Id,
                             ItemId = line.ItemId,
                             ItemBatchId = batch.Id,
                             Quantity = alloc.Quantity,
-                            UnitPrice = alloc.UnitPrice,
-                            LineTotal = alloc.Quantity * alloc.UnitPrice,
+                            UnitPrice = unitPrice,
+                            LineTotal = alloc.Quantity * unitPrice,
                             BatchNumberSnapshot = batch.BatchNumber,
                             ExpiryDateSnapshot = batch.ExpiryDate.Date,
                             SlotCodeSnapshot = batch.Item?.Location?.Code ?? "-",

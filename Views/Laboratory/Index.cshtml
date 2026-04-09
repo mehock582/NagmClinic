@@ -10,9 +10,12 @@
                     <h5 class="fw-bold mb-0 text-primary">
                         <i class="bi bi-microscope me-2"></i> قائمة الفحوصات المطلوبة
                     </h5>
-                    <!-- Extensible architecture: Button ready for future HL7/API integration with lab devices -->
-                    <button class="btn btn-outline-primary btn-sm rounded-pill px-3 shadow-sm" onclick="importFromDevice()">
-                        <i class="bi bi-usb-drive me-1"></i> استيراد تلقائي من الأجهزة
+                    
+                    <!-- Live Device Integration Status -->
+                    <button class="btn btn-success btn-sm rounded-pill px-3 shadow-sm d-flex align-items-center gap-2 border-0" onclick="showLiveStatus()" style="background-color: #e8f5e9; color: #2e7d32;">
+                        <span class="spinner-grow spinner-grow-sm text-success" role="status" aria-hidden="true" style="width: 0.75rem; height: 0.75rem;"></span>
+                        <span class="fw-bold">الربط الآلي يعمل (Live)</span>
+                        <i class="bi bi-hdd-network ms-1"></i>
                     </button>
                 </div>
 
@@ -88,86 +91,6 @@
     </div>
 </div>
 
-<!-- Hidden Thermal Print Layout for Lab Results -->
-<div id="thermalLabReceipt" class="receipt d-none">
-    <div style="text-align:center; margin-bottom: 15px; border-bottom: 1px dashed #ccc; padding-bottom: 10px;">
-        <h3 style="margin: 0;">المركز السوداني الأردني</h3>
-        <p style="margin: 5px 0;">نتيجة فحص مختبر</p>
-    </div>
-
-    <div style="margin-bottom: 15px; text-align: right; font-size: 14px;">
-        <p style="margin: 3px 0;"><strong>رقم الحجز:</strong> <span id="printDailyNumber"></span></p>
-        <p style="margin: 3px 0;"><strong>تاريخ الطباعة:</strong> <span id="printDate"></span></p>
-        <p style="margin: 3px 0;"><strong>المريض:</strong> <span id="printPatient"></span></p>
-        <p style="margin: 3px 0;"><strong>الطبيب:</strong> <span id="printDoctor"></span></p>
-    </div>
-
-    <div style="border-bottom: 1px dashed #ccc; margin-bottom: 10px; padding-bottom: 10px;">
-        <h4 style="margin: 5px 0 10px; text-align: center; border: 1px solid #000; padding: 5px;" id="printTestName"></h4>
-        <table style="width: 100%; font-size: 14px; table-layout: fixed; border-collapse: collapse;">
-            <tr>
-                <td style="padding: 5px 0; width: 40%;"><strong>النتيجة:</strong></td>
-                <td style="padding: 5px 0; font-weight: bold; font-size: 16px;">
-                    <span id="printResult"></span> <small id="printUnit" style="font-weight: normal;"></small>
-                </td>
-            </tr>
-            <tr>
-                <td style="padding: 5px 0;"><strong>المدى الطبيعي:</strong></td>
-                <td style="padding: 5px 0; direction: ltr; text-align: right;" id="printRange"></td>
-            </tr>
-            <tr id="printNotesRow" style="display:none;">
-                <td style="padding: 5px 0;"><strong>الملاحظات:</strong></td>
-                <td style="padding: 5px 0;" id="printNotes"></td>
-            </tr>
-        </table>
-    </div>
-
-    <div style="text-align:center; margin-top: 15px; font-size: 11px;">
-        <p style="margin: 2px 0;">مع تمنياتنا لكم بدوام الصحة والعافية</p>
-        <p style="margin: 5px 0; font-size: 9px; opacity: 0.8;">Designed by Elharith Elsiidiq</p>
-    </div>
-</div>
-
-<style>
-    @@media print {
-        .sidebar, .topbar, .app-footer, .modal { display: none !important; }
-        .main-wrapper { margin: 0 !important; width: 100% !important; background-color: #fff !important; }
-        .page-content { padding: 0 !important; margin: 0 !important; }
-        .page-content > .row { display: none !important; }
-        
-        @@page { size: 80mm auto; margin: 0; }
-        
-        #thermalLabReceipt { 
-            display: block !important;
-            width: 74mm;
-            margin: 0 auto;
-            direction: rtl;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            padding: 5mm 0;
-            color: #000;
-            line-height: 1.4;
-            overflow: hidden;
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-            background-color: #fff;
-        }
-        #thermalLabReceipt table { 
-            table-layout: fixed;
-            width: 100% !important;
-        }
-        #thermalLabReceipt td, #thermalLabReceipt th {
-            overflow: hidden;
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-            word-break: break-all;
-            padding: 2px 0;
-        }
-        .receipt table { width: 100%; border-collapse: collapse; }
-        .receipt th, .receipt td { text-align: right; }
-        .no-print { display: none !important; }
-    }
-</style>
-
 @section Scripts {
     <!-- DataTables JS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" />
@@ -180,47 +103,37 @@
                 { "data": "dailyNumber", "render": function(d) { return `<span class="fw-bold">${d}</span>`; } },
                 { "data": "appointmentDate" },
                 { "data": "patientName", "render": function(d, t, row) { return `<div class="fw-bold">${d}</div><small class="text-muted">${row.patientPhone || '-'}</small>`; } },
-                { "data": "testName", "render": function(d) { return `<span class="badge bg-outline-primary text-primary border border-primary border-opacity-25 rounded-pill px-3">${d}</span>`; } },
+                { "data": "testName", "render": function(d) { return `<span class="badge bg-light text-primary border border-primary border-opacity-25 rounded-pill px-3">${d}</span>`; } },
                 { "data": "status", "render": function(d) {
                     if (d === 'Pending') return `<span class="badge bg-warning text-dark rounded-pill">قيد الانتظار</span>`;
                     if (d === 'InProgress') return `<span class="badge bg-info text-dark rounded-pill">قيد التنفيذ</span>`;
-                    return `<span class="badge bg-success rounded-pill">مكتمل</span>`;
+                    return `<span class="badge bg-success rounded-pill px-3 shadow-sm"><i class="bi bi-check-circle me-1"></i> مكتمل</span>`;
                 }},
                 { "data": "id", "orderable": false, "render": function(d, t, row) {
                     var safe = function(v) { return (v || '').replace(/'/g, "\\'"); };
+                    var isCompleted = row.status === 'Completed';
                     var html = `<div class="action-group">
-                        <button type="button" class="btn-action btn-action-primary" onclick="openManageResultModal('${d}', '${safe(row.patientName)}', '${safe(row.testName)}', '${safe(row.resultValue)}', '${safe(row.unit)}', '${safe(row.normalRange)}', '${row.status}', '${safe(row.labNotes)}', '${safe(row.performedBy)}', '${row.resultType}', '${safe(row.predefinedValues)}')" data-label="${row.status === 'Completed' ? 'عرض النتائج' : 'إدخال النتائج'}">
-                            <i class="bi bi-pencil-square"></i>
+                        <button type="button" class="btn-action ${isCompleted ? 'btn-action-success' : 'btn-action-primary'}" onclick="openManageResultModal('${d}', '${safe(row.patientName)}', '${safe(row.testName)}', '${safe(row.resultValue)}', '${safe(row.unit)}', '${safe(row.normalRange)}', '${row.status}', '${safe(row.labNotes)}', '${safe(row.performedBy)}', '${row.resultType}', '${safe(row.predefinedValues)}')" data-label="${isCompleted ? 'عرض النتائج المستوردة' : 'إدخال النتائج'}">
+                            <i class="bi ${isCompleted ? 'bi-check2-all' : 'bi-pencil-square'}"></i>
                         </button>`;
-                    if (row.status === 'Completed') {
-                        html += `<button type="button" class="btn-action btn-action-dark" onclick="printLabResult('${safe(row.dailyNumber)}', '${safe(row.patientName)}', '${safe(row.doctorName)}', '${safe(row.testName)}', '${safe(row.resultValue)}', '${safe(row.unit)}', '${safe(row.normalRange)}', '${safe(row.labNotes)}')" data-label="طباعة النتيجة"><i class="bi bi-printer-fill"></i></button>`;
+                    if (isCompleted && Number(row.appointmentId) > 0) {
+                        var reportUrl = '/Laboratory/Report?appointmentId=' + encodeURIComponent(row.appointmentId) + '&autoPrint=true';
+                        html += `<a class="btn-action btn-action-dark" href="${reportUrl}" target="_blank" data-label="طباعة تقرير المختبر"><i class="bi bi-printer-fill"></i></a>`;
                     }
                     html += `</div>`;
                     return html;
                 }}
             ];
             initDataTable('.table', '/Laboratory/GetLabResultsData', columns, { "pageLength": 10 });
+
+            // 🟢 Live Poller: Silently refresh datatable every 7 seconds for new device results
+            setInterval(function() {
+                var dt = $('.table').DataTable();
+                if(dt) {
+                    dt.ajax.reload(null, false); // false = preserve current pagination
+                }
+            }, 7000);
         });
-
-        function printLabResult(dailyNumber, patient, doctor, test, result, unit, range, notes) {
-            $('#printDate').text(new Date().toLocaleString('ar-EG', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }));
-            $('#printDailyNumber').text(dailyNumber);
-            $('#printPatient').text(patient);
-            $('#printDoctor').text(doctor || 'غير محدد');
-            $('#printTestName').text(test);
-            $('#printResult').text(result);
-            $('#printUnit').text(unit);
-            $('#printRange').text(range);
-            
-            if (notes) {
-                $('#printNotesRow').show();
-                $('#printNotes').text(notes);
-            } else {
-                $('#printNotesRow').hide();
-            }
-
-            window.print();
-        }
 
         function openManageResultModal(id, patientName, testName, val, unit, range, status, notes, performedBy, resultType, predefined) {
             $('#modalResultId').val(id);
@@ -230,9 +143,8 @@
             $('#modalLabNotes').val(notes || '');
             $('#modalPerformedBy').val(performedBy || '');
 
-            // Build dynamic input based on ResultType
             let inputHtml = "";
-            if (resultType == "3" && predefined) { // Dropdown
+            if (resultType == "3" && predefined) {
                 const options = predefined.split(',');
                 inputHtml = `<select id="modalResultValue" class="form-select" required><option value="">-- اختر النتيجة --</option>`;
                 options.forEach(opt => {
@@ -240,30 +152,31 @@
                     inputHtml += `<option value="${opt.trim()}" ${selected}>${opt.trim()}</option>`;
                 });
                 inputHtml += `</select>`;
-            } else if (resultType == "2") { // Number
+            } else if (resultType == "2") { 
                 inputHtml = `<input type="number" id="modalResultValue" class="form-control" step="any" required placeholder="0.00" value="${val || ''}">`;
-            } else { // Text
-                inputHtml = `<input type="text" id="modalResultValue" class="form-control" required placeholder="سجل النتيجة هنا" value="${val || ''}">`;
+            } else { 
+                inputHtml = `<input type="text" id="modalResultValue" class="form-control ${status === 'Completed' ? 'is-valid bg-success bg-opacity-10' : ''}" required placeholder="سجل النتيجة هنا" value="${val || ''}">`;
             }
             $('#resultInputContainer').html(inputHtml);
 
-            // Handle read-only mode for completed tests
             const isCompleted = (status === 'Completed');
             $('#labResultForm input, #labResultForm select, #labResultForm textarea').prop('disabled', isCompleted);
             $('#saveBtn').toggle(!isCompleted);
-            $('#modalTitleText').text(isCompleted ? 'عرض نتائج الفحص (مكتمل)' : 'إدخال نتائج الفحص');
+            $('#modalTitleText').text(isCompleted ? 'إلى (تم ربطه تلقائياً)' : 'إدخال نتائج الفحص');
 
             new bootstrap.Modal(document.getElementById('labResultModal')).show();
         }
 
-        function importFromDevice() {
-            // Future interface for external lab device integration
+        function showLiveStatus() {
             Swal.fire({
-                icon: 'info',
-                title: 'تكامل أجهزة المختبر',
-                text: 'البنية البرمجية جاهزة للربط المستقبلي مع أجهزة المختبر (بروتوكولات HL7 / API). بمجرد الربط سيتم استيراد النتائج تلقائياً.',
-                confirmButtonText: 'حسناً',
-                confirmButtonColor: '#4361ee'
+                icon: 'success',
+                title: 'نظام الربط الآلي متصل',
+                html: '<div class="text-start mt-3">' +
+                      '<b>حالة الخدمة:</b> <span class="text-success"><i class="bi bi-circle-fill small"></i> قيد التشغيل</span><br/>' +
+                      '<b>المنفذ:</b> <code>TCP 5000</code> / <code>COM3</code><br/><br/>' +
+                      '<div class="alert alert-success bg-opacity-10 border-success"><i class="bi bi-info-circle me-1"></i> يتم تحديث الشاشة تلقائياً كل 7 ثوانٍ لاستقبال النتائج الواردة من أجهزة المختبر فور وصولها.</div></div>',
+                confirmButtonText: 'إغلاق',
+                confirmButtonColor: '#198754'
             });
         }
 

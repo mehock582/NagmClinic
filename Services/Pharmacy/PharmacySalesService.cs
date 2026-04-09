@@ -80,7 +80,7 @@ namespace NagmClinic.Services.Pharmacy
         public async Task<SaleExecutionResult> ExecuteSaleAsync(PharmacySaleCreateViewModel model)
         {
             var validLines = model.Lines
-                .Where(l => l.ItemId > 0 && l.Quantity > 0)
+                .Where(l => l.ItemId > 0 && l.Quantity > 0 && l.SellingPrice > 0)
                 .ToList();
 
             if (validLines.Count == 0)
@@ -98,7 +98,8 @@ namespace NagmClinic.Services.Pharmacy
             var lineRequests = validLines.Select(l => new PharmacySaleRequestLine
             {
                 ItemId = l.ItemId,
-                Quantity = l.Quantity
+                Quantity = l.Quantity,
+                SellingPrice = l.SellingPrice
             }).ToList();
 
             return await _stockService.ExecuteSaleAsync(sale, lineRequests);
