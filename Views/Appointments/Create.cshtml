@@ -167,9 +167,31 @@
 
             $('#patientSearch').keypress(function (e) { if (e.keyCode == 13) e.preventDefault(); });
 
+            var validator = $('#appointmentForm').data('validator');
+            if (validator) {
+                validator.settings.ignore = ':hidden:not(#selectedPatientId)';
+            }
+
             // Check initial fee value
             onFeeChanged();
         });
+
+        function validatePatientSelection() {
+            var patientIdInput = $('#selectedPatientId');
+            var patientSearchInput = $('#patientSearch');
+            var validator = $('#appointmentForm').data('validator');
+
+            if (validator) {
+                validator.settings.ignore = ':hidden:not(#selectedPatientId)';
+            }
+
+            var isValid = $.isFunction(patientIdInput.valid)
+                ? patientIdInput.valid()
+                : (parseInt(patientIdInput.val(), 10) || 0) > 0;
+
+            patientSearchInput.toggleClass('is-invalid', !isValid);
+            return isValid;
+        }
 
         function selectPatient(id, name, phone) {
             $('#selectedPatientId').val(id);
@@ -178,6 +200,7 @@
             $('#patientSearchContainer').hide();
             $('#selectedPatientInfo').fadeIn(200);
             $('#patientResults').hide();
+            validatePatientSelection();
         }
 
         function clearPatientSelection() {
@@ -185,6 +208,8 @@
             $('#selectedPatientInfo').hide();
             $('#patientSearchContainer').fadeIn(200);
             $('#patientSearch').val('').focus();
+            $('#patientSearch').removeClass('is-invalid');
+            $('[data-valmsg-for="PatientId"]').text('').removeClass('field-validation-error').addClass('field-validation-valid');
         }
 
         function updateDoctorFee() {
@@ -232,6 +257,12 @@
 
         // Form submission validation: require reason if fee is 0
         $('#appointmentForm').on('submit', function (e) {
+            if (!validatePatientSelection()) {
+                e.preventDefault();
+                $('#patientSearch').focus();
+                return false;
+            }
+
             var fee = parseDecimal($('#consultationFee').val());
             if (fee === 0 && !$('#zeroFeeReason').val().trim()) {
                 e.preventDefault();

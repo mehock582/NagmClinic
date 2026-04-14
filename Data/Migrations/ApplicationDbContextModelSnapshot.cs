@@ -308,8 +308,28 @@ namespace NagmClinic.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("Code")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("CriticalRange")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("DeviceCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeviceMapped")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("LabAnalyzerId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("LabCategoryId")
+                        .HasColumnType("int");
 
                     b.Property<string>("NameAr")
                         .IsRequired()
@@ -331,7 +351,24 @@ namespace NagmClinic.Data.Migrations
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<string>("PrintName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("ReferenceRange")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int>("ResultType")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SampleType")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SourceType")
                         .HasColumnType("int");
 
                     b.Property<int>("Type")
@@ -341,6 +378,17 @@ namespace NagmClinic.Data.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique()
+                        .HasFilter("[Code] IS NOT NULL");
+
+                    b.HasIndex("DeviceCode")
+                        .HasFilter("[DeviceCode] IS NOT NULL");
+
+                    b.HasIndex("LabAnalyzerId");
+
+                    b.HasIndex("LabCategoryId");
 
                     b.ToTable("ClinicServices");
                 });
@@ -450,6 +498,121 @@ namespace NagmClinic.Data.Migrations
                     b.ToTable("ItemBatches");
                 });
 
+            modelBuilder.Entity("NagmClinic.Models.LabAnalyzer", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Manufacturer")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PredilutedSampleVolume")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("WholeBloodSampleVolume")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique()
+                        .HasFilter("[Code] IS NOT NULL");
+
+                    b.ToTable("LabAnalyzers");
+                });
+
+            modelBuilder.Entity("NagmClinic.Models.LabCategory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("NameAr")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("NameEn")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NameAr")
+                        .IsUnique();
+
+                    b.ToTable("LabCategories");
+                });
+
+            modelBuilder.Entity("NagmClinic.Models.LabDeviceTestMapping", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeviceId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("DeviceTestCode")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("LabTestId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LabTestId");
+
+                    b.HasIndex("DeviceId", "DeviceTestCode")
+                        .IsUnique();
+
+                    b.ToTable("LabDeviceTestMappings");
+                });
+
             modelBuilder.Entity("NagmClinic.Models.LabResult", b =>
                 {
                     b.Property<int>("Id")
@@ -461,11 +624,22 @@ namespace NagmClinic.Data.Migrations
                     b.Property<int>("AppointmentItemId")
                         .HasColumnType("int");
 
+                    b.Property<string>("ConnectorSource")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("ImportedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("LabNotes")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("NormalRange")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PatientIdentifier")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
 
                     b.Property<DateTime?>("PerformedAt")
                         .HasColumnType("datetime2");
@@ -473,8 +647,22 @@ namespace NagmClinic.Data.Migrations
                     b.Property<string>("PerformedBy")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<DateTime>("RequestedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("ResultValue")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SourceDeviceId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("SourceTestCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("SourceTimestamp")
+                        .HasColumnType("datetime2");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
@@ -488,6 +676,73 @@ namespace NagmClinic.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("LabResults");
+                });
+
+            modelBuilder.Entity("NagmClinic.Models.LabResultImportRecord", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ConnectorSource")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("DeviceId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("ImportedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("LabResultId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PatientIdentifier")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<int>("ProcessingStatus")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RawPayload")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ResultValue")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("TestCode")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Unit")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ImportedAt");
+
+                    b.HasIndex("LabResultId");
+
+                    b.HasIndex("DeviceId", "TestCode", "PatientIdentifier", "Timestamp")
+                        .IsUnique();
+
+                    b.ToTable("LabResultImportRecords");
                 });
 
             modelBuilder.Entity("NagmClinic.Models.Patient", b =>
@@ -978,6 +1233,23 @@ namespace NagmClinic.Data.Migrations
                     b.Navigation("Service");
                 });
 
+            modelBuilder.Entity("NagmClinic.Models.ClinicService", b =>
+                {
+                    b.HasOne("NagmClinic.Models.LabAnalyzer", "LabAnalyzer")
+                        .WithMany("Tests")
+                        .HasForeignKey("LabAnalyzerId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("NagmClinic.Models.LabCategory", "LabCategory")
+                        .WithMany("Tests")
+                        .HasForeignKey("LabCategoryId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("LabAnalyzer");
+
+                    b.Navigation("LabCategory");
+                });
+
             modelBuilder.Entity("NagmClinic.Models.ItemBatch", b =>
                 {
                     b.HasOne("NagmClinic.Models.PharmacyItem", "Item")
@@ -996,6 +1268,17 @@ namespace NagmClinic.Data.Migrations
                     b.Navigation("Supplier");
                 });
 
+            modelBuilder.Entity("NagmClinic.Models.LabDeviceTestMapping", b =>
+                {
+                    b.HasOne("NagmClinic.Models.ClinicService", "LabTest")
+                        .WithMany()
+                        .HasForeignKey("LabTestId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("LabTest");
+                });
+
             modelBuilder.Entity("NagmClinic.Models.LabResult", b =>
                 {
                     b.HasOne("NagmClinic.Models.AppointmentItem", "AppointmentItem")
@@ -1005,6 +1288,16 @@ namespace NagmClinic.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("AppointmentItem");
+                });
+
+            modelBuilder.Entity("NagmClinic.Models.LabResultImportRecord", b =>
+                {
+                    b.HasOne("NagmClinic.Models.LabResult", "LabResult")
+                        .WithMany()
+                        .HasForeignKey("LabResultId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("LabResult");
                 });
 
             modelBuilder.Entity("NagmClinic.Models.PharmacyItem", b =>
@@ -1120,6 +1413,16 @@ namespace NagmClinic.Data.Migrations
             modelBuilder.Entity("NagmClinic.Models.ItemBatch", b =>
                 {
                     b.Navigation("SaleLines");
+                });
+
+            modelBuilder.Entity("NagmClinic.Models.LabAnalyzer", b =>
+                {
+                    b.Navigation("Tests");
+                });
+
+            modelBuilder.Entity("NagmClinic.Models.LabCategory", b =>
+                {
+                    b.Navigation("Tests");
                 });
 
             modelBuilder.Entity("NagmClinic.Models.Patient", b =>

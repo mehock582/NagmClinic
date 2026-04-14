@@ -26,6 +26,7 @@ namespace NagmClinic.ViewModels
         public string GenderAr { get; set; } = "-";
         public string GenderEn { get; set; } = "-";
         public int Age { get; set; }
+        public string Phone { get; set; } = "-";
         public string AttendingPhysician { get; set; } = "-";
         public string? QrPayload { get; set; }
         public string? QrCodeDataUri { get; set; }

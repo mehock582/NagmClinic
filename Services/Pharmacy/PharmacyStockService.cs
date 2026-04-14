@@ -67,6 +67,8 @@ namespace NagmClinic.Services.Pharmacy
                     Barcode = batch.Barcode,
                     ExpiryDate = batch.ExpiryDate,
                     Quantity = batch.QuantityRemaining,
+                    Available = batch.QuantityRemaining,
+                    Remaining = batch.QuantityRemaining, // Placeholder or same for single lookups
                     UnitPrice = batch.SellingPrice > 0 ? batch.SellingPrice : item.DefaultSellingPrice,
                     SlotCode = item.Location?.Code ?? "-"
                 }
@@ -120,6 +122,8 @@ namespace NagmClinic.Services.Pharmacy
                         Barcode = batch.Barcode,
                         ExpiryDate = batch.ExpiryDate,
                         Quantity = batch.QuantityRemaining,
+                        Available = batch.QuantityRemaining,
+                        Remaining = batch.QuantityRemaining,
                         UnitPrice = batch.SellingPrice > 0 ? batch.SellingPrice : item.DefaultSellingPrice,
                         SlotCode = item.Location?.Code ?? "-"
                     }
@@ -203,6 +207,8 @@ namespace NagmClinic.Services.Pharmacy
                     Barcode = batch.Barcode,
                     ExpiryDate = batch.ExpiryDate,
                     Quantity = taken,
+                    Available = batch.QuantityRemaining,
+                    Remaining = batch.QuantityRemaining - taken,
                     UnitPrice = batch.SellingPrice > 0 ? batch.SellingPrice : item.DefaultSellingPrice,
                     SlotCode = item.Location?.Code ?? "-"
                 });
@@ -414,18 +420,22 @@ namespace NagmClinic.Services.Pharmacy
 
                 foreach (var line in lines)
                 {
-                    var allocation = await PreviewFefoAllocationAsync(line.ItemId, line.Quantity, DateTime.Today, cancellationToken);
-                    if (!allocation.Success)
+                    List<FefoAllocationLine> allocationsToProcess = new List<FefoAllocationLine>();
                     {
-                        await transaction.RollbackAsync(cancellationToken);
-                        return new SaleExecutionResult
+                        var allocation = await PreviewFefoAllocationAsync(line.ItemId, line.Quantity, DateTime.Today, cancellationToken);
+                        if (!allocation.Success)
                         {
-                            Success = false,
-                            Message = $"تعذر صرف الصنف رقم {line.ItemId}: {allocation.Message}"
-                        };
+                            await transaction.RollbackAsync(cancellationToken);
+                            return new SaleExecutionResult
+                            {
+                                Success = false,
+                                Message = $"تعذر صرف الصنف رقم {line.ItemId}: {allocation.Message}"
+                            };
+                        }
+                        allocationsToProcess.AddRange(allocation.Allocations);
                     }
 
-                    foreach (var alloc in allocation.Allocations)
+                    foreach (var alloc in allocationsToProcess)
                     {
                         var batch = await _context.ItemBatches
                             .Include(b => b.Item)

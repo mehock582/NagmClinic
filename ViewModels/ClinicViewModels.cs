@@ -10,7 +10,8 @@ namespace NagmClinic.ViewModels
     {
         public int Id { get; set; }
 
-        [Required(ErrorMessage = "يجب اختيار المريض")]
+        [Display(Name = "المريض")]
+        [Range(1, int.MaxValue, ErrorMessage = "اختيار المريض مطلوب")]
         public int PatientId { get; set; }
 
         [Required(ErrorMessage = "يجب اختيار الطبيب")]
@@ -45,17 +46,25 @@ namespace NagmClinic.ViewModels
 
     public class AppointmentItemViewModel
     {
+        public int AppointmentItemId { get; set; }
         public int ServiceId { get; set; }
         public string ServiceName { get; set; } = string.Empty;
+        public string ServiceDisplayName { get; set; } = string.Empty;
         public int Quantity { get; set; } = 1;
         public decimal UnitPrice { get; set; }
+        public bool HasRecordedLabResult { get; set; }
+        public NagmClinic.Models.Enums.ServiceType ItemType { get; set; }
     }
 
     public class ServiceItemDto
     {
         public int Id { get; set; }
         public string NameAr { get; set; } = string.Empty;
+        public string NameEn { get; set; } = string.Empty;
+        public string? Code { get; set; }
+        public string DisplayName { get; set; } = string.Empty;
         public decimal Price { get; set; }
+        public NagmClinic.Models.Enums.ServiceType Type { get; set; }
     }
 
     public class PatientViewModel
@@ -120,6 +129,9 @@ namespace NagmClinic.ViewModels
         [Display(Name = "اسم الخدمة (إنجليزي)")]
         public string NameEn { get; set; } = string.Empty;
 
+        [Display(Name = "كود الفحص")]
+        public string? Code { get; set; }
+
         [Required(ErrorMessage = "نوع الخدمة مطلوب")]
         [Display(Name = "نوع الخدمة")]
         public ServiceType Type { get; set; }
@@ -137,13 +149,49 @@ namespace NagmClinic.ViewModels
         [Display(Name = "المدى الطبيعي (اختياري)")]
         public string? NormalRange { get; set; }
 
+        [Display(Name = "المدى المرجعي (اختياري)")]
+        public string? ReferenceRange { get; set; }
+
+        [Display(Name = "المدى الحرج (اختياري)")]
+        public string? CriticalRange { get; set; }
+
+        [Display(Name = "اسم الطباعة")]
+        public string? PrintName { get; set; }
+
+        [Display(Name = "نوع العينة")]
+        public string? SampleType { get; set; }
+
         [Display(Name = "نوع النتيجة")]
         public LabResultType ResultType { get; set; }
+
+        [Display(Name = "مصدر النتيجة")]
+        public LabTestSourceType SourceType { get; set; } = LabTestSourceType.Manual;
+
+        [Display(Name = "مربوط بجهاز")]
+        public bool IsDeviceMapped { get; set; }
+
+        [Display(Name = "كود الجهاز")]
+        public string? DeviceCode { get; set; }
 
         [Display(Name = "القيم المحددة مسبقاً (فاصلة)")]
         public string? PredefinedValues { get; set; }
 
+        [Display(Name = "ترتيب العرض")]
+        public int SortOrder { get; set; }
+
+        [Display(Name = "التصنيف")]
+        public int? LabCategoryId { get; set; }
+
+        [Display(Name = "الجهاز")]
+        public int? LabAnalyzerId { get; set; }
+
         [Display(Name = "نشيط؟")]
         public bool IsActive { get; set; } = true;
+    }
+
+    public class LabTestsIndexViewModel
+    {
+        public IEnumerable<SelectListItem> Categories { get; set; } = new List<SelectListItem>();
+        public IEnumerable<SelectListItem> Analyzers { get; set; } = new List<SelectListItem>();
     }
 }

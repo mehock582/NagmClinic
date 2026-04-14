@@ -754,4 +754,461 @@ body.sidebar-mini .sidebar [data-tooltip]:hover::after {
     .sidebar, .topbar, .app-footer, .btn, .sidebar-overlay { display: none !important; }
     .main-wrapper { margin: 0 !important; }
     .page-content { padding: 0 !important; }
+    .appt-sticky-footer { display: none !important; }
+}
+
+/* ============================================
+   Appointment Edit Page — ERP-style Redesign
+   ============================================ */
+
+/* ── Two-column wrapper ── */
+.appt-edit-wrapper {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    gap: 1rem;
+    align-items: start;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.appt-edit-main {
+    min-width: 0;
+}
+
+/* ── Header Strip ── */
+.appt-header-strip {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: #fff;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    padding: 0.65rem 1rem;
+    margin-bottom: 0.75rem;
+    box-shadow: var(--shadow-sm);
+    flex-wrap: wrap;
+}
+
+.appt-header-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--primary-light);
+    color: var(--primary);
+    font-weight: 800;
+    font-size: 0.85rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 2rem;
+    white-space: nowrap;
+}
+
+.appt-header-badge i {
+    font-size: 1rem;
+}
+
+.appt-header-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.appt-header-patient {
+    font-weight: 800;
+    font-size: 1.05rem;
+    color: var(--text-dark);
+    line-height: 1.3;
+}
+
+.appt-header-meta {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.appt-header-sep {
+    color: var(--border-color);
+}
+
+.appt-header-fee {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+}
+
+.appt-header-fee .form-label {
+    margin: 0;
+    font-size: 0.75rem;
+}
+
+/* ── Lab warning ── */
+.appt-lab-warning {
+    background: #fff8e1;
+    border: 1px solid #ffe082 !important;
+    padding: 0.5rem 0.75rem;
+}
+
+/* ── Section Card ── */
+.appt-section-card {
+    background: #fff;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    margin-bottom: 0.75rem;
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+}
+
+.appt-section-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.6rem 0.85rem;
+    border-bottom: 1px solid #f1f5f9;
+    background: #fafbfc;
+}
+
+.appt-section-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 700;
+    font-size: 0.88rem;
+    color: var(--text-dark);
+}
+
+.appt-section-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+}
+
+.appt-count-badge {
+    font-size: 0.7rem;
+    min-width: 22px;
+    padding: 0.15rem 0.45rem;
+}
+
+/* ── Item Row (grid-based) ── */
+.appt-item-row {
+    display: grid;
+    grid-template-columns: 1fr 80px 100px 90px 40px;
+    gap: 0.5rem;
+    align-items: center;
+    padding: 0.5rem 0.85rem;
+    border-bottom: 1px solid #f8f9fa;
+    transition: background-color 0.15s ease;
+}
+
+.appt-item-row:last-child {
+    border-bottom: none;
+}
+
+.appt-item-row:hover {
+    background-color: #f8fafc;
+}
+
+.appt-item-locked {
+    background-color: #fffbeb !important;
+    border-inline-start: 3px solid #f59e0b;
+}
+
+.appt-item-locked:hover {
+    background-color: #fef9e7 !important;
+}
+
+.appt-item-select {
+    min-width: 0;
+}
+
+/* ── New row highlight animation ── */
+.appt-row-highlight {
+    animation: appt-row-glow 1.2s ease-out;
+}
+
+@keyframes appt-row-glow {
+    0%   { background-color: #dbeafe; box-shadow: inset 0 0 0 2px rgba(67, 97, 238, 0.35); }
+    60%  { background-color: #eef4ff; box-shadow: inset 0 0 0 1px rgba(67, 97, 238, 0.15); }
+    100% { background-color: transparent; box-shadow: none; }
+}
+
+.appt-item-qty, .appt-item-price {
+    text-align: center;
+}
+
+.appt-item-total {
+    text-align: center;
+    font-weight: 700;
+    color: var(--primary);
+    font-size: 0.88rem;
+}
+
+.appt-item-action {
+    text-align: center;
+}
+
+.appt-item-lock-msg {
+    grid-column: 1 / -1;
+    font-size: 0.72rem;
+    color: #92400e;
+    font-weight: 600;
+    padding-top: 0.15rem;
+}
+
+/* ── Empty Hint ── */
+.appt-empty-hint {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1.25rem;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    font-weight: 500;
+}
+
+.appt-empty-hint i {
+    font-size: 1.2rem;
+}
+
+/* ── Summary Sidebar ── */
+.appt-edit-sidebar {
+    position: sticky;
+    top: calc(var(--topbar-height) + 1rem);
+}
+
+.appt-summary-card {
+    background: #fff;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    padding: 1rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.appt-summary-title {
+    font-weight: 800;
+    font-size: 0.88rem;
+    color: var(--text-dark);
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.appt-summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.3rem 0;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+}
+
+.appt-summary-row .fw-bold {
+    color: var(--text-dark);
+}
+
+.appt-summary-grand {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 0.5rem 0.6rem;
+    background: linear-gradient(135deg, var(--primary) 0%, #3a56d4 100%);
+    color: #fff;
+    border-radius: 0.6rem;
+    font-weight: 800;
+    font-size: 0.9rem;
+}
+
+.appt-summary-grand span:last-of-type {
+    font-size: 1.3rem;
+}
+
+.appt-summary-grand small {
+    font-size: 0.7rem;
+    opacity: 0.75;
+    font-weight: 500;
+}
+
+.appt-save-btn {
+    font-size: 0.88rem;
+    box-shadow: 0 4px 14px rgba(25, 135, 84, 0.25);
+    transition: all 0.2s ease;
+}
+
+.appt-save-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(25, 135, 84, 0.35);
+}
+
+/* ── Sticky Footer Bar ── */
+.appt-sticky-footer {
+    display: none; /* shown on smaller screens via media query */
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1030;
+    background: rgba(255, 255, 255, 0.97);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid var(--border-color);
+    padding: 0.6rem 1.25rem;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.06);
+}
+
+.appt-sticky-total {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+}
+
+.appt-sticky-label {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.appt-sticky-amount {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: var(--primary);
+}
+
+.appt-sticky-footer small {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+/* ── Responsive ── */
+@media (max-width: 991.98px) {
+    .appt-edit-wrapper {
+        grid-template-columns: 1fr;
+    }
+
+    .appt-edit-sidebar {
+        display: none;
+    }
+
+    .appt-sticky-footer {
+        display: flex;
+    }
+
+    .appt-item-row {
+        grid-template-columns: 1fr 60px 80px 70px 36px;
+        gap: 0.35rem;
+        padding: 0.4rem 0.6rem;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .appt-header-strip {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+    }
+
+    .appt-header-fee {
+        justify-content: space-between;
+    }
+
+    .appt-header-back {
+        align-self: flex-end;
+    }
+
+    .appt-item-row {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.35rem;
+        padding: 0.6rem;
+    }
+
+    .appt-item-select {
+        grid-column: 1 / -1;
+    }
+
+    .appt-item-action {
+        grid-column: 1 / -1;
+        text-align: end;
+    }
+
+    .appt-item-lock-msg {
+        grid-column: 1 / -1;
+    }
+}
+
+/* ============================================
+   Laboratory Index — Patient-Centric Redesign
+   ============================================ */
+
+.lab-row-expanded {
+    background-color: var(--primary-light) !important;
+}
+
+.lab-row-expanded td {
+    border-bottom-color: transparent !important;
+}
+
+.lab-expand-btn {
+    transition: transform 0.2s ease;
+}
+
+.lab-expand-btn i {
+    transition: transform 0.2s ease;
+}
+
+.lab-counts-cell {
+    display: inline-flex;
+    gap: 0.35rem;
+    align-items: center;
+}
+
+.lab-counts-cell .badge {
+    font-size: 0.72rem;
+    min-width: 28px;
+    padding: 0.25rem 0.45rem;
+}
+
+.lab-detail-panel {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    margin: 0.25rem 0.5rem 0.5rem;
+    padding: 0.5rem;
+    animation: lab-panel-in 0.2s ease-out;
+}
+
+@keyframes lab-panel-in {
+    0%   { opacity: 0; transform: translateY(-8px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+.lab-detail-panel .table th {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    padding: 0.4rem 0.5rem;
+    border-bottom: 1px solid #e2e8f0;
+    background: transparent;
+}
+
+.lab-detail-panel .table td {
+    padding: 0.45rem 0.5rem;
+    vertical-align: middle;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.lab-detail-panel .table tr:last-child td {
+    border-bottom: none;
+}
+
+.lab-detail-panel .table tr:hover td {
+    background-color: #eef2ff;
 }

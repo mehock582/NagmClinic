@@ -71,12 +71,12 @@ namespace NagmClinic.Services.Pharmacy
         public async Task<PurchaseExecutionResult> ExecutePurchaseAsync(PharmacyPurchaseCreateViewModel model)
         {
             var validLines = model.Lines
-                .Where(l => l.ItemId > 0 && !string.IsNullOrWhiteSpace(l.BatchNumber) && !string.IsNullOrWhiteSpace(l.Barcode) && l.Quantity > 0)
+                .Where(l => l.ItemId > 0 && !string.IsNullOrWhiteSpace(l.Barcode) && l.Quantity > 0)
                 .ToList();
 
             if (validLines.Count == 0)
             {
-                return new PurchaseExecutionResult { Success = false, Message = "يجب إضافة بند شراء واحد على الأقل مع رقم الباتش والباركود" };
+                return new PurchaseExecutionResult { Success = false, Message = "يجب إضافة بند شراء واحد على الأقل مع الباركود" };
             }
 
             var purchase = new PharmacyPurchase
@@ -87,15 +87,19 @@ namespace NagmClinic.Services.Pharmacy
                 Notes = model.Notes?.Trim()
             };
 
-            var requestLines = validLines.Select(l => new PharmacyPurchaseRequestLine
+            var requestLines = new List<PharmacyPurchaseRequestLine>();
+            foreach(var l in validLines)
             {
-                ItemId = l.ItemId,
-                BatchNumber = l.BatchNumber.Trim(),
-                Barcode = l.Barcode.Trim(),
-                ExpiryDate = l.ExpiryDate.Date,
-                Quantity = l.Quantity,
-                PurchasePrice = l.PurchasePrice
-            }).ToList();
+                requestLines.Add(new PharmacyPurchaseRequestLine
+                {
+                    ItemId = l.ItemId,
+                    BatchNumber = await GenerateBatchNumberAsync(),
+                    Barcode = l.Barcode.Trim(),
+                    ExpiryDate = l.ExpiryDate.Date,
+                    Quantity = l.Quantity,
+                    PurchasePrice = l.PurchasePrice
+                });
+            }
 
             return await _stockService.ExecutePurchaseAsync(purchase, requestLines);
         }

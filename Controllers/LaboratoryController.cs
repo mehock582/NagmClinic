@@ -6,13 +6,16 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using NagmClinic.Data;
 using NagmClinic.Models;
+using NagmClinic.Models.Configuration;
 using NagmClinic.Models.Enums;
 using NagmClinic.ViewModels;
 using NagmClinic.Extensions;
 using NagmClinic.Models.DataTables;
 using NagmClinic.Services.Branding;
+using NagmClinic.Services.Laboratory;
 using NagmClinic.Services.Reports;
 
 namespace NagmClinic.Controllers
@@ -22,15 +25,24 @@ namespace NagmClinic.Controllers
         private readonly ApplicationDbContext _context;
         private readonly IClinicBrandingService _brandingService;
         private readonly IQrCodeService _qrCodeService;
+        private readonly ILabResultImportService _labResultImportService;
+        private readonly LabConnectorApiOptions _labConnectorOptions;
+        private readonly IWebHostEnvironment _environment;
 
         public LaboratoryController(
             ApplicationDbContext context,
             IClinicBrandingService brandingService,
-            IQrCodeService qrCodeService)
+            IQrCodeService qrCodeService,
+            ILabResultImportService labResultImportService,
+            IOptions<LabConnectorApiOptions> labConnectorOptions,
+            IWebHostEnvironment environment)
         {
             _context = context;
             _brandingService = brandingService;
             _qrCodeService = qrCodeService;
+            _labResultImportService = labResultImportService;
+            _labConnectorOptions = labConnectorOptions.Value;
+            _environment = environment;
         }
 
         // GET: Laboratory
@@ -45,6 +57,9 @@ namespace NagmClinic.Controllers
             try
             {
                 var dtParams = Request.GetDataTablesParameters();
+                var searchValue = dtParams.Search != null && dtParams.Search.ContainsKey("value") ? dtParams.Search["value"] : null;
+
+                // Base query: all lab results with needed navigations
                 var query = _context.LabResults
                     .Include(lr => lr.AppointmentItem)
                         .ThenInclude(ai => ai.Appointment)
@@ -56,7 +71,6 @@ namespace NagmClinic.Controllers
                         .ThenInclude(ai => ai.Service)
                     .AsQueryable();
 
-                var searchValue = dtParams.Search != null && dtParams.Search.ContainsKey("value") ? dtParams.Search["value"] : null;
                 if (!string.IsNullOrEmpty(searchValue))
                 {
                     query = query.Where(lr => (lr.AppointmentItem.Appointment.Patient != null &&
@@ -64,34 +78,123 @@ namespace NagmClinic.Controllers
                                            lr.AppointmentItem.Appointment.DailyNumber.ToString().Contains(searchValue));
                 }
 
-                int recordsTotal = await query.CountAsync();
-                var data = await query
-                    .OrderByDescending(lr => lr.AppointmentItem.Appointment.AppointmentDate)
-                    .Skip(dtParams.Start).Take(dtParams.Length)
-                    .Select(lr => new
+                // Group by appointment (= one patient visit)
+                var grouped = await query
+                    .GroupBy(lr => lr.AppointmentItem.AppointmentId)
+                    .Select(g => new
                     {
-                        lr.Id,
-                        AppointmentId = (lr.AppointmentItem != null) ? lr.AppointmentItem.AppointmentId : 0,
-                        DailyNumber = (lr.AppointmentItem != null && lr.AppointmentItem.Appointment != null) ? lr.AppointmentItem.Appointment.DailyNumber.ToString() : "-",
-                        AppointmentDate = (lr.AppointmentItem != null && lr.AppointmentItem.Appointment != null) ? lr.AppointmentItem.Appointment.AppointmentDate.ToString("yyyy-MM-dd HH:mm") : "-",
-                        PatientName = (lr.AppointmentItem != null && lr.AppointmentItem.Appointment != null && lr.AppointmentItem.Appointment.Patient != null) ? lr.AppointmentItem.Appointment.Patient.FullName : "غير معروف",
-                        PatientPhone = (lr.AppointmentItem != null && lr.AppointmentItem.Appointment != null && lr.AppointmentItem.Appointment.Patient != null) ? lr.AppointmentItem.Appointment.Patient.PhoneNumber : "-",
-                        DoctorName = (lr.AppointmentItem != null && lr.AppointmentItem.Appointment != null && lr.AppointmentItem.Appointment.Doctor != null) ? lr.AppointmentItem.Appointment.Doctor.NameAr : "",
-                        TestName = (lr.AppointmentItem != null && lr.AppointmentItem.Service != null) ? lr.AppointmentItem.Service.NameAr : "-",
-                        ResultType = (lr.AppointmentItem != null && lr.AppointmentItem.Service != null) ? (int)lr.AppointmentItem.Service.ResultType : 0,
-                        PredefinedValues = (lr.AppointmentItem != null && lr.AppointmentItem.Service != null) ? lr.AppointmentItem.Service.PredefinedValues : "",
-                        Status = lr.Status.ToString(),
-                        lr.ResultValue,
-                        lr.Unit,
-                        lr.NormalRange,
-                        lr.LabNotes,
-                        lr.PerformedBy
+                        AppointmentId = g.Key,
+                        DailyNumber = g.First().AppointmentItem.Appointment.DailyNumber,
+                        PatientName = g.First().AppointmentItem.Appointment.Patient != null
+                            ? g.First().AppointmentItem.Appointment.Patient!.FullName : "غير معروف",
+                        PatientPhone = g.First().AppointmentItem.Appointment.Patient != null
+                            ? g.First().AppointmentItem.Appointment.Patient!.PhoneNumber : "-",
+                        DoctorName = g.First().AppointmentItem.Appointment.Doctor != null
+                            ? g.First().AppointmentItem.Appointment.Doctor!.NameAr : "",
+                        RequestDate = g.Max(lr => lr.RequestedAt),
+                        TotalTests = g.Count(),
+                        CompletedTests = g.Count(lr => lr.Status == LabStatus.Completed || !string.IsNullOrWhiteSpace(lr.ResultValue)),
+                        PendingTests = g.Count(lr => lr.Status != LabStatus.Completed && string.IsNullOrWhiteSpace(lr.ResultValue))
                     })
+                    .OrderByDescending(g => g.RequestDate)
                     .ToListAsync();
 
-                return Json(new DataTablesResponse<object> { draw = dtParams.Draw, recordsTotal = recordsTotal, recordsFiltered = recordsTotal, data = data });
+                int recordsTotal = grouped.Count;
+
+                var paged = grouped
+                    .Skip(dtParams.Start)
+                    .Take(dtParams.Length)
+                    .Select(g => new LabIndexPatientRowDto
+                    {
+                        AppointmentId = g.AppointmentId,
+                        DailyNumber = g.DailyNumber,
+                        PatientName = g.PatientName,
+                        PatientPhone = g.PatientPhone,
+                        DoctorName = g.DoctorName,
+                        RequestDate = g.RequestDate.ToString("yyyy-MM-dd HH:mm"),
+                        TotalTests = g.TotalTests,
+                        CompletedTests = g.CompletedTests,
+                        PendingTests = g.PendingTests,
+                        OverallStatus = g.PendingTests == 0 ? "Completed" : (g.CompletedTests > 0 ? "Partial" : "Pending")
+                    })
+                    .ToList();
+
+                return Json(new DataTablesResponse<object>
+                {
+                    draw = dtParams.Draw,
+                    recordsTotal = recordsTotal,
+                    recordsFiltered = recordsTotal,
+                    data = paged
+                });
             }
             catch (Exception ex) { return Json(new DataTablesResponse<object> { error = ex.Message }); }
+        }
+
+        // AJAX: Get all lab test details for one appointment (used by expand/detail panel)
+        [HttpGet]
+        public async Task<IActionResult> GetLabTestDetails(int appointmentId)
+        {
+            var tests = await _context.LabResults
+                .Include(lr => lr.AppointmentItem)
+                    .ThenInclude(ai => ai.Appointment)
+                        .ThenInclude(a => a.Patient)
+                .Include(lr => lr.AppointmentItem)
+                    .ThenInclude(ai => ai.Service)
+                        .ThenInclude(s => s.LabCategory)
+                .Where(lr => lr.AppointmentItem.AppointmentId == appointmentId)
+                .Select(lr => new LabIndexTestDetailDto
+                {
+                    LabResultId = lr.Id,
+                    TestName = LabDisplayExtensions.BuildOperationalTestDisplay(
+                        lr.AppointmentItem.Service != null ? lr.AppointmentItem.Service.Code : null,
+                        lr.AppointmentItem.Service != null ? lr.AppointmentItem.Service.NameEn : null,
+                        lr.AppointmentItem.Service != null ? lr.AppointmentItem.Service.NameAr : "-"),
+                    TestNameAr = lr.AppointmentItem.Service != null ? lr.AppointmentItem.Service.NameAr : "-",
+                    TestCode = lr.AppointmentItem.Service != null ? lr.AppointmentItem.Service.Code : null,
+                    Status = (!string.IsNullOrWhiteSpace(lr.ResultValue) ? LabStatus.Completed : lr.Status).ToString(),
+                    ResultValue = lr.ResultValue,
+                    Unit = lr.Unit,
+                    NormalRange = FormatReferenceRange(lr.NormalRange, lr.AppointmentItem.Appointment.Patient != null ? lr.AppointmentItem.Appointment.Patient.Gender : (Gender?)null),
+                    LabNotes = lr.LabNotes,
+                    PerformedBy = lr.PerformedBy,
+                    ResultType = lr.AppointmentItem.Service != null ? (int)lr.AppointmentItem.Service.ResultType : 0,
+                    PredefinedValues = lr.AppointmentItem.Service != null ? lr.AppointmentItem.Service.PredefinedValues : null,
+                    SourceType = lr.AppointmentItem.Service != null ? (int)lr.AppointmentItem.Service.SourceType : 0,
+                    CategoryName = (lr.AppointmentItem.Service != null && lr.AppointmentItem.Service.LabCategory != null)
+                        ? lr.AppointmentItem.Service.LabCategory.NameAr : null
+                })
+                .ToListAsync();
+
+            return Json(tests);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetIntegrationStatus()
+        {
+            var nowUtc = DateTime.UtcNow;
+            const int minutesWindow = 30;
+            var thresholdUtc = nowUtc.AddMinutes(-minutesWindow);
+
+            var recentImportedCount = await _context.LabResultImportRecords
+                .CountAsync(r =>
+                    r.ImportedAt >= thresholdUtc &&
+                    r.ProcessingStatus == LabImportProcessingStatus.Imported);
+
+            var recentRejectedCount = await _context.LabResultImportRecords
+                .CountAsync(r =>
+                    r.ImportedAt >= thresholdUtc &&
+                    (r.ProcessingStatus == LabImportProcessingStatus.Rejected ||
+                     r.ProcessingStatus == LabImportProcessingStatus.Failed));
+
+            return Json(new
+            {
+                hasRecentImports = recentImportedCount > 0,
+                recentImportedCount,
+                recentRejectedCount,
+                minutesWindow,
+                connectorApiConfigured = !string.IsNullOrWhiteSpace(_labConnectorOptions.ApiKey),
+                manualModeAvailable = true
+            });
         }
 
         // GET: Laboratory/Manage/5 (Appointment ID)
@@ -118,6 +221,7 @@ namespace NagmClinic.Controllers
                 .Include(a => a.Doctor)
                 .Include(a => a.AppointmentItems)
                     .ThenInclude(ai => ai.Service)
+                        .ThenInclude(s => s.LabCategory)
                 .Include(a => a.AppointmentItems)
                     .ThenInclude(ai => ai.LabResult)
                 .FirstOrDefaultAsync(a => a.Id == appointmentId);
@@ -154,11 +258,13 @@ namespace NagmClinic.Controllers
                         Row = new LabReportResultRowViewModel
                         {
                             TestNameAr = service.NameAr,
-                            TestNameEn = string.IsNullOrWhiteSpace(service.NameEn) ? null : service.NameEn,
+                            TestNameEn = !string.IsNullOrWhiteSpace(service.PrintName)
+                                ? service.PrintName
+                                : (string.IsNullOrWhiteSpace(service.NameEn) ? null : service.NameEn),
                             Reading = BuildReadingValue(labResult),
                             Flag = ResolveFlag(rawResult, referenceRange),
                             Unit = !string.IsNullOrWhiteSpace(labResult?.Unit) ? labResult!.Unit! : (service.Unit ?? "-"),
-                            ReferenceRange = referenceRange
+                            ReferenceRange = FormatReferenceRange(referenceRange, appointment.Patient?.Gender)
                         }
                     };
                 })
@@ -213,6 +319,7 @@ namespace NagmClinic.Controllers
                     GenderAr = genderAr,
                     GenderEn = genderEn,
                     Age = appointment.Patient?.Age ?? 0,
+                    Phone = appointment.Patient?.PhoneNumber ?? "-",
                     AttendingPhysician = appointment.Doctor?.NameAr ?? "-",
                     QrPayload = qrPayload,
                     QrCodeDataUri = _qrCodeService.GeneratePngDataUri(qrPayload, 5)
@@ -265,87 +372,76 @@ namespace NagmClinic.Controllers
         [IgnoreAntiforgeryToken]
         public async Task<IActionResult> ImportResult([FromBody] LabResultRequestPayload payload)
         {
-            try
+            if (!Request.IsHttps && !_labConnectorOptions.AllowHttpInDevelopment)
             {
-                if (payload == null || payload.Results == null || !payload.Results.Any())
+                return StatusCode(StatusCodes.Status403Forbidden, new
                 {
-                    return BadRequest("Invalid payload.");
-                }
-
-                long appointmentId = -1;
-                long dailyNumber = -1;
-                if (payload.SampleId.StartsWith("LAB-"))
-                {
-                    var parts = payload.SampleId.Split('-');
-                    if (parts.Length >= 3 && long.TryParse(parts[2], out var number))
-                    {
-                        dailyNumber = number;
-                    }
-                } 
-                else if (long.TryParse(payload.SampleId, out var parsed))
-                {
-                    dailyNumber = parsed;
-                    appointmentId = parsed;
-                }
-
-                var query = _context.Appointments
-                    .Include(a => a.AppointmentItems)
-                        .ThenInclude(ai => ai.Service)
-                    .Include(a => a.AppointmentItems)
-                        .ThenInclude(ai => ai.LabResult)
-                    .AsQueryable();
-
-                var appointment = await query.FirstOrDefaultAsync(a => 
-                    (a.DailyNumber == dailyNumber && a.AppointmentDate.Date == DateTime.Today.Date) || 
-                    a.Id == appointmentId);
-
-                if (appointment == null)
-                {
-                    return NotFound(new { success = false, message = $"Could not find appointment for Sample ID: {payload.SampleId}" });
-                }
-
-                int updatedCount = 0;
-                foreach (var kvp in payload.Results)
-                {
-                    var testCode = kvp.Key.Trim();
-                    var testValue = kvp.Value;
-
-                    // Match logic: Exact match OR Name contains the code OR Code contains the name
-                    // Important: Ignore null or empty strings to prevent false positives!
-                    var appointmentItem = appointment.AppointmentItems.FirstOrDefault(ai => 
-                    {
-                        if (ai.Service == null) return false;
-                        var en = ai.Service.NameEn?.Trim();
-                        var ar = ai.Service.NameAr?.Trim();
-                        bool validEn = !string.IsNullOrEmpty(en);
-                        bool validAr = !string.IsNullOrEmpty(ar);
-
-                        return (validEn && string.Equals(en, testCode, StringComparison.OrdinalIgnoreCase)) ||
-                               (validAr && string.Equals(ar, testCode, StringComparison.OrdinalIgnoreCase)) ||
-                               (validEn && en!.Contains(testCode, StringComparison.OrdinalIgnoreCase)) ||
-                               (validAr && ar!.Contains(testCode, StringComparison.OrdinalIgnoreCase)) ||
-                               (validEn && testCode.Contains(en!, StringComparison.OrdinalIgnoreCase)) ||
-                               (validAr && testCode.Contains(ar!, StringComparison.OrdinalIgnoreCase));
-                    });
-                    if (appointmentItem != null && appointmentItem.LabResult != null)
-                    {
-                        appointmentItem.LabResult.ResultValue = testValue;
-                        appointmentItem.LabResult.Status = LabStatus.Completed;
-                        appointmentItem.LabResult.LabNotes = $"Auto-Imported from {payload.Device} at {DateTime.Now:HH:mm}";
-                        appointmentItem.LabResult.PerformedBy = payload.Device;
-                        appointmentItem.LabResult.PerformedAt = DateTime.Now;
-                        updatedCount++;
-                    }
-                }
-
-                await _context.SaveChangesAsync();
-
-                return Ok(new { success = true, updatedCount });
+                    success = false,
+                    message = "HTTPS is required for lab imports."
+                });
             }
-            catch (Exception ex)
+
+            if (!IsApiKeyAuthorized())
             {
-                return StatusCode(500, new { success = false, message = ex.Message });
+                return Unauthorized(new
+                {
+                    success = false,
+                    message = "Invalid connector API key."
+                });
             }
+
+            if (payload == null || payload.Results == null || payload.Results.Count == 0)
+            {
+                return BadRequest(new { success = false, message = "Invalid payload." });
+            }
+
+            var request = new LabResultsImportRequest
+            {
+                ConnectorSource = "LEGACY-API",
+                Results = payload.Results
+                    .Select(r => new NormalizedLabResultItem
+                    {
+                        DeviceId = payload.Device,
+                        PatientIdentifier = payload.SampleId,
+                        TestCode = r.Key,
+                        ResultValue = r.Value,
+                        Timestamp = DateTime.UtcNow,
+                        RawPayload = JsonSerializer.Serialize(payload)
+                    })
+                    .ToList()
+            };
+
+            var result = await _labResultImportService.ImportAsync(request);
+            return Ok(new
+            {
+                success = true,
+                result
+            });
+        }
+
+        private bool IsApiKeyAuthorized()
+        {
+            if (_environment.IsDevelopment() && _labConnectorOptions.AllowAnonymousInDevelopment)
+            {
+                return true;
+            }
+
+            var expectedKey = _labConnectorOptions.ApiKey?.Trim();
+            if (string.IsNullOrWhiteSpace(expectedKey))
+            {
+                return false;
+            }
+
+            var headerName = string.IsNullOrWhiteSpace(_labConnectorOptions.ApiKeyHeaderName)
+                ? "X-Connector-Api-Key"
+                : _labConnectorOptions.ApiKeyHeaderName;
+
+            if (!Request.Headers.TryGetValue(headerName, out var headerValue))
+            {
+                return false;
+            }
+
+            return string.Equals(headerValue.ToString().Trim(), expectedKey, StringComparison.Ordinal);
         }
 
     public class LabResultRequestPayload
@@ -414,34 +510,12 @@ namespace NagmClinic.Controllers
 
         private static (string GroupNameAr, string GroupNameEn) ResolveGroupNames(ClinicService service)
         {
-            var text = $"{service.NameAr} {service.NameEn}".ToLowerInvariant();
-
-            if (ContainsAny(text, "renal", "creatinine", "urea", "electrolyte", "s.na", "s.k", "وظائف الكلى", "كرياتينين", "يوريا", "صوديوم", "بوتاسيوم"))
+            if (service.LabCategory != null)
             {
-                return ("وظائف الكلى", "Renal Function Tests");
-            }
-
-            if (ContainsAny(text, "cbc", "hematology", "wbc", "rbc", "hb", "hct", "platelet", "صورة دم", "هيموجلوبين", "صفائح"))
-            {
-                return ("صورة الدم", "CBC / Hematology");
-            }
-
-            if (ContainsAny(text, "liver", "alt", "ast", "bilirubin", "alp", "وظائف الكبد", "بيليروبين"))
-            {
-                return ("وظائف الكبد", "Liver Function");
-            }
-
-            if (ContainsAny(text, "chemistry", "glucose", "sugar", "cholesterol", "triglyceride", "كيمياء", "سكر", "كوليسترول"))
-            {
-                return ("الكيمياء", "Chemistry");
+                return (service.LabCategory.NameAr, service.LabCategory.NameEn ?? service.LabCategory.NameAr);
             }
 
             return ("تحاليل عامة", "General Tests");
-        }
-
-        private static bool ContainsAny(string source, params string[] terms)
-        {
-            return terms.Any(t => source.Contains(t, StringComparison.OrdinalIgnoreCase));
         }
 
         private static string ResolveFlag(string? rawResult, string? rawRange)
@@ -554,6 +628,53 @@ namespace NagmClinic.Controllers
             }
 
             return decimal.TryParse(cleaned, NumberStyles.Any, CultureInfo.CurrentCulture, out value);
+        }
+
+        private static string FormatReferenceRange(string? rawRange, Gender? gender)
+        {
+            if (string.IsNullOrWhiteSpace(rawRange) || rawRange == "-")
+                return "-";
+
+            var range = rawRange.Trim();
+
+            if (!gender.HasValue) 
+                return range;
+
+            // Handle standard split "Male: ... / Female: ..."
+            if (range.Contains("/") || range.Contains(" / "))
+            {
+                var parts = range.Split(new[] { "/", " / " }, StringSplitOptions.RemoveEmptyEntries);
+                foreach (var part in parts)
+                {
+                    var p = part.Trim();
+                    var isMalePart = p.StartsWith("Male", StringComparison.OrdinalIgnoreCase);
+                    var isFemalePart = p.StartsWith("Female", StringComparison.OrdinalIgnoreCase);
+
+                    if (gender == Gender.Male && isMalePart)
+                        return CleanRange(p, "Male");
+                    
+                    if (gender == Gender.Female && isFemalePart)
+                        return CleanRange(p, "Female");
+                }
+            }
+
+            return range;
+        }
+
+        private static string CleanRange(string part, string prefix)
+        {
+            // Try to remove "prefix:" or "prefix :" 
+            var idx = part.IndexOf(prefix, StringComparison.OrdinalIgnoreCase);
+            if (idx >= 0)
+            {
+                var clean = part.Substring(idx + prefix.Length).Trim();
+                if (clean.StartsWith(":")) 
+                {
+                    clean = clean.Substring(1).Trim();
+                }
+                return clean;
+            }
+            return part;
         }
     }
 }

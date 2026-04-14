@@ -1,0 +1,287 @@
+@model NagmClinic.ViewModels.LabDeviceMappingsIndexViewModel
+
+@{
+    ViewData["Title"] = "ربط أكواد الأجهزة";
+}
+
+<div class="card border-0 shadow-sm rounded-3 transition-hover">
+    <div class="card-body p-3">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <h5 class="fw-bold mb-0 text-info">
+                <i class="bi bi-diagram-3-fill me-2"></i> إدارة ربط أكواد الأجهزة بالفحوصات
+            </h5>
+            <button type="button" class="btn btn-info text-white btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#quickCreateMappingModal">
+                <i class="bi bi-plus-lg me-1"></i> إضافة ربط جديد
+            </button>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle text-center small w-100">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="text-center align-middle text-nowrap border-0">الجهاز</th>
+                        <th class="text-center align-middle text-nowrap border-0">كود الجهاز</th>
+                        <th class="text-center align-middle text-nowrap border-0">الفحص المعملي</th>
+                        <th class="text-center align-middle text-nowrap border-0">الحالة</th>
+                        <th class="text-center align-middle text-nowrap border-0">الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="quickCreateMappingModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-info"><i class="bi bi-plus-circle-fill me-2"></i> إضافة ربط جهاز</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="quickCreateMappingForm" class="needs-validation" novalidate>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">الجهاز *</label>
+                            <select id="mappingDeviceId" class="form-select form-select-sm" required>
+                                <option value="">-- اختر الجهاز --</option>
+                                @foreach (var option in Model.DeviceOptions)
+                                {
+                                    <option value="@option.Value">@option.Text</option>
+                                }
+                            </select>
+                            <div class="invalid-feedback text-danger fw-bold small mt-1">يرجى اختيار الجهاز</div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">كود الفحص في الجهاز *</label>
+                            <input type="text" id="mappingDeviceTestCode" class="form-control form-control-sm" required placeholder="مثال: WBC">
+                            <div class="invalid-feedback text-danger fw-bold small mt-1">يرجى إدخال كود الجهاز</div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">الفحص المعملي *</label>
+                            <select id="mappingLabTestId" class="form-select form-select-sm" required>
+                                <option value="">-- اختر الفحص --</option>
+                                @foreach (var test in Model.LabTests)
+                                {
+                                    <option value="@test.Value">@test.Text</option>
+                                }
+                            </select>
+                            <div class="invalid-feedback text-danger fw-bold small mt-1">يرجى اختيار الفحص</div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light btn-sm rounded-pill px-3" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-info text-white btn-sm rounded-pill px-4 fw-bold" onclick="saveMapping()">حفظ الربط</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="quickEditMappingModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-info"><i class="bi bi-pencil-square me-2"></i> تعديل ربط الجهاز</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="quickEditMappingForm" class="needs-validation" novalidate>
+                    <input type="hidden" id="editMappingId">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">الجهاز *</label>
+                            <select id="editMappingDeviceId" class="form-select form-select-sm" required>
+                                <option value="">-- اختر الجهاز --</option>
+                                @foreach (var option in Model.DeviceOptions)
+                                {
+                                    <option value="@option.Value">@option.Text</option>
+                                }
+                            </select>
+                            <div class="invalid-feedback text-danger fw-bold small mt-1">يرجى اختيار الجهاز</div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">كود الفحص في الجهاز *</label>
+                            <input type="text" id="editMappingDeviceTestCode" class="form-control form-control-sm" required>
+                            <div class="invalid-feedback text-danger fw-bold small mt-1">يرجى إدخال كود الجهاز</div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">الفحص المعملي *</label>
+                            <select id="editMappingLabTestId" class="form-select form-select-sm" required>
+                                <option value="">-- اختر الفحص --</option>
+                                @foreach (var test in Model.LabTests)
+                                {
+                                    <option value="@test.Value">@test.Text</option>
+                                }
+                            </select>
+                            <div class="invalid-feedback text-danger fw-bold small mt-1">يرجى اختيار الفحص</div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check form-switch p-3 bg-light rounded-3 d-flex justify-content-between align-items-center">
+                                <label class="form-check-label fw-bold mb-0" for="editMappingIsActive">الحالة (مفعل/معطل)</label>
+                                <input class="form-check-input ms-0 me-2" type="checkbox" role="switch" id="editMappingIsActive">
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light btn-sm rounded-pill px-3" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-info text-white btn-sm rounded-pill px-4 fw-bold" onclick="updateMapping()">حفظ التغييرات</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    
+    
+    
+
+    <script>
+        $(document).ready(function () {
+            var columns = [
+                {
+                    "data": "deviceName",
+                    "render": function (d, t, row) {
+                        return `<div class="fw-bold">${d || row.deviceId}</div><small class="text-muted">${row.deviceId}</small>`;
+                    }
+                },
+                {
+                    "data": "deviceTestCode",
+                    "render": function (d) {
+                        return `<span class="badge bg-light text-dark border">${d}</span>`;
+                    }
+                },
+                {
+                    "data": "labTestName",
+                    "render": function (d, t, row) {
+                        const code = row.labTestCode ? row.labTestCode : '-';
+                        return `<div class="fw-bold">${d}</div><small class="text-muted">${code}</small>`;
+                    }
+                },
+                {
+                    "data": "isActive",
+                    "render": function (d, t, row) {
+                        return `<div class="form-check form-switch d-flex justify-content-center"><input class="form-check-input" type="checkbox" role="switch" ${d ? 'checked' : ''} onchange="toggleStatus(${row.id})"></div>`;
+                    }
+                },
+                {
+                    "data": "id",
+                    "orderable": false,
+                    "render": function (d, t, row) {
+                        var attrs = buildDataAttributes(row);
+                        return `<div class="action-group">
+                            <button type="button" class="btn-action btn-action-primary" onclick="openEditMapping(this)" ${attrs} data-label="تعديل"><i class="bi bi-pencil-fill"></i></button>
+                        </div>`;
+                    }
+                }
+            ];
+
+            initDataTable('.table', '/LabDeviceMappings/GetMappingsData', columns);
+        });
+
+        function buildDataAttributes(row) {
+            var attrs = [];
+            Object.keys(row).forEach(function (key) {
+                var value = row[key];
+                if (value === null || value === undefined) {
+                    value = '';
+                }
+
+                var safe = value.toString()
+                    .replace(/&/g, '&amp;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;');
+
+                attrs.push(`data-${toKebabCase(key)}="${safe}"`);
+            });
+
+            return attrs.join(' ');
+        }
+
+        function toKebabCase(value) {
+            return value.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
+        }
+
+        function collectMapping(prefix) {
+            var edit = prefix === 'edit';
+            return {
+                id: edit ? parseInt($('#editMappingId').val() || '0') : 0,
+                deviceId: edit ? $('#editMappingDeviceId').val() : $('#mappingDeviceId').val(),
+                deviceTestCode: edit ? $('#editMappingDeviceTestCode').val() : $('#mappingDeviceTestCode').val(),
+                labTestId: parseInt(edit ? $('#editMappingLabTestId').val() : $('#mappingLabTestId').val()),
+                isActive: edit ? $('#editMappingIsActive').is(':checked') : true
+            };
+        }
+
+        function saveMapping() {
+            const form = document.getElementById('quickCreateMappingForm');
+            if (!form.checkValidity()) {
+                form.classList.add('was-validated');
+                return;
+            }
+
+            $.ajax({
+                url: '/LabDeviceMappings/QuickCreate',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(collectMapping('')),
+                success: function (res) {
+                    if (res.success) {
+                        location.reload();
+                    } else {
+                        Swal.fire('خطأ', res.message, 'error');
+                    }
+                }
+            });
+        }
+
+        function openEditMapping(btn) {
+            const $btn = $(btn);
+            $('#editMappingId').val($btn.data('id'));
+            $('#editMappingDeviceId').val($btn.data('device-id'));
+            $('#editMappingDeviceTestCode').val($btn.data('device-test-code'));
+            $('#editMappingLabTestId').val($btn.data('lab-test-id'));
+            $('#editMappingIsActive').prop('checked', $btn.data('is-active') === true || $btn.data('is-active') === 'true');
+
+            $('#quickEditMappingForm').removeClass('was-validated');
+            new bootstrap.Modal(document.getElementById('quickEditMappingModal')).show();
+        }
+
+        function updateMapping() {
+            const form = document.getElementById('quickEditMappingForm');
+            if (!form.checkValidity()) {
+                form.classList.add('was-validated');
+                return;
+            }
+
+            $.ajax({
+                url: '/LabDeviceMappings/QuickEdit',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(collectMapping('edit')),
+                success: function (res) {
+                    if (res.success) {
+                        location.reload();
+                    } else {
+                        Swal.fire('خطأ', res.message, 'error');
+                    }
+                }
+            });
+        }
+
+        function toggleStatus(id) {
+            $.post('/LabDeviceMappings/ToggleStatus/' + id, function (res) {
+                if (!res.success) {
+                    Swal.fire('خطأ', 'تعذر تغيير الحالة', 'error');
+                }
+            });
+        }
+    </script>
+}
+
+

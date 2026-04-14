@@ -8,26 +8,27 @@
             <div class="card-body p-4">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h5 class="fw-bold mb-0 text-primary">
-                        <i class="bi bi-microscope me-2"></i> قائمة الفحوصات المطلوبة
+                        <i class="bi bi-microscope me-2"></i> طلبات المختبر
                     </h5>
-                    
-                    <!-- Live Device Integration Status -->
-                    <button class="btn btn-success btn-sm rounded-pill px-3 shadow-sm d-flex align-items-center gap-2 border-0" onclick="showLiveStatus()" style="background-color: #e8f5e9; color: #2e7d32;">
-                        <span class="spinner-grow spinner-grow-sm text-success" role="status" aria-hidden="true" style="width: 0.75rem; height: 0.75rem;"></span>
-                        <span class="fw-bold">الربط الآلي يعمل (Live)</span>
+
+                    <!-- Device integration is optional and status-driven -->
+                    <button id="integrationStatusBtn" class="btn btn-outline-secondary btn-sm rounded-pill px-3 shadow-sm d-flex align-items-center gap-2" onclick="showLiveStatus()">
+                        <span id="integrationStatusDot" class="spinner-grow spinner-grow-sm text-secondary" role="status" aria-hidden="true" style="width: 0.75rem; height: 0.75rem;"></span>
+                        <span id="integrationStatusText" class="fw-bold">الربط الآلي اختياري</span>
                         <i class="bi bi-hdd-network ms-1"></i>
                     </button>
                 </div>
 
-
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle text-center small w-100">
+                    <table class="table table-hover align-middle text-center small w-100" id="labIndexTable">
                         <thead class="table-dark">
                             <tr>
+                                <th class="text-center align-middle text-nowrap" style="width:40px;"></th>
                                 <th class="text-center align-middle text-nowrap"># حجز</th>
                                 <th class="text-center align-middle text-nowrap">تاريخ الطلب</th>
                                 <th class="text-center align-middle text-nowrap">المريض</th>
-                                <th class="text-center align-middle text-nowrap">الفحص المطلوب</th>
+                                <th class="text-center align-middle text-nowrap">الطبيب</th>
+                                <th class="text-center align-middle text-nowrap">الفحوصات</th>
                                 <th class="text-center align-middle text-nowrap">الحالة</th>
                                 <th class="text-center align-middle text-nowrap">الإجراءات</th>
                             </tr>
@@ -40,7 +41,7 @@
     </div>
 </div>
 
-<!-- Modal for Lab Result Entry -->
+<!-- Modal for Lab Result Entry (shared for all tests) -->
 <div class="modal fade" id="labResultModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg rounded-4">
@@ -62,7 +63,7 @@
                             <div id="resultInputContainer">
                                 <input type="text" id="modalResultValue" class="form-control" required placeholder="سجل قيمة النتيجة هنا">
                             </div>
-                            <div class="invalid-feedback text-danger fw-bold small mt-1"><i class="bi bi-exclamation-circle me-1"></i> يرجى إدخال النتيجة</div>
+                            <div class="invalid-feedback text-danger fw-bold small mt-1"><i class="bi bi-exclamation-circle me-1"></i>يرجى إدخال النتيجة</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label small fw-bold">الحالة</label>
@@ -93,48 +94,198 @@
 
 @section Scripts {
     <!-- DataTables JS -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" />
-    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+    
+    
+    
 
     <script>
-        $(document).ready(function () {
-            var columns = [
-                { "data": "dailyNumber", "render": function(d) { return `<span class="fw-bold">${d}</span>`; } },
-                { "data": "appointmentDate" },
-                { "data": "patientName", "render": function(d, t, row) { return `<div class="fw-bold">${d}</div><small class="text-muted">${row.patientPhone || '-'}</small>`; } },
-                { "data": "testName", "render": function(d) { return `<span class="badge bg-light text-primary border border-primary border-opacity-25 rounded-pill px-3">${d}</span>`; } },
-                { "data": "status", "render": function(d) {
-                    if (d === 'Pending') return `<span class="badge bg-warning text-dark rounded-pill">قيد الانتظار</span>`;
-                    if (d === 'InProgress') return `<span class="badge bg-info text-dark rounded-pill">قيد التنفيذ</span>`;
-                    return `<span class="badge bg-success rounded-pill px-3 shadow-sm"><i class="bi bi-check-circle me-1"></i> مكتمل</span>`;
-                }},
-                { "data": "id", "orderable": false, "render": function(d, t, row) {
-                    var safe = function(v) { return (v || '').replace(/'/g, "\\'"); };
-                    var isCompleted = row.status === 'Completed';
-                    var html = `<div class="action-group">
-                        <button type="button" class="btn-action ${isCompleted ? 'btn-action-success' : 'btn-action-primary'}" onclick="openManageResultModal('${d}', '${safe(row.patientName)}', '${safe(row.testName)}', '${safe(row.resultValue)}', '${safe(row.unit)}', '${safe(row.normalRange)}', '${row.status}', '${safe(row.labNotes)}', '${safe(row.performedBy)}', '${row.resultType}', '${safe(row.predefinedValues)}')" data-label="${isCompleted ? 'عرض النتائج المستوردة' : 'إدخال النتائج'}">
-                            <i class="bi ${isCompleted ? 'bi-check2-all' : 'bi-pencil-square'}"></i>
-                        </button>`;
-                    if (isCompleted && Number(row.appointmentId) > 0) {
-                        var reportUrl = '/Laboratory/Report?appointmentId=' + encodeURIComponent(row.appointmentId) + '&autoPrint=true';
-                        html += `<a class="btn-action btn-action-dark" href="${reportUrl}" target="_blank" data-label="طباعة تقرير المختبر"><i class="bi bi-printer-fill"></i></a>`;
-                    }
-                    html += `</div>`;
-                    return html;
-                }}
-            ];
-            initDataTable('.table', '/Laboratory/GetLabResultsData', columns, { "pageLength": 10 });
+        // ─── State ───
+        var expandedRows = {};     // track which appointment rows are expanded
+        var integrationStatus = {
+            hasRecentImports: false,
+            recentImportedCount: 0,
+            recentRejectedCount: 0,
+            minutesWindow: 30,
+            connectorApiConfigured: false,
+            manualModeAvailable: true
+        };
 
-            // 🟢 Live Poller: Silently refresh datatable every 7 seconds for new device results
-            setInterval(function() {
-                var dt = $('.table').DataTable();
-                if(dt) {
-                    dt.ajax.reload(null, false); // false = preserve current pagination
+        $(document).ready(function () {
+            var dt = initDataTable('#labIndexTable', '/Laboratory/GetLabResultsData', [
+                    {
+                        // Expand/collapse toggle
+                        data: null, orderable: false, searchable: false,
+                        render: function (d, t, row) {
+                            var icon = expandedRows[row.appointmentId] ? 'bi-chevron-up' : 'bi-chevron-down';
+                            return `<button class="btn btn-sm btn-link p-0 lab-expand-btn" data-id="${row.appointmentId}"><i class="bi ${icon}"></i></button>`;
+                        }
+                    },
+                    {
+                        data: 'dailyNumber',
+                        render: function (d) { return `<span class="fw-bold">${d}</span>`; }
+                    },
+                    { data: 'requestDate' },
+                    {
+                        data: 'patientName',
+                        render: function (d, t, row) {
+                            return `<div class="fw-bold">${d}</div><small class="text-muted">${row.patientPhone || '-'}</small>`;
+                        }
+                    },
+                    {
+                        data: 'doctorName',
+                        render: function (d) { return `<span class="text-muted">${d || '-'}</span>`; }
+                    },
+                    {
+                        // Test summary counts
+                        data: null, orderable: false,
+                        render: function (d, t, row) {
+                            return `<div class="lab-counts-cell">
+                                <span class="badge bg-secondary-subtle text-dark rounded-pill" title="الإجمالي">${row.totalTests}</span>
+                                <span class="badge bg-success-subtle text-success rounded-pill" title="مكتمل"><i class="bi bi-check-circle-fill me-1"></i>${row.completedTests}</span>
+                                <span class="badge bg-warning-subtle text-warning rounded-pill" title="قيد الانتظار"><i class="bi bi-hourglass-split me-1"></i>${row.pendingTests}</span>
+                            </div>`;
+                        }
+                    },
+                    {
+                        data: 'overallStatus',
+                        render: function (d) {
+                            if (d === 'Completed') return `<span class="badge bg-success rounded-pill px-3 shadow-sm"><i class="bi bi-check-circle me-1"></i>مكتمل</span>`;
+                            if (d === 'Partial') return `<span class="badge bg-info text-dark rounded-pill px-3">جزئي</span>`;
+                            return `<span class="badge bg-warning text-dark rounded-pill px-3">قيد الانتظار</span>`;
+                        }
+                    },
+                    {
+                        data: null, orderable: false,
+                        render: function (d, t, row) {
+                            var iconClass = expandedRows[row.appointmentId] ? 'lab-row-expanded' : '';
+                            var html = `<div class="action-group">`;
+                            html += `<button class="btn-action btn-action-primary lab-expand-btn ${iconClass}" data-id="${row.appointmentId}" data-label="عرض التفاصيل"><i class="bi bi-list-ul"></i></button>`;
+                            if (row.overallStatus === 'Completed') {
+                                var reportUrl = '/Laboratory/Report?appointmentId=' + encodeURIComponent(row.appointmentId) + '&autoPrint=true';
+                                html += `<a class="btn-action btn-action-dark" href="${reportUrl}" target="_blank" data-label="طباعة التقرير"><i class="bi bi-printer-fill"></i></a>`;
+                            }
+                            html += `</div>`;
+                            return html;
+                        }
+                    }
+                ],
+                {
+                    drawCallback: function () {
+                        bindExpandButtons();
+
+                        // 🛠️ Stability Fix: Re-expand and refresh details from server (NO CACHE)
+                        var dtApi = this.api();
+                        dtApi.rows().every(function () {
+                            var rowData = this.data();
+                            if (rowData && expandedRows[rowData.appointmentId]) {
+                                var tr = $(this.node());
+                                tr.addClass('lab-row-expanded');
+                                
+                                var row = this;
+                                $.getJSON('/Laboratory/GetLabTestDetails?appointmentId=' + rowData.appointmentId, function (tests) {
+                                    if (expandedRows[rowData.appointmentId]) {
+                                        row.child(buildDetailPanel(rowData.appointmentId, tests, tr)).show();
+                                    }
+                                });
+                            }
+                        });
+                    }
+                }
+            );
+
+            // 🟢 Live Poller
+            setInterval(function () {
+                if ($('.modal.show').length === 0) {
+                    dt.ajax.reload(null, false);
                 }
             }, 7000);
+
+            refreshIntegrationStatus();
+            setInterval(refreshIntegrationStatus, 30000);
         });
 
+        // ─── Expand/Collapse Buttons ───
+        function bindExpandButtons() {
+            $('.lab-expand-btn').off('click').on('click', function (e) {
+                e.preventDefault();
+                var appointmentId = $(this).data('id');
+                var tr = $(this).closest('tr');
+                toggleDetailPanel(tr, appointmentId);
+            });
+        }
+
+        function toggleDetailPanel(tr, appointmentId) {
+            var dt = $('#labIndexTable').DataTable();
+            var row = dt.row(tr);
+
+            if (row.child.isShown()) {
+                row.child.hide();
+                tr.removeClass('lab-row-expanded');
+                tr.find('.lab-expand-btn i').removeClass('bi-chevron-up').addClass('bi-chevron-down');
+                delete expandedRows[appointmentId];
+            } else {
+                expandedRows[appointmentId] = true;
+                tr.addClass('lab-row-expanded');
+                tr.find('.lab-expand-btn i').removeClass('bi-chevron-down').addClass('bi-chevron-up');
+
+                row.child('<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div> جاري التحميل...</div>').show();
+                $.getJSON('/Laboratory/GetLabTestDetails?appointmentId=' + appointmentId, function (tests) {
+                    if (expandedRows[appointmentId]) {
+                        row.child(buildDetailPanel(appointmentId, tests, tr)).show();
+                    }
+                });
+            }
+        }
+
+        // ─── Build Detail Panel HTML ───
+        function buildDetailPanel(appointmentId, tests, parentRow) {
+            var patientName = parentRow.find('td:eq(3) .fw-bold').text();
+            var html = `<div class="lab-detail-panel">
+                <table class="table table-sm table-borderless mb-0 small">
+                    <thead><tr>
+                        <th class="text-muted">الفحص</th>
+                        <th class="text-muted text-center">الحالة</th>
+                        <th class="text-muted text-center">النتيجة</th>
+                        <th class="text-muted text-center">الوحدة</th>
+                        <th class="text-muted text-center">المدى الطبيعي</th>
+                        <th class="text-muted text-center">الإجراء</th>
+                    </tr></thead><tbody>`;
+
+            tests.forEach(function (t) {
+                var statusBadge = t.status === 'Completed'
+                    ? '<span class="badge bg-success rounded-pill">مكتمل</span>'
+                    : (t.status === 'InProgress'
+                        ? '<span class="badge bg-info text-dark rounded-pill">قيد التنفيذ</span>'
+                        : '<span class="badge bg-warning text-dark rounded-pill">قيد الانتظار</span>');
+
+                var resultDisplay = t.resultValue || '<span class="text-muted">—</span>';
+                var isCompleted = t.status === 'Completed';
+
+                html += `<tr>
+                    <td class="text-start">
+                        <div class="fw-bold text-primary">${safe(t.testName)}</div>
+                        <small class="text-muted">${safe(t.testNameAr)}</small>
+                    </td>
+                    <td class="text-center">${statusBadge}</td>
+                    <td class="text-center fw-bold">${resultDisplay}</td>
+                    <td class="text-center text-muted">${t.unit || '-'}</td>
+                    <td class="text-center text-muted">${t.normalRange || '-'}</td>
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-outline-primary rounded-pill px-3"
+                            onclick="openManageResultModal('${t.labResultId}', '${safe(patientName)}', '${safe(t.testName)}', '${safe(t.resultValue)}', '${safe(t.unit)}', '${safe(t.normalRange)}', '${t.status}', '${safe(t.labNotes)}', '${safe(t.performedBy)}', '${t.resultType}', '${safe(t.predefinedValues)}')">
+                            <i class="bi bi-pencil-square me-1"></i>${isCompleted ? 'تعديل' : 'إدخال'}
+                        </button>
+                    </td>
+                </tr>`;
+            });
+
+            html += `</tbody></table></div>`;
+            return html;
+        }
+
+        function safe(v) { return (v || '').replace(/'/g, "\\'").replace(/"/g, '&quot;'); }
+
+        // ─── Result Modal ───
         function openManageResultModal(id, patientName, testName, val, unit, range, status, notes, performedBy, resultType, predefined) {
             $('#modalResultId').val(id);
             $('#modalPatientName').text(patientName);
@@ -144,7 +295,7 @@
             $('#modalPerformedBy').val(performedBy || '');
 
             let inputHtml = "";
-            if (resultType == "3" && predefined) {
+            if ((resultType == "3" || resultType == "4") && predefined) {
                 const options = predefined.split(',');
                 inputHtml = `<select id="modalResultValue" class="form-select" required><option value="">-- اختر النتيجة --</option>`;
                 options.forEach(opt => {
@@ -152,29 +303,79 @@
                     inputHtml += `<option value="${opt.trim()}" ${selected}>${opt.trim()}</option>`;
                 });
                 inputHtml += `</select>`;
-            } else if (resultType == "2") { 
+            } else if (resultType == "2") {
                 inputHtml = `<input type="number" id="modalResultValue" class="form-control" step="any" required placeholder="0.00" value="${val || ''}">`;
-            } else { 
+            } else {
                 inputHtml = `<input type="text" id="modalResultValue" class="form-control ${status === 'Completed' ? 'is-valid bg-success bg-opacity-10' : ''}" required placeholder="سجل النتيجة هنا" value="${val || ''}">`;
             }
             $('#resultInputContainer').html(inputHtml);
 
             const isCompleted = (status === 'Completed');
-            $('#labResultForm input, #labResultForm select, #labResultForm textarea').prop('disabled', isCompleted);
-            $('#saveBtn').toggle(!isCompleted);
-            $('#modalTitleText').text(isCompleted ? 'إلى (تم ربطه تلقائياً)' : 'إدخال نتائج الفحص');
+            $('#labResultForm').removeClass('was-validated');
+            $('#labResultForm input, #labResultForm select, #labResultForm textarea').prop('disabled', false);
+            $('#saveBtn').show();
+            $('#modalTitleText').text(isCompleted ? 'تعديل نتيجة الفحص' : 'إدخال نتائج الفحص');
 
             new bootstrap.Modal(document.getElementById('labResultModal')).show();
         }
 
+        function refreshIntegrationStatus() {
+            $.getJSON('/Laboratory/GetIntegrationStatus', function (status) {
+                integrationStatus = status || integrationStatus;
+                renderIntegrationStatus();
+            }).fail(function () {
+                integrationStatus.hasRecentImports = false;
+                integrationStatus.recentImportedCount = 0;
+                integrationStatus.recentRejectedCount = 0;
+                integrationStatus.connectorApiConfigured = false;
+                renderIntegrationStatus();
+            });
+        }
+
+        function renderIntegrationStatus() {
+            var $btn = $('#integrationStatusBtn');
+            var $dot = $('#integrationStatusDot');
+            var $text = $('#integrationStatusText');
+
+            $btn.removeClass('btn-success btn-warning btn-outline-secondary');
+            $dot.removeClass('text-success text-warning text-secondary');
+
+            if (integrationStatus.hasRecentImports) {
+                $btn.addClass('btn-success');
+                $dot.addClass('text-success');
+                $text.text('الربط الآلي نشط');
+                return;
+            }
+
+            if (integrationStatus.connectorApiConfigured) {
+                $btn.addClass('btn-warning');
+                $dot.addClass('text-warning');
+                $text.text('الربط الآلي غير نشط حالياً');
+                return;
+            }
+
+            $btn.addClass('btn-outline-secondary');
+            $dot.addClass('text-secondary');
+            $text.text('الوضع اليدوي (بدون ربط)');
+        }
+
         function showLiveStatus() {
+            var statusIcon = integrationStatus.hasRecentImports ? 'success' : 'info';
+            var statusTitle = integrationStatus.hasRecentImports
+                ? 'الربط الآلي متاح'
+                : 'الوضع اليدوي يعمل';
+
+            var integrationHint = integrationStatus.connectorApiConfigured
+                ? 'يمكن استقبال نتائج الأجهزة عند توفر Connector، ولكن النظام يعمل أيضاً بدون أي ربط.'
+                : 'لا يوجد تكامل أجهزة مفعّل حالياً، ويمكن إدخال النتائج يدوياً بشكل كامل.';
+
             Swal.fire({
-                icon: 'success',
-                title: 'نظام الربط الآلي متصل',
+                icon: statusIcon,
+                title: statusTitle,
                 html: '<div class="text-start mt-3">' +
-                      '<b>حالة الخدمة:</b> <span class="text-success"><i class="bi bi-circle-fill small"></i> قيد التشغيل</span><br/>' +
-                      '<b>المنفذ:</b> <code>TCP 5000</code> / <code>COM3</code><br/><br/>' +
-                      '<div class="alert alert-success bg-opacity-10 border-success"><i class="bi bi-info-circle me-1"></i> يتم تحديث الشاشة تلقائياً كل 7 ثوانٍ لاستقبال النتائج الواردة من أجهزة المختبر فور وصولها.</div></div>',
+                      '<b>نتائج مستوردة آخر ' + integrationStatus.minutesWindow + ' دقيقة:</b> <span class="fw-bold">' + integrationStatus.recentImportedCount + '</span><br/>' +
+                      '<b>محاولات مرفوضة/فاشلة:</b> <span class="fw-bold">' + integrationStatus.recentRejectedCount + '</span><br/><br/>' +
+                      '<div class="alert alert-info bg-opacity-10 border-info"><i class="bi bi-info-circle me-1"></i>' + integrationHint + '</div></div>',
                 confirmButtonText: 'إغلاق',
                 confirmButtonColor: '#198754'
             });
@@ -191,8 +392,8 @@
             var data = {
                 id: id,
                 resultValue: $('#modalResultValue').val(),
-                unit: $('#modalUnit').val(),
-                normalRange: $('#modalRange').val(),
+                unit: null,
+                normalRange: null,
                 status: $('#modalStatus').val(),
                 labNotes: $('#modalLabNotes').val(),
                 performedBy: $('#modalPerformedBy').val()
@@ -206,7 +407,8 @@
                         showConfirmButton: false,
                         timer: 1500
                     }).then(() => {
-                        window.location.reload();
+                        bootstrap.Modal.getInstance(document.getElementById('labResultModal')).hide();
+                        $('#labIndexTable').DataTable().ajax.reload(null, false);
                     });
                 } else {
                     Swal.fire('خطأ', response.message, 'error');

@@ -97,9 +97,9 @@
 </div>
 
 @section Scripts {
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" />
-    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+    
+    
+    
     <script>
         $(function () {
             var columns = [
@@ -108,7 +108,7 @@
                 { "data": "isActive", "render": function(d, t, row) { return `<div class="form-check form-switch d-flex justify-content-center"><input class="form-check-input" type="checkbox" role="switch" ${d ? 'checked' : ''} onchange="toggleStatus(${row.id})"></div>`; } },
                 { "data": "id", "orderable": false, "render": function(d, t, row) { return `<div class="action-group"><button type="button" class="btn-action btn-action-primary" data-label="تعديل" data-id="${d}" data-name="${row.name}" data-nameen="${row.nameEn || ''}" data-active="${row.isActive}" onclick="openEditUnit(this)"><i class="bi bi-pencil-fill"></i></button></div>`; } }
             ];
-            initDataTable('.table', '/PharmacyUnits/GetUnitsData', columns, { "pageLength": 10 });
+            initDataTable('.table', '/PharmacyUnits/GetUnitsData', columns);
         });
 
         function toggleStatus(id) {
@@ -168,3 +168,5 @@
         }
     </script>
 }
+
+

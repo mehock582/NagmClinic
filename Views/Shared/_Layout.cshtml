@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - المركز السوداني الأردني</title>
+    <title>@ViewData["Title"] - @BrandingService.GetBranding().CenterNameAr</title>
 
     <!-- Cairo Font -->
     <link rel="stylesheet" href="~/css/cairo-font.css" asp-append-version="true" />
@@ -16,6 +16,9 @@
 
     <!-- SweetAlert2 -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" />
+
+    <!-- DataTables -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" />
 
     <!-- Custom Clinic Styles -->
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
@@ -83,7 +86,7 @@
 
         <!-- Footer -->
         <footer class="app-footer">
-            <p class="mb-0">2026 © المركز السوداني الأردني - <span class="small">Designed by Elharith Elsiidiq</span></p>
+            <p class="mb-0">@DateTime.Now.Year © @BrandingService.GetBranding().CenterNameAr - <span class="small">Designed by Elharith Elsiidiq</span></p>
         </footer>
     </div>
 
@@ -94,7 +97,13 @@
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
 
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+    <script src="~/js/shared-datatable.js" asp-append-version="true"></script>
+    
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
+

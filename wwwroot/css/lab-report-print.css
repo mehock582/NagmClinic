@@ -1,8 +1,8 @@
 .lab-report-page {
     margin: 0;
     background: #eef2f6;
-    color: #0f172a;
-    font-family: "Cairo", "Segoe UI", Tahoma, Arial, sans-serif;
+    color: #000;
+    font-family: "Times New Roman", Times, serif;
 }
 
 .lab-report-print-controls {
@@ -19,251 +19,196 @@
     color: #0f172a;
     border-radius: 999px;
     padding: 6px 14px;
-    font-family: inherit;
+    font-family: "Segoe UI", Tahoma, sans-serif;
     font-size: 0.78rem;
     font-weight: 700;
     cursor: pointer;
-}
-
-.lab-report-print-controls button:hover {
-    background: #f8fafc;
 }
 
 .lab-report-sheet {
     width: 210mm;
     min-height: 297mm;
     margin: 10px auto 16px;
-    padding: 10mm 10mm 9mm;
+    padding: 15mm 15mm;
     background: #fff;
     border: 1px solid #d9e1ea;
     box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
     box-sizing: border-box;
+    font-size: 1.05rem;
+    line-height: 1.4;
 }
 
-.lab-report-sheet .print-branding-header {
-    margin-bottom: 8px;
+/* Header Sections */
+.report-header-section {
+    margin-bottom: 5px;
 }
 
-.lab-patient-block {
-    border: 1px solid #cad5e2;
-    border-radius: 9px;
-    margin-top: 8px;
-    overflow: hidden;
-}
-
-.lab-patient-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr 96px;
-    grid-template-areas:
-        "pid pname gender qr"
-        "age doctor visit qr"
-        "lab date date qr";
-    background: #dce6f2;
-    gap: 1px;
-}
-
-.lab-info-cell {
-    padding: 4px 7px;
-    min-height: 39px;
+.report-header-top {
     display: flex;
-    flex-direction: column;
-    justify-content: center;
-    gap: 1px;
-    background: #fff;
-}
-
-.lab-info-label {
-    font-size: 0.6rem;
-    color: #486581;
-    font-weight: 700;
-    line-height: 1.2;
-}
-
-.lab-info-value {
-    font-size: 0.78rem;
-    font-weight: 700;
-    line-height: 1.2;
-}
-
-.info-pid { grid-area: pid; }
-.info-name { grid-area: pname; }
-.info-gender { grid-area: gender; }
-.info-age { grid-area: age; }
-.info-doctor { grid-area: doctor; }
-.info-visit { grid-area: visit; }
-.info-lab { grid-area: lab; }
-.info-date { grid-area: date; }
-
-.lab-info-cell-qr {
-    grid-area: qr;
+    justify-content: space-between;
     align-items: center;
-    justify-content: center;
-    gap: 2px;
-    padding: 4px;
 }
 
-.lab-qr-image,
-.lab-qr-placeholder {
-    width: 78px;
-    height: 78px;
-    border-radius: 6px;
-    border: 1px solid #d2dce8;
-    background: #fff;
+.header-img-left, .header-text-center, .header-img-right {
+    flex: 1;
+}
+
+.header-img-right {
+    text-align: right;
+}
+
+.header-img-right img {
+    max-height: 60px;
     object-fit: contain;
 }
 
-.lab-qr-placeholder {
-    display: inline-grid;
-    place-items: center;
-    font-size: 0.66rem;
-    color: #627d98;
+.report-title-centered {
+    text-align: center;
+    margin: 5px 0 20px;
 }
 
-.lab-qr-caption {
-    font-size: 0.56rem;
-    font-weight: 700;
-    color: #52606d;
-    line-height: 1.1;
+.report-title-centered h2 {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin: 0;
 }
 
-.lab-section-title {
-    margin: 9px 0 5px;
-    font-size: 0.86rem;
-    font-weight: 800;
-    color: #102a43;
+.report-title-centered h2 u {
+    text-decoration: underline;
 }
 
+/* Patient Info Section */
+.patient-info-section {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 25px;
+    font-size: 1.05rem;
+}
+
+.patient-info-col-left {
+    width: 60%;
+}
+
+.patient-info-col-right {
+    width: 38%;
+}
+
+.info-line {
+    display: flex;
+    margin-bottom: 6px;
+    line-height: 1.2;
+}
+
+.lbl-col {
+    width: 140px;
+    font-weight: bold;
+}
+
+.colon {
+    width: 20px;
+    font-weight: bold;
+    text-align: center;
+}
+
+.val-col {
+    flex-grow: 1;
+    font-weight: bold;
+}
+
+/* Results Table */
 .lab-results-table {
     width: 100%;
     border-collapse: collapse;
-    border: 1px solid #cad5e2;
-    border-radius: 10px;
-    overflow: hidden;
-    font-size: 0.82rem;
+    font-size: 1.05rem;
+    line-height: 1.5;
 }
 
 .lab-results-table thead th {
-    background: #f1f5f9;
-    color: #102a43;
-    border-bottom: 1px solid #cad5e2;
-    padding: 7px 8px;
-    font-size: 0.7rem;
-    font-weight: 800;
-    white-space: nowrap;
+    border-bottom: 1px solid #000;
+    padding-bottom: 4px;
+    padding-top: 4px;
+    font-weight: bold;
+    font-size: 1.05rem;
 }
 
-.lab-results-table th,
-.lab-results-table td {
-    border-bottom: 1px solid #e6edf5;
-    padding: 6px 8px;
-    vertical-align: middle;
+.lab-results-table tbody td {
+    padding: 6px 0;
+    vertical-align: top;
 }
 
-.lab-results-table tbody tr:last-child td {
-    border-bottom: 0;
-}
+.col-test-name { width: 33%; }
+.col-reading { width: 14%; }
+.col-flag { width: 5%; }
+.col-unit { width: 15%; }
+.col-range { width: 33%; }
 
+.text-left { text-align: left; }
+.text-center { text-align: center; }
+
+/* Group Headers */
 .lab-group-row td {
-    background: #f8fbff;
-    color: #1f3a56;
-    font-weight: 800;
-    padding-top: 8px;
-    padding-bottom: 8px;
-    border-bottom-color: #d8e4f1;
-}
-
-.lab-test-col {
-    text-align: left;
-    direction: ltr;
-}
-
-.lab-test-col .ar {
-    direction: rtl;
-    text-align: right;
-    display: block;
-    font-size: 0.8rem;
-    color: #243b53;
-    font-weight: 700;
-}
-
-.lab-test-col .en {
-    display: block;
-    font-size: 0.68rem;
-    color: #627d98;
-}
-
-.lab-reading-col,
-.lab-flag-col,
-.lab-unit-col,
-.lab-range-col {
     text-align: center;
-    direction: ltr;
-    font-feature-settings: "tnum" 1;
+    padding: 15px 0 10px;
 }
 
-.lab-flag-pill {
+.group-title-en {
     display: inline-block;
-    min-width: 26px;
-    padding: 2px 6px;
-    border-radius: 999px;
-    border: 1px solid #d5dee8;
-    font-weight: 800;
-    font-size: 0.72rem;
-    color: #334e68;
-    background: #fff;
+    font-size: 1.15rem;
+    font-weight: bold;
 }
 
-.lab-flag-pill.flag-h {
-    border-color: #fecaca;
-    color: #b42318;
-    background: #fff7f7;
+/* Flags and Colors */
+.row-val-h .test-name-val, .row-val-h .reading-val, .row-val-h .flag-icon {
+    color: #cc0000;
+    font-weight: bold;
 }
 
-.lab-flag-pill.flag-l {
-    border-color: #bfdbfe;
-    color: #1d4ed8;
-    background: #f7fbff;
+.row-val-l .test-name-val, .row-val-l .reading-val, .row-val-l .flag-icon {
+    color: #0000cc;
+    font-weight: bold;
 }
 
+.row-val-n .test-name-val {
+    color: #000;
+}
+
+.row-val-n .reading-val {
+    color: #000;
+}
+
+.flag-icon {
+    font-size: 1.25rem;
+    font-weight: bold;
+    line-height: 1;
+}
+
+/* Adjustments for cells */
+.test-name-val {
+    padding-left: 2px;
+}
+
+.range-val {
+    padding-left: 2px;
+}
+
+/* Divider & Footer constraints (not shown in image but needed for completeness) */
 .lab-results-divider {
-    border-top: 2px solid #102a43;
-    margin-top: 10px;
+    border-top: 1px solid #e2e8f0;
+    margin-top: 14px;
 }
 
-.lab-report-footer {
-    margin-top: 10px;
+.lab-classic-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-top: 12px;
+    font-size: 0.85rem;
+    color: #475569;
 }
 
-.ltr {
-    direction: ltr;
-    unicode-bidi: embed;
-}
-
-@media (max-width: 960px) {
-    .lab-report-print-controls {
-        width: calc(100vw - 18px);
-    }
-
-    .lab-report-sheet {
-        width: calc(100vw - 18px);
-        min-height: auto;
-        padding: 12px;
-        margin: 8px auto 10px;
-    }
-
-    .lab-patient-grid {
-        grid-template-columns: 1fr 1fr;
-        grid-template-areas:
-            "qr qr"
-            "pid pname"
-            "gender age"
-            "doctor visit"
-            "lab date";
-    }
-
-    .lab-info-cell-qr {
-        padding: 6px 4px;
-    }
+.lab-classic-footer strong {
+    color: #0f172a;
+    font-weight: bold;
 }
 
 @media print {
@@ -295,11 +240,9 @@
     .lab-results-table thead {
         display: table-header-group;
     }
-
+    
     .lab-group-row,
-    .lab-results-table tr,
-    .lab-patient-block,
-    .lab-report-footer {
+    .lab-results-table tr {
         page-break-inside: avoid;
     }
 }

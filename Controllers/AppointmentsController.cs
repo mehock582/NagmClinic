@@ -155,6 +155,7 @@ namespace NagmClinic.Controllers
             var result = await _appointmentService.CreateAppointmentAsync(model);
             if (result.Success)
             {
+                TempData["SuccessMessage"] = result.Message;
                 if (model.PrintReceipt)
                 {
                     return RedirectToAction(nameof(Details), new { id = result.AppointmentId, print = true });
@@ -176,14 +177,7 @@ namespace NagmClinic.Controllers
 
             var model = await _appointmentService.BuildEditViewModelAsync(id.Value);
             if (model == null) return NotFound();
-
-            var patient = await _context.Patients.FirstOrDefaultAsync(p => p.Id == model.PatientId);
-            var doctor = await _context.Doctors.FirstOrDefaultAsync(d => d.Id == model.DoctorId);
-            var appointment = await _context.Appointments.FindAsync(model.Id);
-            
-            model.PatientName = patient?.FullName;
-            model.DoctorName = doctor?.NameAr;
-            model.DailyNumber = (int?)appointment?.DailyNumber;
+            await PopulateEditMetadataAsync(model);
 
             return View(model);
         }
@@ -197,23 +191,20 @@ namespace NagmClinic.Controllers
 
             if (!ModelState.IsValid)
             {
-                var repopulatedModel = await _appointmentService.BuildEditViewModelAsync(id);
-                model.AvailableDoctors = repopulatedModel?.AvailableDoctors ?? new List<SelectListItem>();
-                model.AvailableServices = repopulatedModel?.AvailableServices ?? new List<SelectListItem>();
-                return View(model);
+                ViewData["FormErrorMessage"] = "تعذر حفظ التعديلات، يرجى مراجعة البيانات المدخلة.";
+                return View(await RebuildEditViewModelAsync(id, model));
             }
 
             var result = await _appointmentService.UpdateAppointmentAsync(model);
             if (result.Success)
             {
+                TempData["SuccessMessage"] = "تم تحديث بيانات الموعد بنجاح";
                 return RedirectToAction(nameof(Index));
             }
 
             ModelState.AddModelError("", result.Message);
-            var repop = await _appointmentService.BuildEditViewModelAsync(id);
-            model.AvailableDoctors = repop?.AvailableDoctors ?? new List<SelectListItem>();
-            model.AvailableServices = repop?.AvailableServices ?? new List<SelectListItem>();
-            return View(model);
+            ViewData["FormErrorMessage"] = result.Message;
+            return View(await RebuildEditViewModelAsync(id, model));
         }
 
         public async Task<IActionResult> Details(int? id)
@@ -258,6 +249,27 @@ namespace NagmClinic.Controllers
 
             await _context.SaveChangesAsync();
             return Json(new { success = true });
+        }
+
+        private async Task PopulateEditMetadataAsync(AppointmentCreateViewModel model)
+        {
+            var patient = await _context.Patients.FirstOrDefaultAsync(p => p.Id == model.PatientId);
+            var doctor = await _context.Doctors.FirstOrDefaultAsync(d => d.Id == model.DoctorId);
+            var appointment = await _context.Appointments.FindAsync(model.Id);
+
+            model.PatientName = patient?.FullName;
+            model.DoctorName = doctor?.NameAr;
+            model.DailyNumber = (int?)appointment?.DailyNumber;
+        }
+
+        private async Task<AppointmentCreateViewModel> RebuildEditViewModelAsync(int id, AppointmentCreateViewModel postedModel)
+        {
+            var rebuiltModel = await _appointmentService.BuildEditViewModelAsync(id) ?? postedModel;
+            rebuiltModel.ConsultationFee = postedModel.ConsultationFee;
+            rebuiltModel.Notes = postedModel.Notes;
+            rebuiltModel.ZeroFeeReason = postedModel.ZeroFeeReason;
+            await PopulateEditMetadataAsync(rebuiltModel);
+            return rebuiltModel;
         }
     }
 }

@@ -27,7 +27,7 @@
     var isAppointmentsListActive = isAppointmentsController && !isNewAppointmentActive;
 
     var isPatientsGroupOpen = IsInControllers("Patients", "Appointments");
-    var isMedicalGroupOpen = IsInControllers("Doctors", "Services", "Laboratory", "LabTests");
+    var isMedicalGroupOpen = IsInControllers("Doctors", "Services", "Laboratory", "LabTests", "LabDeviceMappings");
     var isPharmacyGroupOpen = IsInControllers(
         "PharmacyInventory",
         "PharmacySales",
@@ -43,7 +43,7 @@
     <div class="sidebar-header">
         <a class="sidebar-brand" asp-controller="Home" asp-action="Index">
             <span class="sidebar-brand-icon"><i class="bi bi-heart-pulse-fill"></i></span>
-            <span class="sidebar-brand-text">المركز السوداني الأردني</span>
+            <span class="sidebar-brand-text">@BrandingService.GetBranding().CenterNameAr</span>
         </a>
         <button class="btn btn-link d-lg-none sidebar-close" type="button" onclick="toggleSidebar()" aria-label="إغلاق القائمة">
             <i class="bi bi-x-lg"></i>
@@ -118,6 +118,10 @@
                 <a asp-controller="LabTests" asp-action="Index" class="nav-item nav-sub-item @(IsController("LabTests") ? "active" : string.Empty)" data-tooltip="قائمة الفحوصات">
                     <i class="bi bi-view-list"></i>
                     <span class="nav-text">قائمة الفحوصات</span>
+                </a>
+                <a asp-controller="LabDeviceMappings" asp-action="Index" class="nav-item nav-sub-item @(IsController("LabDeviceMappings") ? "active" : string.Empty)" data-tooltip="ربط أكواد الأجهزة">
+                    <i class="bi bi-diagram-3"></i>
+                    <span class="nav-text">ربط أكواد الأجهزة</span>
                 </a>
             </div>
         </section>

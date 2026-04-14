@@ -3,7 +3,7 @@
     Layout = null;
 }
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -14,127 +14,104 @@
 </head>
 <body class="lab-report-page">
     <div class="lab-report-print-controls">
-        <button type="button" onclick="window.print()">طباعة / Print</button>
+        <button type="button" onclick="window.print()">Print Report</button>
     </div>
 
     <article class="lab-report-sheet">
-        @await Html.PartialAsync("_PrintBrandingHeader", new PrintBrandingHeaderViewModel
-        {
-            DocumentTitleAr = "تقرير نتائج المختبر",
-            DocumentTitleEn = "Laboratory Report",
-            DocumentNumber = Model.Meta.LabNumber,
-            Compact = false
-        })
+        <header class="report-header-section">
+            <div class="report-header-top">
+                <div class="header-img-left">
+                </div>
+                <div class="header-text-center" style="font-size: 1.25rem; font-weight: bold;">
+                    @(string.IsNullOrWhiteSpace(Model.Header.CenterNameEn) ? Model.Header.CenterNameAr : Model.Header.CenterNameEn)
+                </div>
+                <div class="header-img-right">
+                    @if (!string.IsNullOrWhiteSpace(Model.Header.LogoUrl))
+                    {
+                        <img src="@Model.Header.LogoUrl" alt="Logo" class="main-logo" />
+                    }
+                </div>
+            </div>
+            
+            <div class="report-title-centered">
+                <h2><u>Laboratory Report</u></h2>
+            </div>
+        </header>
 
-        <section class="lab-patient-block">
-            <div class="lab-patient-grid">
-                <div class="lab-info-cell info-pid">
-                    <span class="lab-info-label">Patient ID / رقم المريض</span>
-                    <span class="lab-info-value ltr">@Model.Patient.PatientId</span>
-                </div>
-                <div class="lab-info-cell info-name">
-                    <span class="lab-info-label">Patient Name / اسم المريض</span>
-                    <span class="lab-info-value">@Model.Patient.PatientName</span>
-                </div>
-                <div class="lab-info-cell info-gender">
-                    <span class="lab-info-label">Gender / النوع</span>
-                    <span class="lab-info-value">@Model.Patient.GenderAr <span class="ltr">(@Model.Patient.GenderEn)</span></span>
-                </div>
-                <div class="lab-info-cell lab-info-cell-qr">
-                    <span class="lab-info-label">QR Code</span>
-                    @if (!string.IsNullOrWhiteSpace(Model.Patient.QrCodeDataUri))
-                    {
-                        <img src="@Model.Patient.QrCodeDataUri" alt="Report QR Code" class="lab-qr-image" />
-                    }
-                    else
-                    {
-                        <span class="lab-qr-placeholder">QR</span>
-                    }
-                    <span class="lab-qr-caption ltr">@Model.Meta.LabNumber</span>
-                </div>
-                <div class="lab-info-cell info-age">
-                    <span class="lab-info-label">Age / العمر</span>
-                    <span class="lab-info-value ltr">@Model.Patient.Age Y</span>
-                </div>
-                <div class="lab-info-cell info-doctor">
-                    <span class="lab-info-label">Attending Physician / الطبيب المعالج</span>
-                    <span class="lab-info-value">@Model.Patient.AttendingPhysician</span>
-                </div>
-                <div class="lab-info-cell info-visit">
-                    <span class="lab-info-label">Visit Number / رقم الحجز</span>
-                    <span class="lab-info-value ltr">@Model.Meta.DailyNumber</span>
-                </div>
-                <div class="lab-info-cell info-lab">
-                    <span class="lab-info-label">Lab Number / رقم المعمل</span>
-                    <span class="lab-info-value ltr">@Model.Meta.LabNumber</span>
-                </div>
-                <div class="lab-info-cell info-date">
-                    <span class="lab-info-label">Report Date / تاريخ التقرير</span>
-                    <span class="lab-info-value ltr">@Model.Meta.ReportDate.ToString("dd/MM/yyyy HH:mm")</span>
-                </div>
+        <section class="patient-info-section">
+            <div class="patient-info-col-left">
+                <div class="info-line"><span class="lbl-col">Name</span><span class="colon">:</span><strong class="val-col">@((Model.Patient.GenderEn == "Female" ? "Miss" : "Mr.") + " " + Model.Patient.PatientName)</strong></div>
+                <div class="info-line"><span class="lbl-col">Referral Doctor</span><span class="colon">:</span><strong class="val-col">@(string.IsNullOrWhiteSpace(Model.Patient.AttendingPhysician) || Model.Patient.AttendingPhysician == "-" ? "Self Request" : Model.Patient.AttendingPhysician)</strong></div>
+                <div class="info-line"><span class="lbl-col">Age/Gender</span><span class="colon">:</span><strong class="val-col">@Model.Patient.Age Y - @Model.Patient.GenderEn</strong></div>
+                <div class="info-line"><span class="lbl-col">Report Status</span><span class="colon">:</span><strong class="val-col">Final report</strong></div>
+            </div>
+            <div class="patient-info-col-right">
+                <div class="info-line"><span class="lbl-col">Patient ID</span><span class="colon">:</span><strong class="val-col">@Model.Patient.PatientId</strong></div>
+                <div class="info-line"><span class="lbl-col">Mobile No.</span><span class="colon">:</span><strong class="val-col">@Model.Patient.Phone</strong></div>
+                <div class="info-line"><span class="lbl-col">Accession No.</span><span class="colon">:</span><strong class="val-col">@Model.Meta.LabNumber</strong></div>
             </div>
         </section>
 
-        <h2 class="lab-section-title">نتائج المختبر / Laboratory Results</h2>
-
-        <table class="lab-results-table">
-            <thead>
-                <tr>
-                    <th style="text-align:left; direction:ltr;">Test Name</th>
-                    <th style="text-align:center; direction:ltr;">Reading</th>
-                    <th style="text-align:center; direction:ltr;">FLG</th>
-                    <th style="text-align:center; direction:ltr;">Unit</th>
-                    <th style="text-align:center; direction:ltr;">Reff. Ranges</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var group in Model.ResultGroups)
-                {
-                    <tr class="lab-group-row">
-                        <td colspan="5">
-                            @group.GroupNameAr
-                            @if (!string.IsNullOrWhiteSpace(group.GroupNameEn))
-                            {
-                                <span class="ltr"> / @group.GroupNameEn</span>
-                            }
-                        </td>
+        <section class="lab-results-container">
+            <table class="lab-results-table">
+                <colgroup>
+                    <col class="col-test-name" />
+                    <col class="col-reading" />
+                    <col class="col-flag" />
+                    <col class="col-unit" />
+                    <col class="col-range" />
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th class="col-test-name text-left">Test</th>
+                        <th class="col-reading text-left">Result</th>
+                        <th class="col-flag text-center"></th>
+                        <th class="col-unit text-left">Unit</th>
+                        <th class="col-range text-left">Reference Range</th>
                     </tr>
-
-                    @foreach (var row in group.Rows)
+                </thead>
+                <tbody>
+                    @foreach (var group in Model.ResultGroups)
                     {
-                        var flagCss = row.Flag == "H" ? "flag-h" : row.Flag == "L" ? "flag-l" : string.Empty;
-                        <tr>
-                            <td class="lab-test-col">
-                                <span class="ar">@row.TestNameAr</span>
-                                @if (!string.IsNullOrWhiteSpace(row.TestNameEn))
-                                {
-                                    <span class="en">@row.TestNameEn</span>
-                                }
+                        <tr class="lab-group-row">
+                            <td colspan="5" class="text-center group-header-td">
+                                <span class="group-title-en">@(string.IsNullOrWhiteSpace(group.GroupNameEn) ? group.GroupNameAr : group.GroupNameEn)</span>
                             </td>
-                            <td class="lab-reading-col">@row.Reading</td>
-                            <td class="lab-flag-col">
-                                @if (!string.IsNullOrWhiteSpace(row.Flag))
-                                {
-                                    <span class="lab-flag-pill @flagCss">@row.Flag</span>
-                                }
-                            </td>
-                            <td class="lab-unit-col">@row.Unit</td>
-                            <td class="lab-range-col">@row.ReferenceRange</td>
                         </tr>
+
+                        @foreach (var row in group.Rows)
+                        {
+                            var flagCss = row.Flag == "H" ? "row-val-h" : row.Flag == "L" ? "row-val-l" : "row-val-n";
+                            var arrow = row.Flag == "H" ? "&#8673;" : row.Flag == "L" ? "&#8675;" : string.Empty;
+                            <tr class="@flagCss">
+                                <td class="lab-test-col text-left test-name-val">
+                                    @(string.IsNullOrWhiteSpace(row.TestNameEn) ? row.TestNameAr : row.TestNameEn)
+                                </td>
+                                <td class="lab-reading-col text-left reading-val">@row.Reading</td>
+                                <td class="lab-flag-col text-center flag-icon">@Html.Raw(arrow)</td>
+                                <td class="lab-unit-col text-left unit-val">@row.Unit</td>
+                                <td class="lab-range-col text-left range-val">@row.ReferenceRange</td>
+                            </tr>
+                        }
                     }
-                }
-            </tbody>
-        </table>
+                </tbody>
+            </table>
+        </section>
 
         <div class="lab-results-divider"></div>
 
-        @await Html.PartialAsync("_PrintBrandingFooter", new PrintBrandingFooterViewModel
-        {
-            PrintedAt = Model.Meta.PrintedAt,
-            LeftTitle = "Signature / التوقيع:",
-            LeftValue = "________________",
-            Compact = false
-        })
+        <footer class="lab-classic-footer">
+            <div class="footer-left">
+                <div><strong>Address:</strong> @Model.Footer.AddressAr</div>
+                <div><strong>Phone:</strong> @Model.Footer.Phone</div>
+            </div>
+            <div class="footer-center">
+                <div><strong>Print Date:</strong> @Model.Meta.PrintedAt.ToString("dd/MM/yyyy HH:mm")</div>
+            </div>
+            <div class="footer-right">
+                <strong>Signature:</strong> ________________
+            </div>
+        </footer>
     </article>
 
     <script>

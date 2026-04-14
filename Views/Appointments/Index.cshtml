@@ -1,6 +1,7 @@
 @using NagmClinic.Models.Enums
 @{
     ViewData["Title"] = "قائمة المواعيد اليومية";
+    var successMessage = TempData["SuccessMessage"]?.ToString();
 }
 
 <div class="row">
@@ -38,12 +39,13 @@
 
 @section Scripts {
     <!-- DataTables JS -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" />
-    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+    
+    
+    
 
     <script>
         $(document).ready(function () {
+            var successMessage = @Html.Raw(Json.Serialize(successMessage));
             var columns = [
                 { 
                     "data": "dailyNumber",
@@ -114,6 +116,15 @@
             ];
 
             initDataTable('#appointmentsTable', '/Appointments/GetAppointmentsData', columns, { "pageLength": 5, "order": [[1, "desc"]] });
+
+            if (successMessage) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'تم بنجاح',
+                    text: successMessage,
+                    confirmButtonColor: '#198754'
+                });
+            }
         });
 
         function updateStatus(id, newStatus) {
@@ -127,3 +138,4 @@
         }
     </script>
 }
+

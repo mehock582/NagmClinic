@@ -3,6 +3,41 @@
 
 @{
     ViewData["Title"] = "تفاصيل الحجز وفاتورة الخدمات";
+
+    string GetPrintItemName(NagmClinic.Models.AppointmentItem item)
+    {
+        if (item.Service == null)
+        {
+            return "-";
+        }
+
+        if (item.Service.Type == ServiceType.LabTest)
+        {
+            if (!string.IsNullOrWhiteSpace(item.Service.NameEn))
+            {
+                return item.Service.NameEn;
+            }
+
+            if (!string.IsNullOrWhiteSpace(item.Service.Code))
+            {
+                return item.Service.Code;
+            }
+
+            return "-";
+        }
+
+        if (!string.IsNullOrWhiteSpace(item.Service.NameAr))
+        {
+            return item.Service.NameAr;
+        }
+
+        if (!string.IsNullOrWhiteSpace(item.Service.NameEn))
+        {
+            return item.Service.NameEn;
+        }
+
+        return "-";
+    }
 }
 
 <div class="row justify-content-center">
@@ -87,7 +122,7 @@
                                 @foreach (var item in Model.AppointmentItems)
                                 {
                                     <tr>
-                                        <td>@(item.Service?.NameAr ?? "-")</td>
+                                        <td>@GetPrintItemName(item)</td>
                                         <td>@item.Quantity</td>
                                         <td>@item.UnitPrice.ToString("N2")</td>
                                         <td class="fw-bold">@item.TotalPrice.ToString("N2")</td>
@@ -141,7 +176,7 @@
 <!-- Receipt for Thermal Printing (Consistent with Laboratory layout) -->
 <div id="thermalReceipt" class="receipt d-none">
     <div style="text-align:center; margin-bottom: 15px; border-bottom: 1px dashed #ccc; padding-bottom: 10px;">
-        <h3 style="margin: 0; font-size: 16px;">المركز السوداني الأردني</h3>
+        <h3 style="margin: 0; font-size: 16px;">@BrandingService.GetBranding().CenterNameAr</h3>
         <p style="margin: 5px 0; font-size: 12px;">فاتورة خدمات طبية</p>
     </div>
 
@@ -184,7 +219,7 @@
                     @foreach (var item in Model.AppointmentItems)
                     {
                         <tr>
-                            <td style="padding: 5px 0;">@(item.Service?.NameAr)</td>
+                            <td style="padding: 5px 0;">@GetPrintItemName(item)</td>
                             <td style="padding: 5px 0; text-align: left;">@item.TotalPrice.ToString("N2")</td>
                         </tr>
                     }

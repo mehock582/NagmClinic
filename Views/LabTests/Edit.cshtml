@@ -5,7 +5,7 @@
 }
 
 <div class="row justify-content-center">
-    <div class="col-12" style="max-width: 600px;">
+    <div class="col-12" style="max-width: 900px;">
         <div class="card border-0 shadow-sm rounded-4 border-info-subtle">
             <div class="card-body p-4">
                 <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
@@ -20,43 +20,98 @@
                     <input type="hidden" asp-for="Id" />
 
                     <div class="row g-3">
-                        <div class="col-12">
-                            <label asp-for="NameAr" class="form-label small fw-bold">اسم الفحص (عربي) *</label>
-                            <input asp-for="NameAr" class="form-control" required>
-                            <span asp-validation-for="NameAr" class="text-danger small"></span>
+                        <div class="col-md-4">
+                            <label asp-for="Code" class="form-label small fw-bold"></label>
+                            <input asp-for="Code" class="form-control form-control-sm" id="editTestCode" />
                         </div>
-
-                        <div class="col-12">
-                            <label asp-for="Price" class="form-label small fw-bold">التكلفة *</label>
-                            <input asp-for="Price" class="form-control text-center text-info fs-5 fw-bold" required step="0.01">
-                            <span asp-validation-for="Price" class="text-danger small"></span>
+                        <div class="col-md-4">
+                            <label asp-for="NameAr" class="form-label small fw-bold"></label>
+                            <input asp-for="NameAr" class="form-control form-control-sm" id="editTestNameAr" />
                         </div>
-
-                        <div class="col-md-6">
+                        <div class="col-md-4">
+                            <label asp-for="NameEn" class="form-label small fw-bold"></label>
+                            <input asp-for="NameEn" class="form-control form-control-sm" id="editTestNameEn" />
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="PrintName" class="form-label small fw-bold"></label>
+                            <input asp-for="PrintName" class="form-control form-control-sm" id="editTestPrintName" />
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="LabCategoryId" class="form-label small fw-bold"></label>
+                            <select asp-for="LabCategoryId" id="editTestCategory" class="form-select form-select-sm" asp-items="ViewBag.LabCategories">
+                                <option value="">-- اختر التصنيف --</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="Price" class="form-label small fw-bold"></label>
+                            <input asp-for="Price" class="form-control form-control-sm" id="editTestPrice" />
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="SourceType" class="form-label small fw-bold"></label>
+                            <select asp-for="SourceType" id="editTestSourceType" class="form-select form-select-sm">
+                                <option value="1">يدوي</option>
+                                <option value="2">جهاز</option>
+                                <option value="3">مختلط</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="LabAnalyzerId" class="form-label small fw-bold"></label>
+                            <select asp-for="LabAnalyzerId" id="editTestAnalyzer" class="form-select form-select-sm" asp-items="ViewBag.LabAnalyzers">
+                                <option value="">-- اختر الجهاز --</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="DeviceCode" class="form-label small fw-bold"></label>
+                            <input asp-for="DeviceCode" class="form-control form-control-sm" id="editTestDeviceCode" />
+                        </div>
+                        <div class="col-md-3">
                             <label asp-for="Unit" class="form-label small fw-bold"></label>
-                            <input asp-for="Unit" class="form-control" placeholder="مثل: mg/dL">
-                            <span asp-validation-for="Unit" class="text-danger small"></span>
+                            <input asp-for="Unit" class="form-control form-control-sm" id="editTestUnit" />
                         </div>
-
-                        <div class="col-md-6">
+                        <div class="col-md-3">
+                            <label asp-for="SampleType" class="form-label small fw-bold"></label>
+                            <input asp-for="SampleType" class="form-control form-control-sm" id="editTestSampleType" />
+                        </div>
+                        <div class="col-md-3">
+                            <label asp-for="ResultType" class="form-label small fw-bold"></label>
+                            <select asp-for="ResultType" id="editTestResultType" class="form-select form-select-sm">
+                                <option value="1">نصي</option>
+                                <option value="2">رقمي</option>
+                                <option value="3">قائمة</option>
+                                <option value="4">إيجابي / سلبي</option>
+                                <option value="5">محسوب</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label asp-for="SortOrder" class="form-label small fw-bold"></label>
+                            <input asp-for="SortOrder" class="form-control form-control-sm" id="editTestSortOrder" />
+                        </div>
+                        <div class="col-md-4">
                             <label asp-for="NormalRange" class="form-label small fw-bold"></label>
-                            <input asp-for="NormalRange" class="form-control" placeholder="مثل: 70 - 100">
-                            <span asp-validation-for="NormalRange" class="text-danger small"></span>
+                            <input asp-for="NormalRange" class="form-control form-control-sm" id="editTestRange" />
                         </div>
-
+                        <div class="col-md-4">
+                            <label asp-for="ReferenceRange" class="form-label small fw-bold"></label>
+                            <input asp-for="ReferenceRange" class="form-control form-control-sm" id="editTestReferenceRange" />
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="CriticalRange" class="form-label small fw-bold"></label>
+                            <input asp-for="CriticalRange" class="form-control form-control-sm" id="editTestCriticalRange" />
+                        </div>
                         <div class="col-12">
-                            <label asp-for="Notes" class="form-label small fw-bold">ملاحظات التجهيز</label>
-                            <textarea asp-for="Notes" class="form-control" rows="3"></textarea>
-                            <span asp-validation-for="Notes" class="text-danger small"></span>
+                            <label asp-for="PredefinedValues" class="form-label small fw-bold"></label>
+                            <input asp-for="PredefinedValues" class="form-control form-control-sm" id="editTestPredefined" />
                         </div>
-
+                        <div class="col-12">
+                            <label asp-for="Notes" class="form-label small fw-bold"></label>
+                            <textarea asp-for="Notes" class="form-control form-control-sm" rows="3" id="editTestNotes"></textarea>
+                        </div>
                         <div class="col-12">
                             <div class="form-check form-switch p-3 bg-light rounded-3 d-flex justify-content-between align-items-center">
-                                <label class="form-check-label fw-bold mb-0" asp-for="IsActive">حالة الفحص (مفعل/معطل)</label>
-                                <input class="form-check-input ms-0 me-2" type="checkbox" role="switch" asp-for="IsActive">
+                                <label class="form-check-label fw-bold mb-0" asp-for="IsActive"></label>
+                                <input class="form-check-input ms-0 me-2" type="checkbox" role="switch" asp-for="IsActive" id="editTestActive">
                             </div>
                         </div>
-
                         <div class="col-12 pt-3 border-top mt-4">
                             <button type="submit" class="btn btn-info text-white w-100 rounded-pill py-2 fw-bold">
                                 <i class="bi bi-save me-1"></i> حفظ التغييرات
@@ -71,4 +126,36 @@
 
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        function updateEditSourceFields() {
+            var isManual = $('#editTestSourceType').val() === '1';
+            $('#editTestAnalyzer').prop('disabled', isManual);
+            $('#editTestDeviceCode').prop('disabled', isManual);
+
+            if (isManual) {
+                $('#editTestAnalyzer').val('');
+                $('#editTestDeviceCode').val('');
+            }
+        }
+
+        function updateEditResultFields() {
+            var type = $('#editTestResultType').val();
+            var predefined = $('#editTestPredefined');
+            var enablePredefined = type === '3' || type === '4';
+
+            predefined.prop('disabled', !enablePredefined);
+            if (type === '4') {
+                predefined.val('Positive,Negative');
+            } else if (!enablePredefined) {
+                predefined.val('');
+            }
+        }
+
+        $(document).ready(function () {
+            $('#editTestSourceType').on('change', updateEditSourceFields);
+            $('#editTestResultType').on('change', updateEditResultFields);
+            updateEditSourceFields();
+            updateEditResultFields();
+        });
+    </script>
 }

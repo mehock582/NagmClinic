@@ -6,6 +6,8 @@ using NagmClinic.Services.Pharmacy;
 using NagmClinic.Services.Appointments;
 using NagmClinic.Services.Patients;
 using NagmClinic.Services.Branding;
+using NagmClinic.Services.Laboratory;
+using NagmClinic.Services.Laboratory.Connector;
 using NagmClinic.Services.Reports;
 
 namespace NagmClinic
@@ -30,6 +32,22 @@ namespace NagmClinic
             builder.Services.AddScoped<IPatientService, PatientService>();
             builder.Services.AddScoped<IPharmacySalesService, PharmacySalesService>();
             builder.Services.AddScoped<IPharmacyPurchasesService, PharmacyPurchasesService>();
+            builder.Services.AddScoped<ILabCatalogSeedService, LabCatalogSeedService>();
+            builder.Services.AddScoped<ILabResultImportService, LabResultImportService>();
+            builder.Services.AddScoped<ILabPatientMatchResolver, LabPatientMatchResolver>();
+            builder.Services.AddScoped<ILabDeviceTestMappingService, LabDeviceTestMappingService>();
+            builder.Services.AddScoped<ILabDeviceMappingSeedService, LabDeviceMappingSeedService>();
+            builder.Services.AddSingleton<IDeviceDataChannelFactory, DeviceDataChannelFactory>();
+            builder.Services.AddTransient<IDeviceConnector, ECSeriesConnector>();
+            builder.Services.AddTransient<IDeviceConnector, LansionbioConnector>();
+            builder.Services.AddTransient<IDeviceConnector, BioelabConnector>();
+            builder.Services.Configure<ConnectorDispatchOptions>(builder.Configuration.GetSection("LabConnectorDispatch"));
+            builder.Services.Configure<ConnectorClinicApiOptions>(builder.Configuration.GetSection("LabConnectorClient"));
+            builder.Services.AddSingleton<IConnectorOutboxStore, JsonFileConnectorOutboxStore>();
+            builder.Services.AddHttpClient<IConnectorClinicApiClient, ConnectorClinicApiClient>();
+            builder.Services.AddScoped<ConnectorResultDispatchService>();
+            builder.Services.AddScoped<IConnectorIngestionPipeline, ConnectorIngestionPipeline>();
+            builder.Services.Configure<LabConnectorApiOptions>(builder.Configuration.GetSection(LabConnectorApiOptions.SectionName));
             builder.Services.Configure<ClinicBrandingOptions>(builder.Configuration.GetSection("ClinicBranding"));
             builder.Services.AddSingleton<IClinicBrandingService, ClinicBrandingService>();
             builder.Services.AddScoped<IQrCodeService, QrCodeService>();
@@ -59,6 +77,14 @@ namespace NagmClinic
                 name: "default",
                 pattern: "{controller=Home}/{action=Index}/{id?}");
             app.MapRazorPages();
+
+            using (var scope = app.Services.CreateScope())
+            {
+                var labCatalogSeedService = scope.ServiceProvider.GetRequiredService<ILabCatalogSeedService>();
+                var labDeviceMappingSeedService = scope.ServiceProvider.GetRequiredService<ILabDeviceMappingSeedService>();
+                labCatalogSeedService.SeedDefaultsAsync().GetAwaiter().GetResult();
+                labDeviceMappingSeedService.EnsureMappingsAsync().GetAwaiter().GetResult();
+            }
 
             app.Run();
         }

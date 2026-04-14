@@ -1,0 +1,109 @@
+@model string
+@using NagmClinic.Models.Enums
+@using Microsoft.AspNetCore.Mvc.Rendering
+
+@{
+    var prefix = string.IsNullOrWhiteSpace(Model) ? string.Empty : Model!;
+    var categories = ViewBag.LabCategories as IEnumerable<SelectListItem> ?? new List<SelectListItem>();
+    var analyzers = ViewBag.LabAnalyzers as IEnumerable<SelectListItem> ?? new List<SelectListItem>();
+}
+
+<div class="row g-3">
+    <div class="col-md-4">
+        <label class="form-label small fw-bold">كود الفحص *</label>
+        <input type="text" id="@(prefix)TestCode" class="form-control form-control-sm" required placeholder="مثال: WBC">
+        <div class="invalid-feedback text-danger fw-bold small mt-1">يرجى إدخال كود الفحص</div>
+    </div>
+    <div class="col-md-4">
+        <label class="form-label small fw-bold">اسم الفحص (عربي) *</label>
+        <input type="text" id="@(prefix)TestNameAr" class="form-control form-control-sm" required placeholder="مثال: عدد كريات الدم البيضاء">
+        <div class="invalid-feedback text-danger fw-bold small mt-1">يرجى إدخال اسم الفحص</div>
+    </div>
+    <div class="col-md-4">
+        <label class="form-label small fw-bold">الاسم الإنجليزي</label>
+        <input type="text" id="@(prefix)TestNameEn" class="form-control form-control-sm" placeholder="Total White Blood Cell Count">
+    </div>
+    <div class="col-md-4">
+        <label class="form-label small fw-bold">اسم الطباعة</label>
+        <input type="text" id="@(prefix)TestPrintName" class="form-control form-control-sm" placeholder="WBC">
+    </div>
+    <div class="col-md-4">
+        <label class="form-label small fw-bold">التصنيف</label>
+        <select id="@(prefix)TestCategory" class="form-select form-select-sm">
+            <option value="">-- اختر التصنيف --</option>
+            @foreach (var category in categories)
+            {
+                <option value="@category.Value">@category.Text</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-4">
+        <label class="form-label small fw-bold">التكلفة *</label>
+        <input type="number" id="@(prefix)TestPrice" class="form-control form-control-sm text-center" required step="0.01" value="0">
+        <div class="invalid-feedback text-danger fw-bold small mt-1">يرجى إدخال التكلفة</div>
+    </div>
+    <div class="col-md-4">
+        <label class="form-label small fw-bold">مصدر النتيجة</label>
+        <select id="@(prefix)TestSourceType" class="form-select form-select-sm">
+            <option value="@((int)LabTestSourceType.Manual)">يدوي</option>
+            <option value="@((int)LabTestSourceType.Device)">جهاز</option>
+            <option value="@((int)LabTestSourceType.Hybrid)">مختلط</option>
+        </select>
+    </div>
+    <div class="col-md-4">
+        <label class="form-label small fw-bold">الجهاز</label>
+        <select id="@(prefix)TestAnalyzer" class="form-select form-select-sm">
+            <option value="">-- اختر الجهاز --</option>
+            @foreach (var analyzer in analyzers)
+            {
+                <option value="@analyzer.Value">@analyzer.Text</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-4">
+        <label class="form-label small fw-bold">كود الربط بالجهاز</label>
+        <input type="text" id="@(prefix)TestDeviceCode" class="form-control form-control-sm" placeholder="Machine result key">
+    </div>
+    <div class="col-md-3">
+        <label class="form-label small fw-bold">الوحدة</label>
+        <input type="text" id="@(prefix)TestUnit" class="form-control form-control-sm" placeholder="mg/dL">
+    </div>
+    <div class="col-md-3">
+        <label class="form-label small fw-bold">نوع العينة</label>
+        <input type="text" id="@(prefix)TestSampleType" class="form-control form-control-sm" placeholder="Whole Blood">
+    </div>
+    <div class="col-md-3">
+        <label class="form-label small fw-bold">نوع النتيجة</label>
+        <select id="@(prefix)TestResultType" class="form-select form-select-sm">
+            <option value="@((int)LabResultType.Text)">نصي</option>
+            <option value="@((int)LabResultType.Number)">رقمي</option>
+            <option value="@((int)LabResultType.Dropdown)">قائمة خيارات</option>
+            <option value="@((int)LabResultType.PositiveNegative)">إيجابي / سلبي</option>
+            <option value="@((int)LabResultType.Calculated)">محسوب</option>
+        </select>
+    </div>
+    <div class="col-md-3">
+        <label class="form-label small fw-bold">ترتيب العرض</label>
+        <input type="number" id="@(prefix)TestSortOrder" class="form-control form-control-sm text-center" value="0" min="0">
+    </div>
+    <div class="col-md-4">
+        <label class="form-label small fw-bold">المدى الطبيعي</label>
+        <input type="text" id="@(prefix)TestRange" class="form-control form-control-sm" placeholder="70 - 100">
+    </div>
+    <div class="col-md-4">
+        <label class="form-label small fw-bold">المدى المرجعي</label>
+        <input type="text" id="@(prefix)TestReferenceRange" class="form-control form-control-sm" placeholder="Adult: 70 - 100">
+    </div>
+    <div class="col-md-4">
+        <label class="form-label small fw-bold">المدى الحرج</label>
+        <input type="text" id="@(prefix)TestCriticalRange" class="form-control form-control-sm" placeholder="Optional">
+    </div>
+    <div class="col-12">
+        <label class="form-label small fw-bold">القيم المحددة (للقائمة)</label>
+        <input type="text" id="@(prefix)TestPredefined" class="form-control form-control-sm" placeholder="Positive,Negative أو Option1,Option2">
+    </div>
+    <div class="col-12">
+        <label class="form-label small fw-bold">ملاحظات</label>
+        <textarea id="@(prefix)TestNotes" class="form-control form-control-sm" rows="2" placeholder="ملاحظات تجهيز أو ملاحظات ربط"></textarea>
+    </div>
+</div>

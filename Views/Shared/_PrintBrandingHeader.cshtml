@@ -5,9 +5,10 @@
 @{
     var branding = BrandingService.GetBranding();
     var cssMode = Model.Compact ? "is-compact" : "is-standard";
+    var layoutMode = Model.ReverseOrder ? "is-reverse" : "is-default";
 }
 
-<header class="print-branding-header @cssMode">
+<header class="print-branding-header @cssMode @layoutMode">
     <div class="print-branding-logo-box">
         @if (!string.IsNullOrWhiteSpace(branding.LogoUrl))
         {
@@ -23,7 +24,7 @@
         <h1>@branding.CenterNameAr</h1>
         @if (!string.IsNullOrWhiteSpace(branding.CenterNameEn))
         {
-            <p class="ltr">@branding.CenterNameEn</p>
+            <div class="center-subtitle ltr">@branding.CenterNameEn</div>
         }
         @if (!string.IsNullOrWhiteSpace(Model.DocumentTitleAr) || !string.IsNullOrWhiteSpace(Model.DocumentTitleEn))
         {

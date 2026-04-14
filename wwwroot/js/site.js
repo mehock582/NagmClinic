@@ -69,31 +69,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
-// Global DataTables Initialization wrapper
-function initDataTable(selector, url, columns, extraOptions = {}) {
-    var defaultOptions = {
-        "pageLength": 5,
-        "processing": true,
-        "serverSide": true,
-        "ajax": {
-            "url": url,
-            "type": "POST"
-        },
-        "columnDefs": [
-            { "className": "text-center align-middle text-nowrap", "targets": "_all" }
-        ],
-        "columns": columns,
-        "language": {
-            // Centralized Arabic translation URL
-            "url": "https://cdn.datatables.net/plug-ins/1.13.7/i18n/ar.json"
-        }
-    };
-    
-    // Deep merge extra options (like default order or custom callbacks)
-    var finalOptions = $.extend(true, {}, defaultOptions, extraOptions);
-    return $(selector).DataTable(finalOptions);
-}
-
 // Global SweetAlert Delete/Action Confirmation wrapper
 function confirmAction(title, text, confirmText, callback) {
     Swal.fire({

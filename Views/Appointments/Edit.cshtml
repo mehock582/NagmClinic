@@ -1,177 +1,462 @@
 @model NagmClinic.ViewModels.AppointmentCreateViewModel
+@using NagmClinic.Models.Enums
 
 @{
     ViewData["Title"] = "تعديل الحجز ومتابعة الخدمات";
     var patientName = Model.PatientName;
     var doctorName = Model.DoctorName;
     var dailyNumber = Model.DailyNumber;
+    var formErrorMessage = ViewData["FormErrorMessage"]?.ToString();
+
+    var serviceItems = Model.Items.Where(i => i.ItemType == ServiceType.Service).ToList();
+    var labItems = Model.Items.Where(i => i.ItemType == ServiceType.LabTest).ToList();
 }
 
-<div class="row justify-content-center">
-    <div class="col-12 reception-container">
-        <form asp-action="Edit" id="appointmentForm">
-            <div asp-validation-summary="ModelOnly" class="alert alert-danger rounded-3 p-2 small border-0 mb-3"></div>
-            <input type="hidden" asp-for="Id" />
-            <input type="hidden" asp-for="PatientId" />
-            <input type="hidden" asp-for="DoctorId" />
-            <input type="hidden" asp-for="AppointmentDate" />
+<form asp-action="Edit" id="appointmentForm">
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger rounded-3 p-2 small border-0 mb-3"></div>
+    <input type="hidden" asp-for="Id" />
+    <input type="hidden" asp-for="PatientId" />
+    <input type="hidden" asp-for="DoctorId" />
+    <input type="hidden" asp-for="AppointmentDate" />
 
-            <!-- 1) Patient & Doctor Info (Read-only in Edit) -->
-            <div class="card border-0 shadow-sm rounded-3 mb-3">
-                <div class="card-body p-3">
-                    <div class="row g-2 align-items-center">
-                        <div class="col-md-4">
-                            <h6 class="text-primary mb-1 small fw-bold">رقم الحجز: <span class="text-dark">@dailyNumber</span></h6>
-                            <div class="fw-bold fs-5">@patientName</div>
-                            <div class="text-muted small">@Model.AppointmentDate.ToString("dd/MM/yyyy - hh:mm tt")</div>
-                        </div>
-                        <div class="col-md-3 text-center border-start border-end">
-                            <h6 class="text-muted small mb-1">الطبيب المختص</h6>
-                            <div class="fw-bold text-dark">د. @doctorName</div>
-                        </div>
-                        <div class="col-md-2 text-center border-end">
-                            <label class="form-label small mb-1">سعر الكشف</label>
-                            <input asp-for="ConsultationFee" id="consultationFee" class="form-control form-control-sm" oninput="calculateGrandTotal()" />
-                        </div>
-                        <div class="col-md-3 text-end">
-                            <a asp-action="Index" class="btn btn-outline-secondary btn-sm rounded-pill px-3">العودة للقائمة</a>
-                        </div>
+    <div class="appt-edit-wrapper">
+        <!-- ═══════ LEFT / MAIN COLUMN ═══════ -->
+        <div class="appt-edit-main">
+
+            <!-- ── Header Strip ── -->
+            <div class="appt-header-strip">
+                <div class="appt-header-badge">
+                    <i class="bi bi-calendar2-check"></i>
+                    <span>#@dailyNumber</span>
+                </div>
+                <div class="appt-header-info">
+                    <div class="appt-header-patient">@patientName</div>
+                    <div class="appt-header-meta">
+                        <span><i class="bi bi-person-badge me-1"></i>د. @doctorName</span>
+                        <span class="appt-header-sep">|</span>
+                        <span><i class="bi bi-clock me-1"></i>@Model.AppointmentDate.ToString("dd/MM/yyyy - hh:mm tt")</span>
                     </div>
                 </div>
+                <div class="appt-header-fee">
+                    <label class="form-label small mb-0 text-muted">سعر الكشف</label>
+                    <input asp-for="ConsultationFee" id="consultationFee"
+                           class="form-control form-control-sm text-center fw-bold"
+                           style="max-width:110px;" oninput="calculateGrandTotal()" />
+                </div>
+                <a asp-action="Index" class="btn btn-outline-secondary btn-sm rounded-pill px-3 appt-header-back">
+                    <i class="bi bi-arrow-right me-1"></i>العودة
+                </a>
             </div>
 
-            <!-- 2) Services / Lab Tests -->
-            <div class="card border-0 shadow-sm rounded-3 mb-3">
-                <div class="card-body p-3">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <h6 class="text-primary fw-bold mb-0"><i class="bi bi-list-check me-2"></i> الخدمات والفحوصات</h6>
-                        <button type="button" class="btn btn-outline-primary rounded-pill fw-bold px-3 py-1 small" onclick="addRow()">
-                            <i class="bi bi-plus-lg me-1 small"></i> إضافة خدمة/فحص
-                        </button>
-                    </div>
+            <!-- ── Lab result warning (global) ── -->
+            @if (Model.Items.Any(i => i.HasRecordedLabResult))
+            {
+                <div class="alert alert-warning border-0 rounded-3 small mb-3 d-flex align-items-center gap-2 appt-lab-warning">
+                    <i class="bi bi-shield-lock-fill fs-5"></i>
+                    <span>لا يمكن تعديل أو حذف الفحوصات التي تحتوي بالفعل على نتائج مخبرية.</span>
+                </div>
+            }
 
-                    <div id="itemsBody">
-                        @for (int i = 0; i < Model.Items.Count; i++)
-                        {
-                            <div class="row g-2 p-2 align-items-center bg-light rounded-2 border service-row mb-1" id="row_@i">
-                                <div class="col-md-5 col-12">
-                                    <select name="Items[@i].ServiceId" class="form-select form-select-sm service-select" required onchange="updatePrice(@i)">
-                                        <option value="">-- اختر الخدمة --</option>
-                                        @foreach (var s in Model.ServicesData)
-                                        {
-                                            <option value="@s.Id" data-price="@s.Price" selected="@(s.Id == Model.Items[i].ServiceId)">@s.NameAr</option>
-                                        }
-                                    </select>
-                                </div>
-                                <div class="col-md-2 col-4">
-                                    <input type="number" name="Items[@i].Quantity" class="form-control form-control-sm qty-input text-center" value="@Model.Items[i].Quantity" min="1" onchange="updateRowTotal(@i)">
-                                </div>
-                                <div class="col-md-2 col-4">
-                                    <input type="number" name="Items[@i].UnitPrice" class="form-control form-control-sm price-input text-center" value="@Model.Items[i].UnitPrice" step="0.01" onchange="updateRowTotal(@i)">
-                                </div>
-                                <div class="col-md-2 col-4 text-center fw-bold text-primary">
-                                    <span class="row-total">@((Model.Items[i].Quantity * Model.Items[i].UnitPrice).ToString("N2"))</span>
-                                </div>
-                                <div class="col-md-1 col-12 text-end">
-                                    <button type="button" class="btn btn-link link-danger p-0 border-0" onclick="removeRow(@i)"><i class="bi bi-x-circle-fill fs-5"></i></button>
-                                </div>
+            <!-- ══════════════════════════════════════ -->
+            <!-- SECTION 1: SERVICES (ServiceType = 1) -->
+            <!-- ══════════════════════════════════════ -->
+            <div class="appt-section-card">
+                <div class="appt-section-head">
+                    <div class="appt-section-title">
+                        <span class="appt-section-icon bg-primary-subtle text-primary"><i class="bi bi-clipboard2-pulse"></i></span>
+                        الخدمات
+                        <span class="badge bg-primary-subtle text-primary rounded-pill ms-2 appt-count-badge" id="servicesCount">@serviceItems.Count</span>
+                    </div>
+                    <button type="button" class="btn btn-primary btn-sm rounded-pill fw-bold px-3" onclick="addServiceRow()">
+                        <i class="bi bi-plus-lg me-1"></i>إضافة خدمة
+                    </button>
+                </div>
+                <div id="servicesBody">
+                    @for (int i = 0; i < serviceItems.Count; i++)
+                    {
+                        var item = serviceItems[i];
+                        var isLocked = item.HasRecordedLabResult;
+                        <div class="appt-item-row @(isLocked ? "appt-item-locked" : "")" id="svc_row_@i" data-locked="@isLocked.ToString().ToLowerInvariant()" data-section="service">
+                            <input type="hidden" class="item-id-input" value="@item.AppointmentItemId" />
+                            <div class="appt-item-select">
+                                <select class="form-select form-select-sm service-select" required onchange="updateItemPrice(this)" @(isLocked ? "disabled" : "")>
+                                    <option value="">-- اختر الخدمة --</option>
+                                    @foreach (var s in Model.ServicesData.Where(x => x.Type == ServiceType.Service))
+                                    {
+                                        <option value="@s.Id" data-price="@s.Price" selected="@(s.Id == item.ServiceId)">@s.DisplayName</option>
+                                    }
+                                </select>
+                                @if (isLocked)
+                                {
+                                    <input type="hidden" class="item-service-hidden" value="@item.ServiceId" />
+                                    <div class="small text-warning-emphasis fw-bold mt-1"><i class="bi bi-lock-fill me-1"></i>@item.ServiceDisplayName</div>
+                                }
                             </div>
-                        }
-                    </div>
-                </div>
-            </div>
-
-            <!-- 3) Notes & Total -->
-            <div class="row g-2 mb-3">
-                <div class="col-lg-7">
-                    <div class="card border-0 shadow-sm rounded-3 h-100">
-                        <div class="card-body p-3">
-                            <h6 class="text-primary fw-bold mb-2 small"><i class="bi bi-pencil-square me-2"></i> ملاحظات</h6>
-                            <textarea asp-for="Notes" class="form-control small" rows="2" placeholder="أضف ملاحظات الطبيب أو الاستقبال..."></textarea>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-5">
-                    <div class="card border-0 shadow-sm rounded-3 total-box text-white h-100">
-                        <div class="card-body p-3 d-flex justify-content-between align-items-center">
-                            <div class="text-white-50 fw-bold small"><i class="bi bi-cash-coin me-2"></i> الإجمالي</div>
-                            <div class="text-end">
-                                <h2 class="mb-0 fw-bolder"><span id="grandTotal">0.00</span> <small class="fs-6 fw-normal op-70">ج.س</small></h2>
+                            <div class="appt-item-qty">
+                                <input type="number" class="form-control form-control-sm qty-input text-center" value="@item.Quantity" min="1" onchange="updateRowTotal(this)" @(isLocked ? "readonly" : "")>
+                            </div>
+                            <div class="appt-item-price">
+                                <input type="number" class="form-control form-control-sm price-input text-center" value="@item.UnitPrice" step="0.01" onchange="updateRowTotal(this)" @(isLocked ? "readonly" : "")>
+                            </div>
+                            <div class="appt-item-total">
+                                <span class="row-total">@((item.Quantity * item.UnitPrice).ToString("N2"))</span>
+                            </div>
+                            <div class="appt-item-action">
+                                @if (isLocked)
+                                {
+                                    <button type="button" class="btn btn-link text-warning p-0 border-0" onclick="showLockedLabResultWarning()"><i class="bi bi-lock-fill fs-5"></i></button>
+                                }
+                                else
+                                {
+                                    <button type="button" class="btn btn-link link-danger p-0 border-0" onclick="removeItemRow(this)"><i class="bi bi-x-circle-fill fs-5"></i></button>
+                                }
                             </div>
                         </div>
-                    </div>
+                    }
                 </div>
+                @if (!serviceItems.Any())
+                {
+                    <div class="appt-empty-hint" id="servicesEmptyHint">
+                        <i class="bi bi-inbox text-muted"></i>
+                        <span>لا توجد خدمات مضافة حالياً</span>
+                    </div>
+                }
+                else
+                {
+                    <div class="appt-empty-hint" id="servicesEmptyHint" style="display:none;">
+                        <i class="bi bi-inbox text-muted"></i>
+                        <span>لا توجد خدمات مضافة حالياً</span>
+                    </div>
+                }
             </div>
 
-            <!-- 4) Final Action -->
-            <div class="text-center mt-4">
-                <button type="submit" class="btn btn-success btn-lg rounded-pill fw-bold px-5 shadow-sm">
-                    <i class="bi bi-cloud-arrow-up me-2"></i> تحديث الحجز والخدمات
+            <!-- ══════════════════════════════════════ -->
+            <!-- SECTION 2: LAB TESTS (ServiceType = 2) -->
+            <!-- ══════════════════════════════════════ -->
+            <div class="appt-section-card">
+                <div class="appt-section-head">
+                    <div class="appt-section-title">
+                        <span class="appt-section-icon bg-success-subtle text-success"><i class="bi bi-droplet-half"></i></span>
+                        الفحوصات المخبرية
+                        <span class="badge bg-success-subtle text-success rounded-pill ms-2 appt-count-badge" id="labCount">@labItems.Count</span>
+                    </div>
+                    <button type="button" class="btn btn-success btn-sm rounded-pill fw-bold px-3" onclick="addLabRow()">
+                        <i class="bi bi-plus-lg me-1"></i>إضافة فحص
+                    </button>
+                </div>
+                <div id="labBody">
+                    @for (int i = 0; i < labItems.Count; i++)
+                    {
+                        var item = labItems[i];
+                        var isLocked = item.HasRecordedLabResult;
+                        <div class="appt-item-row @(isLocked ? "appt-item-locked" : "")" id="lab_row_@i" data-locked="@isLocked.ToString().ToLowerInvariant()" data-section="lab">
+                            <input type="hidden" class="item-id-input" value="@item.AppointmentItemId" />
+                            <div class="appt-item-select">
+                                <select class="form-select form-select-sm service-select" required onchange="updateItemPrice(this)" @(isLocked ? "disabled" : "")>
+                                    <option value="">-- اختر الفحص --</option>
+                                    @foreach (var s in Model.ServicesData.Where(x => x.Type == ServiceType.LabTest))
+                                    {
+                                        <option value="@s.Id" data-price="@s.Price" selected="@(s.Id == item.ServiceId)">@s.DisplayName</option>
+                                    }
+                                </select>
+                                @if (isLocked)
+                                {
+                                    <input type="hidden" class="item-service-hidden" value="@item.ServiceId" />
+                                    <div class="small text-warning-emphasis fw-bold mt-1"><i class="bi bi-lock-fill me-1"></i>@item.ServiceDisplayName</div>
+                                }
+                            </div>
+                            <div class="appt-item-qty">
+                                <input type="number" class="form-control form-control-sm qty-input text-center" value="@item.Quantity" min="1" onchange="updateRowTotal(this)" @(isLocked ? "readonly" : "")>
+                            </div>
+                            <div class="appt-item-price">
+                                <input type="number" class="form-control form-control-sm price-input text-center" value="@item.UnitPrice" step="0.01" onchange="updateRowTotal(this)" @(isLocked ? "readonly" : "")>
+                            </div>
+                            <div class="appt-item-total">
+                                <span class="row-total">@((item.Quantity * item.UnitPrice).ToString("N2"))</span>
+                            </div>
+                            <div class="appt-item-action">
+                                @if (isLocked)
+                                {
+                                    <button type="button" class="btn btn-link text-warning p-0 border-0" onclick="showLockedLabResultWarning()"><i class="bi bi-lock-fill fs-5"></i></button>
+                                }
+                                else
+                                {
+                                    <button type="button" class="btn btn-link link-danger p-0 border-0" onclick="removeItemRow(this)"><i class="bi bi-x-circle-fill fs-5"></i></button>
+                                }
+                            </div>
+                            @if (isLocked)
+                            {
+                                <div class="appt-item-lock-msg">
+                                    <i class="bi bi-shield-lock-fill me-1"></i>لا يمكن تعديل هذا الفحص - يحتوي على نتيجة مخبرية
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+                @if (!labItems.Any())
+                {
+                    <div class="appt-empty-hint" id="labEmptyHint">
+                        <i class="bi bi-droplet text-muted"></i>
+                        <span>لا توجد فحوصات مخبرية مضافة حالياً</span>
+                    </div>
+                }
+                else
+                {
+                    <div class="appt-empty-hint" id="labEmptyHint" style="display:none;">
+                        <i class="bi bi-droplet text-muted"></i>
+                        <span>لا توجد فحوصات مخبرية مضافة حالياً</span>
+                    </div>
+                }
+            </div>
+
+            <!-- ── Notes ── -->
+            <div class="appt-section-card">
+                <div class="appt-section-head">
+                    <div class="appt-section-title">
+                        <span class="appt-section-icon bg-info-subtle text-info"><i class="bi bi-pencil-square"></i></span>
+                        ملاحظات
+                    </div>
+                </div>
+                <textarea asp-for="Notes" class="form-control small" rows="2" placeholder="أضف ملاحظات الطبيب أو الاستقبال..." style="border:none;box-shadow:none !important;resize:vertical;"></textarea>
+            </div>
+        </div>
+
+        <!-- ═══════ RIGHT / SUMMARY SIDEBAR ═══════ -->
+        <div class="appt-edit-sidebar">
+            <div class="appt-summary-card">
+                <div class="appt-summary-title"><i class="bi bi-receipt-cutoff me-2"></i>ملخص الحجز</div>
+
+                <div class="appt-summary-row">
+                    <span>سعر الكشف</span>
+                    <span class="fw-bold" id="summaryConsultation">0.00</span>
+                </div>
+                <div class="appt-summary-row">
+                    <span>الخدمات</span>
+                    <span class="fw-bold" id="summaryServices">0.00</span>
+                </div>
+                <div class="appt-summary-row">
+                    <span>الفحوصات</span>
+                    <span class="fw-bold" id="summaryLab">0.00</span>
+                </div>
+                <hr class="my-2 opacity-25" />
+                <div class="appt-summary-grand">
+                    <span>الإجمالي</span>
+                    <span id="grandTotal">0.00</span>
+                    <small>ج.س</small>
+                </div>
+
+                <button type="submit" class="btn btn-success w-100 rounded-pill fw-bold mt-3 py-2 appt-save-btn">
+                    <i class="bi bi-cloud-arrow-up me-2"></i>تحديث الحجز والخدمات
                 </button>
             </div>
-        </form>
+        </div>
     </div>
-</div>
+
+    <!-- ═══════ STICKY FOOTER BAR (mobile + compact) ═══════ -->
+    <div class="appt-sticky-footer">
+        <div class="appt-sticky-total">
+            <span class="appt-sticky-label">الإجمالي</span>
+            <span class="appt-sticky-amount" id="stickyTotal">0.00</span>
+            <small>ج.س</small>
+        </div>
+        <button type="submit" class="btn btn-success rounded-pill fw-bold px-4 py-2">
+            <i class="bi bi-cloud-arrow-up me-1"></i>تحديث الحجز
+        </button>
+    </div>
+
+    <!-- Hidden items container — JS will sync all rows here before submit -->
+    <div id="hiddenItemsContainer" style="display:none;"></div>
+</form>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script>
-        var rowCount = @Model.Items.Count;
-        var availableServices = @Html.Raw(Json.Serialize(Model.ServicesData));
+        // ─── Data from server ───
+        var allServicesData = @Html.Raw(Json.Serialize(Model.ServicesData));
+        var servicesOnly = allServicesData.filter(s => s.type === 1); // ServiceType.Service = 1
+        var labTestsOnly = allServicesData.filter(s => s.type === 2); // ServiceType.LabTest = 2
+        var formErrorMessage = @Html.Raw(Json.Serialize(formErrorMessage));
+        var svcRowCounter = @serviceItems.Count;
+        var labRowCounter = @labItems.Count;
 
         $(document).ready(function () {
             calculateGrandTotal();
+            syncHiddenItems();
+
+            if (formErrorMessage) {
+                Swal.fire({ icon: 'warning', title: 'تعذر حفظ التعديلات', text: formErrorMessage, confirmButtonColor: '#dc3545' });
+            }
         });
 
-        function addRow() {
-            var row = `
-                <div class="row g-2 p-2 align-items-center bg-light rounded-2 border service-row mb-1" id="row_${rowCount}">
-                    <div class="col-md-5 col-12">
-                        <select name="Items[${rowCount}].ServiceId" class="form-select form-select-sm service-select" required onchange="updatePrice(${rowCount})">
-                            <option value="">-- اختر الخدمة --</option>
-                            ${availableServices.map(s => `<option value="${s.id}" data-price="${s.price}">${s.nameAr}</option>`).join('')}
+        // ─── Form submit: sync hidden inputs ───
+        $('#appointmentForm').on('submit', function () {
+            syncHiddenItems();
+        });
+
+        // ─── Shared: Add Item Row (prepend at top, auto-focus, highlight) ───
+        function addItemRow(cfg) {
+            var opts = cfg.items.map(s => `<option value="${s.id}" data-price="${s.price}">${escapeHtml(s.displayName || s.nameAr)}</option>`).join('');
+            var rowId = cfg.prefix + '_row_new_' + cfg.counter;
+            var html = `
+                <div class="appt-item-row appt-row-highlight" id="${rowId}" data-section="${cfg.section}">
+                    <input type="hidden" class="item-id-input" value="0" />
+                    <div class="appt-item-select">
+                        <select class="form-select form-select-sm service-select" required onchange="updateItemPrice(this)">
+                            <option value="">${cfg.placeholder}</option>${opts}
                         </select>
                     </div>
-                    <div class="col-md-2 col-4">
-                        <input type="number" name="Items[${rowCount}].Quantity" class="form-control form-control-sm qty-input text-center" value="1" min="1" onchange="updateRowTotal(${rowCount})">
+                    <div class="appt-item-qty">
+                        <input type="number" class="form-control form-control-sm qty-input text-center" value="1" min="1" onchange="updateRowTotal(this)">
                     </div>
-                    <div class="col-md-2 col-4">
-                        <input type="number" name="Items[${rowCount}].UnitPrice" class="form-control form-control-sm price-input text-center" value="0" step="0.01" onchange="updateRowTotal(${rowCount})">
+                    <div class="appt-item-price">
+                        <input type="number" class="form-control form-control-sm price-input text-center" value="0" step="0.01" onchange="updateRowTotal(this)">
                     </div>
-                    <div class="col-md-2 col-4 text-center fw-bold text-primary">
-                        <span class="row-total">0.00</span>
+                    <div class="appt-item-total"><span class="row-total">0.00</span></div>
+                    <div class="appt-item-action">
+                        <button type="button" class="btn btn-link link-danger p-0 border-0" onclick="removeItemRow(this)"><i class="bi bi-x-circle-fill fs-5"></i></button>
                     </div>
-                    <div class="col-md-1 col-12 text-end">
-                        <button type="button" class="btn btn-link link-danger p-0 border-0" onclick="removeRow(${rowCount})"><i class="bi bi-x-circle-fill fs-5"></i></button>
-                    </div>
-                </div>
-            `;
-            $('#itemsBody').append(row);
-            rowCount++;
+                </div>`;
+            $(cfg.bodySelector).prepend(html);
+            $(cfg.emptyHintSelector).hide();
+            updateCounts();
+
+            // Auto-focus the dropdown and scroll into view
+            var newRow = $('#' + rowId);
+            newRow[0].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            setTimeout(function () { newRow.find('.service-select').focus(); }, 80);
+
+            // Remove highlight class after animation completes
+            setTimeout(function () { newRow.removeClass('appt-row-highlight'); }, 1200);
         }
 
-        function removeRow(id) {
-            $('#row_' + id).fadeOut(150, function () { $(this).remove(); calculateGrandTotal(); });
+        // ─── Add Service Row ───
+        function addServiceRow() {
+            addItemRow({
+                items: servicesOnly,
+                prefix: 'svc',
+                counter: svcRowCounter++,
+                section: 'service',
+                placeholder: '-- اختر الخدمة --',
+                bodySelector: '#servicesBody',
+                emptyHintSelector: '#servicesEmptyHint'
+            });
         }
 
-        function updatePrice(id) {
-            var price = $('#row_' + id + ' .service-select option:selected').data('price') || 0;
-            $('#row_' + id + ' .price-input').val(price);
-            updateRowTotal(id);
+        // ─── Add Lab Test Row ───
+        function addLabRow() {
+            addItemRow({
+                items: labTestsOnly,
+                prefix: 'lab',
+                counter: labRowCounter++,
+                section: 'lab',
+                placeholder: '-- اختر الفحص --',
+                bodySelector: '#labBody',
+                emptyHintSelector: '#labEmptyHint'
+            });
         }
 
-        function updateRowTotal(id) {
-            var total = ($('#row_' + id + ' .qty-input').val() || 0) * ($('#row_' + id + ' .price-input').val() || 0);
-            $('#row_' + id + ' .row-total').text(total.toFixed(2));
+        // ─── Remove Row ───
+        function removeItemRow(btn) {
+            var row = $(btn).closest('.appt-item-row');
+            if (row.data('locked') === true || row.data('locked') === 'true') {
+                showLockedLabResultWarning();
+                return;
+            }
+            var section = row.data('section');
+            row.fadeOut(150, function () {
+                $(this).remove();
+                calculateGrandTotal();
+                updateCounts();
+                // Show empty hint if section is now empty
+                if (section === 'service' && $('#servicesBody .appt-item-row').length === 0) {
+                    $('#servicesEmptyHint').fadeIn(150);
+                }
+                if (section === 'lab' && $('#labBody .appt-item-row').length === 0) {
+                    $('#labEmptyHint').fadeIn(150);
+                }
+            });
+        }
+
+        // ─── Update price from dropdown ───
+        function updateItemPrice(sel) {
+            var price = $(sel).find('option:selected').data('price') || 0;
+            var row = $(sel).closest('.appt-item-row');
+            row.find('.price-input').val(price);
+            updateRowTotal(sel);
+        }
+
+        // ─── Recalc single row ───
+        function updateRowTotal(el) {
+            var row = $(el).closest('.appt-item-row');
+            var qty = parseFloat(row.find('.qty-input').val()) || 0;
+            var price = parseFloat(row.find('.price-input').val()) || 0;
+            row.find('.row-total').text((qty * price).toFixed(2));
             calculateGrandTotal();
         }
 
+        // ─── Grand total ───
         function calculateGrandTotal() {
             var consultationFee = parseFloat($('#consultationFee').val()) || 0;
-            var servicesTotal = 0;
-            $('.row-total').each(function () { servicesTotal += parseFloat($(this).text().replace(/,/g, '')) || 0; });
-            var finalTotal = consultationFee + servicesTotal;
-            $('#grandTotal').text(finalTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+            var svcsTotal = 0, labTotal = 0;
+
+            $('#servicesBody .row-total').each(function () { svcsTotal += parseFloat($(this).text().replace(/,/g, '')) || 0; });
+            $('#labBody .row-total').each(function () { labTotal += parseFloat($(this).text().replace(/,/g, '')) || 0; });
+
+            var finalTotal = consultationFee + svcsTotal + labTotal;
+            var fmt = function (v) { return v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+
+            $('#summaryConsultation').text(fmt(consultationFee));
+            $('#summaryServices').text(fmt(svcsTotal));
+            $('#summaryLab').text(fmt(labTotal));
+            $('#grandTotal').text(fmt(finalTotal));
+            $('#stickyTotal').text(fmt(finalTotal));
+
+            syncHiddenItems();
+        }
+
+        // ─── Sync all visible rows into hidden form inputs ───
+        function syncHiddenItems() {
+            var container = $('#hiddenItemsContainer');
+            container.empty();
+            var idx = 0;
+            $('.appt-item-row:visible').each(function () {
+                var row = $(this);
+                var itemId = row.find('.item-id-input').val() || '0';
+                var serviceId = row.find('.item-service-hidden').val() || row.find('.service-select').val() || '';
+                var qty = row.find('.qty-input').val() || '1';
+                var price = row.find('.price-input').val() || '0';
+
+                container.append(`<input type="hidden" name="Items[${idx}].AppointmentItemId" value="${itemId}" />`);
+                container.append(`<input type="hidden" name="Items[${idx}].ServiceId" value="${serviceId}" />`);
+                container.append(`<input type="hidden" name="Items[${idx}].Quantity" value="${qty}" />`);
+                container.append(`<input type="hidden" name="Items[${idx}].UnitPrice" value="${price}" />`);
+                idx++;
+            });
+        }
+
+        // ─── Update section counts ───
+        function updateCounts() {
+            $('#servicesCount').text($('#servicesBody .appt-item-row').length);
+            $('#labCount').text($('#labBody .appt-item-row').length);
+        }
+
+        // ─── Warnings ───
+        function showLockedLabResultWarning() {
+            Swal.fire({
+                icon: 'warning',
+                title: 'تعديل محظور',
+                text: 'لا يمكن تعديل أو حذف هذا الفحص لأنه يحتوي بالفعل على نتيجة مخبرية.',
+                confirmButtonColor: '#f59f00'
+            });
+        }
+
+        function escapeHtml(value) {
+            return (value || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
         }
     </script>
 }

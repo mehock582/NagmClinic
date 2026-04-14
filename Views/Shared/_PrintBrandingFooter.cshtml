@@ -5,9 +5,10 @@
 @{
     var branding = BrandingService.GetBranding();
     var cssMode = Model.Compact ? "is-compact" : "is-standard";
+    var layoutMode = Model.SwapSides ? "is-swapped" : "is-default";
 }
 
-<footer class="print-branding-footer @cssMode">
+<footer class="print-branding-footer @cssMode @layoutMode">
     <div class="print-branding-footer-left">
         @if (!string.IsNullOrWhiteSpace(Model.LeftTitle) || !string.IsNullOrWhiteSpace(Model.LeftValue))
         {

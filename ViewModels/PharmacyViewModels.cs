@@ -152,9 +152,6 @@ namespace NagmClinic.ViewModels
         [Range(1, int.MaxValue, ErrorMessage = "يرجى اختيار الصنف")]
         public int ItemId { get; set; }
 
-        [Required(ErrorMessage = "رقم الباتش مطلوب")]
-        public string BatchNumber { get; set; } = string.Empty;
-
         [Required(ErrorMessage = "تاريخ الانتهاء مطلوب")]
         public DateTime ExpiryDate { get; set; }
 
@@ -198,6 +195,8 @@ namespace NagmClinic.ViewModels
         [Range(1, int.MaxValue, ErrorMessage = "يرجى اختيار الصنف")]
         public int ItemId { get; set; }
 
+        public string? Barcode { get; set; }
+
         [Range(0.01, 999999, ErrorMessage = "الكمية يجب أن تكون أكبر من صفر")]
         public decimal Quantity { get; set; }
 
@@ -205,36 +204,33 @@ namespace NagmClinic.ViewModels
         public decimal SellingPrice { get; set; }
     }
 
-    public class PharmacyInventoryItemViewModel
+    public class InventoryItemSummaryViewModel
     {
-        public int ItemId { get; set; }
-        public string ItemName { get; set; } = string.Empty;
-        public string Barcode { get; set; } = string.Empty;
-        public string UnitName { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
         public string CategoryName { get; set; } = string.Empty;
-        public string SlotCode { get; set; } = string.Empty;
+        public string UnitName { get; set; } = string.Empty;
         public decimal AvailableQuantity { get; set; }
         public decimal ReorderLevel { get; set; }
-        public bool IsLowStock => AvailableQuantity <= ReorderLevel;
+        public string Location { get; set; } = string.Empty;
+        public string StockStatus => AvailableQuantity <= ReorderLevel ? "Low" : "OK";
     }
 
-    public class PharmacyInventoryBatchViewModel
+    public class InventoryBatchDetailViewModel
     {
         public string ItemName { get; set; } = string.Empty;
         public string BatchNumber { get; set; } = string.Empty;
         public string Barcode { get; set; } = string.Empty;
         public DateTime ExpiryDate { get; set; }
-        public decimal QuantityRemaining { get; set; }
+        public decimal Quantity { get; set; }
         public decimal PurchasePrice { get; set; }
-        public decimal SellingPrice { get; set; }
-        public string SupplierName { get; set; } = "-";
-        public bool IsExpired => ExpiryDate.Date < DateTime.Today;
+        public string Supplier { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty; // e.g., Expired, Near Expiry, OK
     }
 
     public class PharmacyInventoryPageViewModel
     {
-        public List<PharmacyInventoryItemViewModel> Items { get; set; } = new();
-        public List<PharmacyInventoryBatchViewModel> Batches { get; set; } = new();
+        public List<InventoryItemSummaryViewModel> Items { get; set; } = new();
+        public List<InventoryBatchDetailViewModel> Batches { get; set; } = new();
     }
 
     public class PharmacyPurchaseIndexViewModel

@@ -1,7 +1,7 @@
 @model NagmClinic.ViewModels.PharmacyPurchaseCreateViewModel
 
 @{
-    ViewData["Title"] = "إضافة فاتورة شراء - صيدلية النجم";
+    ViewData["Title"] = "إضافة فاتورة شراء POS";
     Model.Lines ??= new System.Collections.Generic.List<NagmClinic.ViewModels.PharmacyPurchaseLineInputViewModel>();
     var lines = Model.Lines;
     var suppliers = Model.SupplierLookup as IEnumerable<dynamic>;
@@ -10,266 +10,120 @@
 
 <link href="~/css/pharmacy-transaction.css" rel="stylesheet" />
 
-<div class="container-fluid erp-transaction-page py-2">
+<div class="container-fluid erp-transaction-page px-0">
     <form asp-action="Create" id="purchaseForm" novalidate>
         @Html.AntiForgeryToken()
-
-        <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 px-3 small mb-2"></div>
-
-        <div class="barcode-scanner-zone mb-2" id="purchaseScannerZone">
-            <div class="d-flex align-items-center gap-3">
-                <div class="barcode-scanner-icon">
-                    <i class="bi bi-upc-scan"></i>
+        
+        @* ── POS Header: Scanner & Fixed Controls ── *@
+        <div class="pos-header-container sticky-top py-3 px-4 mb-4">
+            <div class="row align-items-center g-3">
+                <div class="col-xl-7">
+                    <div class="pos-scanner-zone" id="scannerZone">
+                        <div class="pos-scanner-icon-btn">
+                            <i class="bi bi-upc-scan"></i>
+                        </div>
+                        <div class="pos-scanner-input-wrap">
+                            <input type="text" id="barcodeInput"
+                                   class="pos-scanner-input"
+                                   placeholder="امسح الباركود أو أدخله يدوياً ثم اضغط Enter"
+                                   autocomplete="off" />
+                        </div>
+                        <button type="button" class="btn btn-primary rounded-pill px-4 fw-bold" onclick="lookupBarcode()">بحث</button>
+                        <div class="pos-status-badge ms-2" id="scanStatus">
+                            <i class="bi bi-wifi"></i> جاهز
+                        </div>
+                    </div>
+                    <div class="mt-2 text-muted ps-2 d-none d-md-block" style="font-size: 0.75rem;">
+                        <i class="bi bi-info-circle me-1 text-primary"></i> يدعم: ماسح USB، بلوتوث، لاسلكي، هاتف كماسح — أي جهاز يرسل النص يدوياً.
+                    </div>
                 </div>
-                <div class="barcode-input-wrapper" style="flex:1;">
-                    <input type="text"
-                           id="purchaseBarcodeInput"
-                           class="form-control form-control-sm"
-                           placeholder="امسح باركود صنف موجود لإضافة بند جديد تلقائياً"
-                           autocomplete="off" />
+                <div class="col-xl-5 text-end">
+                    <div class="d-flex justify-content-end align-items-center gap-2">
+                        <div class="badge bg-primary-subtle text-primary border border-primary px-3 py-2 rounded-pill fw-bold">
+                            <i class="bi bi-receipt me-2"></i>عدد البنود: <span id="scanCount">@lines.Count</span>
+                        </div>
+                        <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3" onclick="PharmacyTransaction.addRow()">
+                            <i class="bi bi-plus-lg me-1"></i> إضافة بند يدوي
+                        </button>
+                    </div>
                 </div>
-                <button type="button" class="btn btn-primary btn-sm rounded-pill px-3" onclick="lookupPurchaseBarcode()" title="بحث">
-                    <i class="bi bi-search me-1"></i> بحث
-                </button>
-                <span class="barcode-status-indicator status-ready" id="purchaseScanStatus">
-                    <i class="bi bi-wifi"></i> جاهز
-                </span>
-            </div>
-            <div class="mt-1">
-                <small class="text-muted"><i class="bi bi-info-circle me-1"></i>امسح باركود صنف سبق شراؤه لتعبئة بند جديد بسرعة.</small>
             </div>
         </div>
 
-        <div class="card erp-section mb-2">
-            <div class="card-body py-2 px-3">
-                <div class="row g-2 align-items-end">
-                    <div class="col-xl-4 col-lg-4 col-md-6">
-                        <label asp-for="SupplierId" class="erp-label">المورد <span class="text-danger">*</span></label>
-                        <select asp-for="SupplierId" class="form-select form-select-sm erp-input select2-header">
-                            <option value="0">-- اختر المورد --</option>
-                            @if (suppliers != null)
-                            {
-                                @foreach (var s in suppliers)
-                                {
-                                    <option value="@s.Id">@s.Name</option>
-                                }
+        @* ── POS Metadata Section ── *@
+        <div class="container-fluid px-4 mb-4">
+            <div class="pos-meta-row shadow-sm">
+                <div class="pos-meta-group" style="flex: 1.5;">
+                    <label asp-for="SupplierId" class="pos-meta-label">المورد</label>
+                    <select asp-for="SupplierId" class="pos-meta-input select2-header">
+                        <option value="0">-- اختر المورد --</option>
+                        @if (suppliers != null) {
+                            @foreach (var s in suppliers) {
+                                <option value="@s.Id">@s.Name</option>
                             }
-                        </select>
-                        <span asp-validation-for="SupplierId" class="text-danger small field-validation-inline"></span>
-                    </div>
-                    <div class="col-xl-3 col-lg-4 col-md-6">
-                        <label asp-for="PurchaseDate" class="erp-label">تاريخ الشراء <span class="text-danger">*</span></label>
-                        <input asp-for="PurchaseDate" asp-format="{0:yyyy-MM-ddTHH:mm}" type="datetime-local" class="form-control form-control-sm erp-input" step="60" />
-                        <span asp-validation-for="PurchaseDate" class="text-danger small field-validation-inline"></span>
-                    </div>
-                    <div class="col-xl-2 col-lg-4 col-md-6">
-                        <label asp-for="InvoiceNumber" class="erp-label">رقم المرجع</label>
-                        <input asp-for="InvoiceNumber" class="form-control form-control-sm erp-input" placeholder="INV-0001" />
-                        <span asp-validation-for="InvoiceNumber" class="text-danger small field-validation-inline"></span>
-                    </div>
-                    <div class="col-xl-3 col-lg-12 col-md-6">
-                        <label asp-for="Notes" class="erp-label">ملاحظات</label>
-                        <input asp-for="Notes" class="form-control form-control-sm erp-input" placeholder="ملاحظة مختصرة" />
-                        <span asp-validation-for="Notes" class="text-danger small field-validation-inline"></span>
-                    </div>
+                        }
+                    </select>
                 </div>
+                <div class="pos-meta-group">
+                    <label asp-for="PurchaseDate" class="pos-meta-label">تاريخ الشراء</label>
+                    <input asp-for="PurchaseDate" asp-format="{0:yyyy-MM-ddTHH:mm}" type="datetime-local" class="pos-meta-input" />
+                </div>
+                <div class="pos-meta-group">
+                    <label asp-for="InvoiceNumber" class="pos-meta-label">رقم المرجع (Invoice)</label>
+                    <input asp-for="InvoiceNumber" class="pos-meta-input" placeholder="INV-0001" />
+                </div>
+                <div class="pos-meta-group" style="flex: 2;">
+                    <label asp-for="Notes" class="pos-meta-label">ملاحظات</label>
+                    <input asp-for="Notes" class="pos-meta-input" placeholder="ملاحظات اختيارية..." />
+                </div>
+            </div>
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger border-0 rounded-4 p-2 mt-3 small shadow-sm"></div>
+        </div>
+
+        @* ── POS Purchase Lines ── *@
+        <div class="container-fluid px-4">
+            <h6 class="text-primary fw-bolder mb-3"><i class="bi bi-cart-check me-2"></i>بنود الفاتورة</h6>
+            
+            <div id="linesBody" class="pos-lines-container">
+                @for (int i = 0; i < lines.Count; i++)
+                {
+                    <partial name="_PharmacyLineItem" view-data='@new ViewDataDictionary(ViewData) { { "Mode", "purchase" }, { "Index", i } }' />
+                }
+            </div>
+
+            <div id="emptyContainer" class="erp-empty pos-fade-in py-5 rounded-5 border-2 shadow-inner" style="@(lines.Count == 0 ? "" : "display:none;") background: #fff;">
+                <i class="bi bi-cart-x fs-1 d-block mb-3 text-primary opacity-25"></i>
+                <h5 class="fw-bold text-muted">الفاتورة فارغة</h5>
+                <p class="small text-secondary">اضغط "إضافة بند يدوي" أو امسح الباركود مباشرة</p>
+                <div id="linesClientValidation" class="text-danger mt-3 fw-bold"></div>
             </div>
         </div>
 
-        <div class="card erp-section mb-2" id="lineItemsCard">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h6 class="mb-0 fw-bold">بنود الفاتورة</h6>
-                <button type="button" id="addLineBtn" class="btn btn-outline-primary btn-sm rounded-pill px-3">
-                    <i class="bi bi-plus-lg me-1"></i> إضافة بند
+        @* ── POS Action Footer (Sticky) ── *@
+        <div class="pos-footer">
+            <div class="pos-footer-summary">
+                <div class="pos-grand-total">
+                    <span class="pos-total-label"><i class="bi bi-wallet2 me-1"></i>إجمالي المشتريات</span>
+                    <div class="d-flex align-items-baseline gap-2">
+                        <span class="pos-total-amount" id="estimatedTotal">0.00</span>
+                        <span class="pos-line-total-currency">ج.س</span>
+                    </div>
+                </div>
+            </div>
+            <div class="pos-actions">
+                <a asp-action="Index" class="btn btn-pos btn-outline-secondary">
+                    <i class="bi bi-arrow-right"></i> رجوع
+                </a>
+                <button type="submit" class="btn btn-pos btn-pos-primary btn-lg shadow">
+                    <i class="bi bi-save2"></i> حفظ فاتورة الشراء
                 </button>
-            </div>
-            <div class="card-body p-2">
-                <div class="purchase-lines-head px-2 py-1 mb-2 rounded-2 d-none d-xl-grid">
-                    <span>الصنف</span>
-                    <span>الكمية</span>
-                    <span>سعر الشراء</span>
-                    <span>الانتهاء</span>
-                    <span>الباتش / الباركود</span>
-                    <span class="text-end">الإجمالي</span>
-                    <span class="text-center">حذف</span>
-                </div>
-
-                <div id="linesBody" class="p-1">
-                    @for (int i = 0; i < lines.Count; i++)
-                    {
-                        var barcodeAttr = (lines[i].Barcode ?? "").Replace("\"", "&quot;");
-                        <div class="erp-line-row service-row purchase-service-row" id="line_row_@i" data-line-index="@i" data-barcode="@barcodeAttr">
-                            <div class="purchase-line-grid">
-                                <div class="purchase-line-item">
-                                    <label class="line-field-label line-micro-label">الصنف <span class="text-danger">*</span></label>
-                                    <select asp-for="Lines[i].ItemId" data-field="ItemId" class="form-select form-select-sm erp-input line-item-select purchase-item-select">
-                                        <option value="0">-- اختر الصنف --</option>
-                                        @if (items != null)
-                                        {
-                                            @foreach (var item in items)
-                                            {
-                                                <option value="@item.Id">@item.Name</option>
-                                            }
-                                        }
-                                    </select>
-                                    <span asp-validation-for="Lines[i].ItemId" data-valmsg-field="ItemId" class="text-danger small field-validation-inline"></span>
-                                </div>
-
-                                <div class="purchase-line-qty">
-                                    <label class="line-field-label line-micro-label">الكمية <span class="text-danger">*</span></label>
-                                    <input asp-for="Lines[i].Quantity" data-field="Quantity" type="number" class="form-control form-control-sm erp-input purchase-qty-input text-center" min="0.01" step="0.01" />
-                                    <span asp-validation-for="Lines[i].Quantity" data-valmsg-field="Quantity" class="text-danger small field-validation-inline"></span>
-                                </div>
-
-                                <div class="purchase-line-price">
-                                    <label class="line-field-label line-micro-label">سعر الشراء <span class="text-danger">*</span></label>
-                                    <input asp-for="Lines[i].PurchasePrice" data-field="PurchasePrice" type="number" class="form-control form-control-sm erp-input purchase-price-input text-center" min="0.01" step="0.01" />
-                                    <span asp-validation-for="Lines[i].PurchasePrice" data-valmsg-field="PurchasePrice" class="text-danger small field-validation-inline"></span>
-                                </div>
-
-                                <div class="purchase-line-expiry">
-                                    <label class="line-field-label line-micro-label">الانتهاء <span class="text-danger">*</span></label>
-                                    <input asp-for="Lines[i].ExpiryDate" data-field="ExpiryDate" asp-format="{0:yyyy-MM-dd}" type="date" class="form-control form-control-sm erp-input text-center" />
-                                    <span asp-validation-for="Lines[i].ExpiryDate" data-valmsg-field="ExpiryDate" class="text-danger small field-validation-inline"></span>
-                                </div>
-
-                                <div class="purchase-line-batchbarcode">
-                                    <div class="purchase-line-batchno">
-                                        <label class="line-field-label line-micro-label">الباتش <span class="text-danger">*</span></label>
-                                        <input asp-for="Lines[i].BatchNumber" data-field="BatchNumber" type="text" class="form-control form-control-sm erp-input erp-input-readonly" readonly />
-                                        <span asp-validation-for="Lines[i].BatchNumber" data-valmsg-field="BatchNumber" class="text-danger small field-validation-inline"></span>
-                                    </div>
-
-                                    <div class="purchase-line-barcode">
-                                        <label class="line-field-label line-micro-label">الباركود <span class="text-danger">*</span></label>
-                                        <div class="input-group input-group-sm compact-input-group">
-                                            <input asp-for="Lines[i].Barcode" data-field="Barcode" type="text" class="form-control erp-input line-barcode-input purchase-barcode-input" autocomplete="off" placeholder="مسح / إدخال" />
-                                            <button type="button" class="btn btn-outline-secondary btn-generate-barcode" title="توليد تلقائي">
-                                                <i class="bi bi-magic"></i>
-                                            </button>
-                                        </div>
-                                        <span asp-validation-for="Lines[i].Barcode" data-valmsg-field="Barcode" class="text-danger small field-validation-inline"></span>
-                                        <div class="barcode-dup-msg"></div>
-                                    </div>
-                                </div>
-
-                                <div class="purchase-line-total">
-                                    <span class="line-field-label line-micro-label">الإجمالي</span>
-                                    <div class="line-total-display">0.00</div>
-                                </div>
-
-                                <div class="purchase-line-actions">
-                                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-circle btn-remove-line line-delete-btn" title="حذف">
-                                        <i class="bi bi-trash3"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    }
-                </div>
-
-                <div id="emptyContainer" class="erp-empty" style="@(lines.Count == 0 ? "" : "display:none;")">
-                    لا توجد بنود حالياً. اضغط "إضافة بند" لإدخال أول صنف.
-                </div>
-            </div>
-
-            <div class="px-3 py-2 border-top d-flex justify-content-between align-items-center bg-light-subtle">
-                <div class="small text-muted">يتم توليد رقم الباتش تلقائياً لكل بند جديد، والباركود يُدخل يدوياً أو عبر الماسح.</div>
-                <div>
-                    <span asp-validation-for="Lines" class="text-danger small"></span>
-                    <span id="linesClientValidation" class="text-danger small"></span>
-                </div>
-            </div>
-        </div>
-
-        <div class="card erp-summary">
-            <div class="card-body py-2 px-3">
-                <div class="row g-2 align-items-center">
-                    <div class="col-lg-6 col-md-12 small text-muted">
-                        تأكد من الكمية وسعر الشراء وتاريخ الانتهاء لكل بند قبل الحفظ.
-                    </div>
-                    <div class="col-lg-6 col-md-12">
-                        <div class="d-flex justify-content-lg-end justify-content-start align-items-center gap-2 flex-wrap erp-actions">
-                            <div class="text-end ms-lg-2">
-                                <p class="erp-total-title">الإجمالي الفرعي</p>
-                                <p class="erp-total-value"><span id="subTotalDisplay">0.00</span> ج.س</p>
-                            </div>
-                            <div class="text-end ms-lg-2">
-                                <p class="erp-total-title">الإجمالي النهائي</p>
-                                <p class="erp-total-value"><span id="grandTotalDisplay">0.00</span> ج.س</p>
-                            </div>
-                            <a asp-action="Index" class="btn btn-outline-secondary btn-sm">رجوع</a>
-                            <button type="submit" class="btn btn-success btn-sm">حفظ الفاتورة</button>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
     </form>
 </div>
 
 <template id="rowTemplate">
-    <div class="erp-line-row service-row purchase-service-row" id="line_row_{idx}" data-line-index="{idx}">
-        <div class="purchase-line-grid">
-            <div class="purchase-line-item">
-                <label class="line-field-label line-micro-label">الصنف <span class="text-danger">*</span></label>
-                <select id="Lines_{idx}__ItemId" name="Lines[{idx}].ItemId" data-field="ItemId" class="form-select form-select-sm erp-input line-item-select purchase-item-select" data-val="true" data-val-range="يرجى اختيار الصنف" data-val-range-min="1" data-val-range-max="2147483647">
-                    <option value="0">-- اختر الصنف --</option>
-                    {options}
-                </select>
-                <span class="text-danger small field-validation-valid field-validation-inline" data-valmsg-for="Lines[{idx}].ItemId" data-valmsg-replace="true" data-valmsg-field="ItemId"></span>
-            </div>
-
-            <div class="purchase-line-qty">
-                <label class="line-field-label line-micro-label">الكمية <span class="text-danger">*</span></label>
-                <input id="Lines_{idx}__Quantity" name="Lines[{idx}].Quantity" data-field="Quantity" type="number" class="form-control form-control-sm erp-input purchase-qty-input text-center" value="1" min="0.01" step="0.01" data-val="true" data-val-number="قيمة الكمية غير صحيحة" data-val-required="الكمية مطلوبة" data-val-range="الكمية يجب أن تكون أكبر من صفر" data-val-range-min="0.01" data-val-range-max="999999" />
-                <span class="text-danger small field-validation-valid field-validation-inline" data-valmsg-for="Lines[{idx}].Quantity" data-valmsg-replace="true" data-valmsg-field="Quantity"></span>
-            </div>
-
-            <div class="purchase-line-price">
-                <label class="line-field-label line-micro-label">سعر الشراء <span class="text-danger">*</span></label>
-                <input id="Lines_{idx}__PurchasePrice" name="Lines[{idx}].PurchasePrice" data-field="PurchasePrice" type="number" class="form-control form-control-sm erp-input purchase-price-input text-center" value="0" min="0.01" step="0.01" data-val="true" data-val-number="قيمة سعر الشراء غير صحيحة" data-val-required="سعر الشراء مطلوب" data-val-range="سعر الشراء يجب أن يكون أكبر من صفر" data-val-range-min="0.01" data-val-range-max="999999" />
-                <span class="text-danger small field-validation-valid field-validation-inline" data-valmsg-for="Lines[{idx}].PurchasePrice" data-valmsg-replace="true" data-valmsg-field="PurchasePrice"></span>
-            </div>
-
-            <div class="purchase-line-expiry">
-                <label class="line-field-label line-micro-label">الانتهاء <span class="text-danger">*</span></label>
-                <input id="Lines_{idx}__ExpiryDate" name="Lines[{idx}].ExpiryDate" data-field="ExpiryDate" type="date" class="form-control form-control-sm erp-input text-center" value="{expiryDate}" data-val="true" data-val-required="تاريخ الانتهاء مطلوب" />
-                <span class="text-danger small field-validation-valid field-validation-inline" data-valmsg-for="Lines[{idx}].ExpiryDate" data-valmsg-replace="true" data-valmsg-field="ExpiryDate"></span>
-            </div>
-
-            <div class="purchase-line-batchbarcode">
-                <div class="purchase-line-batchno">
-                    <label class="line-field-label line-micro-label">الباتش <span class="text-danger">*</span></label>
-                    <input id="Lines_{idx}__BatchNumber" name="Lines[{idx}].BatchNumber" data-field="BatchNumber" type="text" class="form-control form-control-sm erp-input erp-input-readonly" readonly value="{batchNumber}" data-val="true" data-val-required="رقم الباتش مطلوب" />
-                    <span class="text-danger small field-validation-valid field-validation-inline" data-valmsg-for="Lines[{idx}].BatchNumber" data-valmsg-replace="true" data-valmsg-field="BatchNumber"></span>
-                </div>
-
-                <div class="purchase-line-barcode">
-                    <label class="line-field-label line-micro-label">الباركود <span class="text-danger">*</span></label>
-                    <div class="input-group input-group-sm compact-input-group">
-                        <input id="Lines_{idx}__Barcode" name="Lines[{idx}].Barcode" data-field="Barcode" type="text" class="form-control erp-input line-barcode-input purchase-barcode-input" autocomplete="off" placeholder="مسح / إدخال" data-val="true" data-val-required="الباركود مطلوب" />
-                        <button type="button" class="btn btn-outline-secondary btn-generate-barcode" title="توليد باركود تلقائياً">
-                            <i class="bi bi-magic"></i>
-                        </button>
-                    </div>
-                    <span class="text-danger small field-validation-valid field-validation-inline" data-valmsg-for="Lines[{idx}].Barcode" data-valmsg-replace="true" data-valmsg-field="Barcode"></span>
-                    <div class="barcode-dup-msg"></div>
-                </div>
-            </div>
-
-            <div class="purchase-line-total">
-                <span class="line-field-label line-micro-label">الإجمالي</span>
-                <div class="line-total-display">0.00</div>
-            </div>
-
-            <div class="purchase-line-actions">
-                <button type="button" class="btn btn-sm btn-outline-secondary rounded-circle btn-remove-line line-delete-btn" title="حذف">
-                    <i class="bi bi-trash3"></i>
-                </button>
-            </div>
-        </div>
-    </div>
+    <partial name="_PharmacyLineItem" view-data='@new ViewDataDictionary(ViewData) { { "Mode", "purchase" } }' />
 </template>
 
 @section Scripts {
@@ -281,456 +135,79 @@
     <script src="~/js/pharmacy-transaction.js"></script>
     <script src="~/js/barcode-scanner.js"></script>
 
-    <script id="item-lookup-data" type="application/json">
-        @Html.Raw(Json.Serialize(Model.ItemLookup))
-    </script>
-
     <script>
-        var rawItemLookup = JSON.parse(document.getElementById('item-lookup-data').textContent || '[]');
-        var itemLookup = normalizeItemLookup(rawItemLookup || []);
+        var itemLookup = @Html.Raw(Json.Serialize(Model.ItemLookup));
 
-        function normalizeItemLookup(list) {
-            return (list || []).map(function (x) {
-                return {
-                    id: Number(x.id ?? x.Id ?? 0),
-                    name: String(x.name ?? x.Name ?? '')
-                };
+        // ─── Shared UI Helpers (mirroring Sales exactly) ───
+
+        function setStatus(type, text) {
+            var el = $('#scanStatus');
+            var zone = $('#scannerZone');
+            el.removeClass('success error');
+            zone.removeClass('pos-flash-success pos-flash-error');
+
+            if (type === 'ready') el.html('<i class="bi bi-wifi"></i> ' + (text || 'جاهز'));
+            else if (type === 'success') {
+                el.addClass('success').html('<i class="bi bi-check-circle-fill"></i> ' + (text || 'تمت الإضافة'));
+                zone.addClass('pos-flash-success');
+            } else if (type === 'error') {
+                el.addClass('error').html('<i class="bi bi-exclamation-triangle-fill"></i> ' + (text || 'غير موجود'));
+                zone.addClass('pos-flash-error');
+            }
+
+            if (type !== 'ready') {
+                setTimeout(() => {
+                    setStatus('ready');
+                    zone.removeClass('pos-flash-success pos-flash-error');
+                }, 2000);
+            }
+        }
+
+        function updateScanCount() {
+            $('#scanCount').text(PharmacyTransaction.getLineCount());
+        }
+
+        function formatNumber(val, digits) {
+            var num = parseFloat(val);
+            if (isNaN(num)) return '0.00';
+            return num.toLocaleString('en-US', { minimumFractionDigits: digits || 2, maximumFractionDigits: digits || 2 });
+        }
+
+        function updateEstimatedTotalQuick() {
+            var total = 0;
+            $('#linesBody .line-total-display').each(function () {
+                var numeric = parseFloat(($(this).text() || '0').replace(/,/g, ''));
+                if (!isNaN(numeric)) total += numeric;
             });
-        }
-
-        function parseDecimal(value) {
-            var parsed = parseFloat(value);
-            return isNaN(parsed) ? 0 : parsed;
-        }
-
-        function normalizeBarcode(value) {
-            return String(value ?? '').trim();
-        }
-
-        function escapeHtml(text) {
-            return String(text ?? '')
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#39;');
-        }
-
-        function getDefaultExpiryDate() {
-            var date = new Date();
-            date.setMonth(date.getMonth() + 12);
-            return date.toISOString().split('T')[0];
-        }
-
-        function buildItemOptions() {
-            return itemLookup.map(function (item) {
-                return `<option value="${item.id}">${escapeHtml(item.name)}</option>`;
-            }).join('');
+            $('#estimatedTotal').text(formatNumber(total));
         }
 
         function updateLineTotal($row) {
-            var quantity = parseDecimal($row.find('[data-field="Quantity"]').val());
-            var purchasePrice = parseDecimal($row.find('[data-field="PurchasePrice"]').val());
-            $row.find('.line-total-display').text((quantity * purchasePrice).toFixed(2));
+            var qty = parseFloat($row.find('.qty-input').val()) || 0;
+            var price = parseFloat($row.find('.purchase-price-input, [data-field="PurchasePrice"]').val()) || 0;
+            $row.find('.line-total-display').text(formatNumber(qty * price));
+            updateEstimatedTotalQuick();
         }
 
-        function clearBarcodeState($row) {
-            var $barcode = $row.find('[data-field="Barcode"]');
-            $barcode.removeClass('is-invalid duplicate-barcode');
-            $row.removeClass('row-has-duplicate-barcode');
-            $row.data('barcodeDuplicate', false);
-            $row.find('.barcode-dup-msg').removeClass('barcode-msg-warning barcode-msg-success').text('');
+        function highlightLine($row) {
+            $row.addClass('is-scan-hit');
+            setTimeout(() => $row.removeClass('is-scan-hit'), 800);
         }
 
-        function setBarcodeDuplicateState($row, message) {
-            var $barcode = $row.find('[data-field="Barcode"]');
-            $barcode.addClass('is-invalid duplicate-barcode');
-            $row.addClass('row-has-duplicate-barcode');
-            $row.data('barcodeDuplicate', true);
-            $row.removeData('confirmedExistingBarcode');
-            $row.find('.barcode-dup-msg')
-                .removeClass('barcode-msg-success')
-                .addClass('barcode-msg-warning')
-                .text(message || 'هذا الباركود مستخدم مسبقاً.');
+        function getDefaultExpiryDate() {
+            var d = new Date();
+            d.setFullYear(d.getFullYear() + 2);
+            return d.toISOString().split('T')[0];
         }
 
-        function setBarcodeConfirmedState($row, normalizedBarcode, message) {
-            var $barcode = $row.find('[data-field="Barcode"]');
-            $barcode.removeClass('is-invalid duplicate-barcode');
-            $row.removeClass('row-has-duplicate-barcode');
-            $row.data('barcodeDuplicate', false);
-            $row.data('confirmedExistingBarcode', (normalizedBarcode || '').toLowerCase());
-            $row.find('.barcode-dup-msg')
-                .removeClass('barcode-msg-warning')
-                .addClass('barcode-msg-success')
-                .text(message || 'تمت الموافقة على إعادة استخدام هذا الباركود.');
+        function escapeHtml(text) {
+            return text ? text.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])) : '';
         }
 
-        function ensureItemOption($select, itemId, itemName) {
-            var normalizedId = parseInt(itemId) || 0;
-            if (normalizedId <= 0) return;
-
-            var exists = $select.find('option').filter(function () {
-                return String($(this).val()) === String(normalizedId);
-            }).length > 0;
-
-            if (!exists) {
-                var text = (itemName && String(itemName).trim()) ? String(itemName).trim() : ('#' + normalizedId);
-                $select.append($('<option></option>').val(normalizedId).text(text));
-            }
-        }
-
-        function fillRowFromExistingBatchData($row, data, barcodeValue) {
-            if (!data) return;
-
-            if (data.itemId) {
-                var $itemSelect = $row.find('[data-field="ItemId"]');
-                ensureItemOption($itemSelect, data.itemId, data.itemName);
-                $itemSelect.val(data.itemId).trigger('change');
-            }
-            if (data.batchNumber) {
-                $row.find('[data-field="BatchNumber"]').val(data.batchNumber);
-            }
-            if (data.expiryDate) {
-                $row.find('[data-field="ExpiryDate"]').val(data.expiryDate);
-            }
-
-            var purchasePrice = parseDecimal(data.purchasePrice);
-            if (purchasePrice > 0) {
-                $row.find('[data-field="PurchasePrice"]').val(purchasePrice.toFixed(2));
-            }
-
-            $row.find('[data-field="Barcode"]').val(barcodeValue);
-            $row.attr('data-barcode', barcodeValue);
-            updateLineTotal($row);
-            highlightRow($row, 'line-scan-highlight');
-        }
-
-        async function confirmExistingBarcodeReuse(validationResult) {
-            var d = (validationResult && validationResult.data) || {};
-            var result = await Swal.fire({
-                icon: 'warning',
-                title: 'باركود موجود مسبقاً',
-                html: `
-                    <div class="text-end small">
-                        <div class="mb-2">هذا الباركود موجود مسبقاً في باتش سابق. هل تريد المتابعة وإضافة هذا الباركود مرة أخرى؟</div>
-                        <div><strong>الصنف:</strong> ${escapeHtml(d.itemName || '-')}</div>
-                        <div><strong>الباتش:</strong> ${escapeHtml(d.batchNumber || '-')}</div>
-                        <div><strong>الانتهاء:</strong> ${escapeHtml(d.expiryDate || '-')}</div>
-                    </div>
-                `,
-                showCancelButton: true,
-                confirmButtonText: 'متابعة',
-                cancelButtonText: 'إلغاء',
-                reverseButtons: true,
-                focusCancel: true
-            });
-            return result.isConfirmed === true;
-        }
-
-        function findLocalDuplicateRow($row, barcodeValue) {
-            var normalized = normalizeBarcode(barcodeValue).toLowerCase();
-            if (!normalized) return null;
-
-            var duplicate = null;
-            $('#linesBody .erp-line-row').not($row).each(function () {
-                var otherBarcode = normalizeBarcode($(this).find('[data-field="Barcode"]').val()).toLowerCase();
-                if (otherBarcode && otherBarcode === normalized) {
-                    duplicate = $(this);
-                    return false;
-                }
-            });
-            return duplicate;
-        }
-
-        async function validateBarcodeUniqueness($row, options) {
-            options = options || {};
-            var barcodeValue = normalizeBarcode($row.find('[data-field="Barcode"]').val());
-            var normalizedLower = barcodeValue.toLowerCase();
-            var currentItemId = parseInt($row.find('[data-field="ItemId"]').val()) || 0;
-            var promptOnExisting = options.promptOnExisting === true;
-            var autofillOnConfirm = options.autofillOnConfirm !== false;
-
-            if (!barcodeValue) {
-                $row.removeData('confirmedExistingBarcode');
-                clearBarcodeState($row);
-                return true;
-            }
-
-            var localDup = findLocalDuplicateRow($row, barcodeValue);
-            if (localDup) {
-                setBarcodeDuplicateState($row, 'هذا الباركود مستخدم في بند آخر داخل نفس الفاتورة.');
-                return false;
-            }
-
-            var requestToken = Date.now().toString() + Math.random().toString(36).substring(2);
-            $row.data('barcodeValidationToken', requestToken);
-
-            try {
-                var res = await $.get('/PharmacyPurchases/ValidateBarcodeUnique', { barcode: barcodeValue, itemId: currentItemId });
-                if ($row.data('barcodeValidationToken') !== requestToken) {
-                    return false;
-                }
-
-                if (!res || !res.success) {
-                    setBarcodeDuplicateState($row, (res && res.message) ? res.message : 'تعذر التحقق من الباركود حالياً.');
-                    return false;
-                }
-
-                if (!res.exists) {
-                    $row.removeData('confirmedExistingBarcode');
-                    clearBarcodeState($row);
-                    return true;
-                }
-
-                var confirmed = (($row.data('confirmedExistingBarcode') || '').toLowerCase() === normalizedLower);
-                if (!confirmed) {
-                    setBarcodeDuplicateState($row, res.message || 'هذا الباركود مستخدم مسبقاً في باتش موجود.');
-
-                    if (promptOnExisting) {
-                        var allowReuse = await confirmExistingBarcodeReuse(res);
-                        if (allowReuse) {
-                            if (autofillOnConfirm) {
-                                fillRowFromExistingBatchData($row, res.data, barcodeValue);
-                            }
-                            setBarcodeConfirmedState($row, normalizedLower, 'تم اعتماد الباركود الموجود وتم تعبئة بيانات الباتش تلقائياً.');
-                            return true;
-                        }
-
-                        $row.find('[data-field="Barcode"]').trigger('focus').select();
-                    }
-                    return false;
-                }
-
-                if (autofillOnConfirm) {
-                    fillRowFromExistingBatchData($row, res.data, barcodeValue);
-                }
-                setBarcodeConfirmedState($row, normalizedLower, 'تم اعتماد إعادة استخدام هذا الباركود.');
-                return true;
-            } catch {
-                if ($row.data('barcodeValidationToken') !== requestToken) {
-                    return false;
-                }
-                setBarcodeDuplicateState($row, 'تعذر التحقق من الباركود. تحقق من الاتصال ثم حاول مرة أخرى.');
-                return false;
-            }
-        }
-
-        function initializeSelect2($scope) {
-            $scope.find('.select2-header').each(function () {
-                if ($(this).data('select2')) return;
-                $(this).select2({ theme: 'bootstrap-5', width: '100%', dir: 'rtl' });
-            });
-
-            $scope.find('.line-item-select').each(function () {
-                if ($(this).data('select2')) return;
-                $(this).select2({
-                    theme: 'bootstrap-5',
-                    width: '100%',
-                    dir: 'rtl',
-                    dropdownParent: $('#lineItemsCard')
-                });
-            });
-        }
-
-        function initializeRow($row) {
-            initializeSelect2($row);
-            updateLineTotal($row);
-            clearBarcodeState($row);
-        }
-
-        async function addNewLine(prefillData) {
-            var payload = prefillData || {};
-
-            if (!payload.batchNumber) {
-                var batchResponse = await $.get('/PharmacyPurchases/GetNextBatchNumber');
-                if (!batchResponse.success) {
-                    Swal.fire({ icon: 'error', title: 'خطأ', text: batchResponse.message || 'تعذر توليد رقم الباتش' });
-                    return null;
-                }
-                payload.batchNumber = batchResponse.batchNumber;
-            }
-
-            return PharmacyTransaction.addRow(payload);
-        }
-
-        function highlightRow($row, className) {
-            if (!$row || !$row.length) return;
-            $row.removeClass('line-added-highlight line-scan-highlight');
-            $row.addClass(className || 'line-added-highlight');
-            setTimeout(function () {
-                $row.removeClass('line-added-highlight line-scan-highlight');
-            }, 1200);
-        }
-
-        function setScanStatus(type, text) {
-            var $status = $('#purchaseScanStatus');
-            $status.removeClass('status-ready status-success status-error').addClass('status-' + type);
-            if (type === 'ready') {
-                $status.html('<i class="bi bi-wifi"></i> ' + (text || 'جاهز'));
-            } else {
-                $status.text(text || '');
-            }
-        }
-
-        function flashScannerZone(type) {
-            var $zone = $('#purchaseScannerZone');
-            $zone.addClass('barcode-flash-' + type);
-            setTimeout(function () { $zone.removeClass('barcode-flash-success barcode-flash-error'); }, 600);
-        }
-
-        function findActiveOrEmptyRow() {
-            var $tableBody = $('#linesBody');
-            var $focused = $tableBody.find(':focus').closest('.erp-line-row');
-            if ($focused.length) return $focused;
-
-            var $emptyRow = null;
-            $tableBody.find('.erp-line-row').each(function () {
-                var $row = $(this);
-                var itemId = parseInt($row.find('[data-field="ItemId"]').val()) || 0;
-                var barcodeVal = ($row.find('[data-field="Barcode"]').val() || '').trim();
-                if (itemId <= 0 && barcodeVal === '') {
-                    $emptyRow = $row;
-                    return false;
-                }
-            });
-            return $emptyRow;
-        }
-
-        function fillRowWithBarcodeOnly($row, barcode) {
-            $row.attr('data-barcode', barcode);
-            $row.find('[data-field="Barcode"]').val(barcode);
-            highlightRow($row, 'line-scan-highlight');
-            if (!parseInt($row.find('[data-field="ItemId"]').val())) {
-                $row.find('.line-item-select').select2('open');
-            } else {
-                $row.find('[data-field="Quantity"]').trigger('focus').select();
-            }
-        }
-
-        async function addNewLineWithBarcode(barcode) {
-            return await addNewLine({
-                quantity: 1,
-                barcode: barcode,
-                purchasePrice: 0
-            });
-        }
-
-        function findRowByBarcodeInForm(barcodeValue) {
-            var normalized = normalizeBarcode(barcodeValue).toLowerCase();
-            if (!normalized) return null;
-
-            var found = null;
-            $('#linesBody .erp-line-row').each(function () {
-                var rowBc = normalizeBarcode($(this).attr('data-barcode') || '').toLowerCase();
-                if (rowBc && rowBc === normalized) {
-                    found = $(this);
-                    return false;
-                }
-            });
-            return found;
-        }
-
-        function incrementQuantityForRow($row) {
-            var $qty = $row.find('[data-field="Quantity"]');
-            var currentQty = parseDecimal($qty.val());
-            $qty.val((currentQty + 1).toFixed(2)).trigger('change');
-            highlightRow($row, 'line-scan-highlight');
-            BarcodeScanner.beepIncrement();
-        }
-
-        async function lookupPurchaseBarcode() {
-            var inputEl = $('#purchaseBarcodeInput');
-            var barcode = normalizeBarcode(inputEl.val());
-            if (!barcode) return;
-
-            var existingRow = findRowByBarcodeInForm(barcode);
-            if (existingRow) {
-                incrementQuantityForRow(existingRow);
-                setScanStatus('success', '+1 ' + existingRow.find('.line-item-select option:selected').text());
-                flashScannerZone('success');
-                inputEl.val('').focus();
-                setTimeout(function () { setScanStatus('ready'); }, 2000);
-                return;
-            }
-
-            try {
-                setScanStatus('ready', 'جاري التحقق...');
-
-                var result = await $.get('/PharmacyPurchases/ValidateBarcodeUnique', { barcode: barcode });
-                if (!result || !result.success) {
-                    BarcodeScanner.beepError();
-                    setScanStatus('error', (result && result.message) ? result.message : 'تعذر التحقق');
-                    flashScannerZone('error');
-                    inputEl.focus();
-                    return;
-                }
-
-                if (result.exists) {
-                    var allowReuse = await confirmExistingBarcodeReuse(result);
-                    if (!allowReuse) {
-                        var $activeRow = findActiveOrEmptyRow();
-                        if ($activeRow && $activeRow.length) {
-                            $activeRow.find('[data-field="Barcode"]').trigger('focus').select();
-                        }
-                        setScanStatus('ready', 'تم إلغاء إعادة استخدام الباركود');
-                        inputEl.focus();
-                        return;
-                    }
-                }
-
-                var $targetRow = findActiveOrEmptyRow();
-                if (!$targetRow || !$targetRow.length) {
-                    var $newRow = await addNewLineWithBarcode(barcode);
-                    if ($newRow && $newRow.length) {
-                        $targetRow = $newRow;
-                    }
-                }
-
-                if (!$targetRow || !$targetRow.length) {
-                    BarcodeScanner.beepError();
-                    setScanStatus('error', 'تعذر تحديد بند للإدخال');
-                    flashScannerZone('error');
-                    inputEl.focus();
-                    return;
-                }
-
-                if (result.exists) {
-                    fillRowFromExistingBatchData($targetRow, result.data, barcode);
-                    setBarcodeConfirmedState($targetRow, barcode.toLowerCase(), 'تم اعتماد الباركود الموجود وتعبئة بيانات الباتش.');
-                } else {
-                    fillRowWithBarcodeOnly($targetRow, barcode);
-                    await validateBarcodeUniqueness($targetRow, { promptOnExisting: false, autofillOnConfirm: false });
-                }
-
-                BarcodeScanner.beepSuccess();
-                setScanStatus('success', result.exists ? 'تمت تعبئة بيانات الباتش الحالي' : 'تمت إضافة الباركود');
-                flashScannerZone('success');
-            } catch {
-                BarcodeScanner.beepError();
-                setScanStatus('error', 'خطأ في الاتصال');
-                flashScannerZone('error');
-            } finally {
-                inputEl.val('').focus();
-                setTimeout(function () { setScanStatus('ready'); }, 2200);
-            }
-        }
-
-        var barcodeValidationTimers = {};
-
-        function scheduleBarcodeValidation($row) {
-            var key = $row.attr('id') || ('row_' + Math.random().toString(36).substring(2));
-            if (!$row.attr('id')) $row.attr('id', key);
-            if (barcodeValidationTimers[key]) {
-                clearTimeout(barcodeValidationTimers[key]);
-            }
-            barcodeValidationTimers[key] = setTimeout(function () {
-                validateBarcodeUniqueness($row, { promptOnExisting: false, autofillOnConfirm: false });
-            }, 260);
-        }
+        // ─── Init ───
 
         $(function () {
-            initializeSelect2($(document));
+            $('.select2-header').select2({ theme: 'bootstrap-5', width: '100%', dir: 'rtl' });
 
             PharmacyTransaction.init({
                 mode: 'purchase',
@@ -738,97 +215,152 @@
                 tableBodyId: '#linesBody',
                 rowTemplateId: '#rowTemplate',
                 emptyContainerId: '#emptyContainer',
-                subTotalId: '#subTotalDisplay',
-                grandTotalId: '#grandTotalDisplay',
-                emptyValidationMessage: 'يجب إضافة بند شراء واحد على الأقل',
+                grandTotalId: '#estimatedTotal',
                 callbacks: {
                     calculateLineTotal: function ($row) {
                         updateLineTotal($row);
                     },
                     onRowAdded: function ($newRow, prefillData) {
-                        var html = $newRow.html()
-                            .replace(/\{options\}/g, buildItemOptions())
-                            .replace(/\{expiryDate\}/g, prefillData?.expiryDate || getDefaultExpiryDate())
-                            .replace(/\{batchNumber\}/g, escapeHtml(prefillData?.batchNumber || ''));
+                        // DOM manipulation: inject options directly into the select element
+                        // (cannot use string replacement — browser strips text nodes from <select>)
+                        var $select = $newRow.find('.item-select');
+                        var optionsHtml = itemLookup.map(i => `<option value="${i.id || i.Id}">${i.name || i.Name}</option>`).join('');
+                        $select.append(optionsHtml);
 
-                        $newRow.html(html);
-                        initializeRow($newRow);
+                        // Set default expiry date via DOM
+                        var $expiry = $newRow.find('[data-field="ExpiryDate"]');
+                        $expiry.val(prefillData?.expiryDate || prefillData?.ExpiryDate || getDefaultExpiryDate());
 
-                        if (prefillData?.itemId) $newRow.find('[data-field="ItemId"]').val(prefillData.itemId).trigger('change');
-                        if (prefillData?.quantity) $newRow.find('[data-field="Quantity"]').val(prefillData.quantity);
-                        if (prefillData?.purchasePrice) $newRow.find('[data-field="PurchasePrice"]').val(prefillData.purchasePrice);
-                        if (prefillData?.barcode) {
-                            $newRow.find('[data-field="Barcode"]').val(prefillData.barcode);
-                            $newRow.attr('data-barcode', prefillData.barcode);
+                        // Support both camelCase and PascalCase
+                        var itemId = prefillData?.itemId || prefillData?.ItemId;
+                        var qty = prefillData?.quantity || prefillData?.Quantity || 1;
+                        var price = prefillData?.purchasePrice || prefillData?.PurchasePrice || prefillData?.defaultPurchasePrice || prefillData?.DefaultPurchasePrice;
+                        var barcode = prefillData?.barcode || prefillData?.Barcode;
+
+                        if (itemId) {
+                            $select.val(itemId).trigger('change');
+                            console.log('[Purchases onRowAdded] Set itemId:', itemId, 'Actual val:', $select.val());
+                        }
+                        $newRow.find('.qty-input').val(qty);
+                        if (price) {
+                            $newRow.find('[data-field="PurchasePrice"]').val(parseFloat(price).toFixed(2));
+                        }
+                        if (barcode) {
+                            $newRow.attr('data-barcode', barcode);
+                            $newRow.find('[data-field="Barcode"]').val(barcode);
                         }
 
                         updateLineTotal($newRow);
-                        highlightRow($newRow, 'line-added-highlight');
+                        highlightLine($newRow);
+                        updateScanCount();
 
-                        if (prefillData?.barcode) {
-                            validateBarcodeUniqueness($newRow, { promptOnExisting: false, autofillOnConfirm: false });
-                            $newRow.find('[data-field="PurchasePrice"]').trigger('focus').select();
-                        } else {
-                            $newRow.find('[data-field="Barcode"]').trigger('focus');
-                        }
+                        setTimeout(() => $('#barcodeInput').focus(), 50);
+                    },
+                    onRowRemoved: function() {
+                        updateScanCount();
+                        updateEstimatedTotalQuick();
                     }
                 }
             });
 
-            $('#linesBody .erp-line-row').each(function () {
-                var $row = $(this);
-                initializeRow($row);
-                if (normalizeBarcode($row.find('[data-field="Barcode"]').val())) {
-                    validateBarcodeUniqueness($row, { promptOnExisting: false, autofillOnConfirm: false });
-                }
-            });
-            PharmacyTransaction.recalculateAll();
-
             if ($('#linesBody .erp-line-row').length === 0) {
-                addNewLine();
+                PharmacyTransaction.addRow({ quantity: 1 });
             }
 
-            $('#addLineBtn').on('click', function () {
-                addNewLine();
-            });
-
-            $('#linesBody').on('change', '[data-field="ItemId"]', function () {
-                var $row = $(this).closest('.erp-line-row');
-                updateLineTotal($row);
-                if (normalizeBarcode($row.find('[data-field="Barcode"]').val())) {
-                    validateBarcodeUniqueness($row, { promptOnExisting: false, autofillOnConfirm: false });
+            // Global Sticky Focus for Scanner
+            $(document).on('click', function (e) {
+                if (!$(e.target).is('input, select, textarea, .select2-search__field, button')) {
+                    $('#barcodeInput').focus();
                 }
             });
 
-            $('#linesBody').on('input', '[data-field="Barcode"]', function () {
-                var $row = $(this).closest('.erp-line-row');
-                var val = normalizeBarcode($(this).val());
-                $row.attr('data-barcode', val);
-                scheduleBarcodeValidation($row);
+            $('#barcodeInput').focus().on('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleBarcodeScan();
+                }
             });
 
-            $('#linesBody').on('paste', '[data-field="Barcode"]', function () {
-                var $row = $(this).closest('.erp-line-row');
-                setTimeout(function () {
-                    var val = normalizeBarcode($row.find('[data-field="Barcode"]').val());
-                    $row.attr('data-barcode', val);
-                    validateBarcodeUniqueness($row, { promptOnExisting: true, autofillOnConfirm: true });
-                }, 0);
-            });
+            // Alias for the handler as requested
+            window.handleBarcodeScan = function() {
+                lookupBarcode();
+            };
 
-            $('#linesBody').on('change', '[data-field="Barcode"]', function () {
-                var $row = $(this).closest('.erp-line-row');
-                var val = normalizeBarcode($(this).val());
-                $row.attr('data-barcode', val);
-                validateBarcodeUniqueness($row, { promptOnExisting: true, autofillOnConfirm: true });
-            });
+            function lookupBarcode() {
+                var barcode = $('#barcodeInput').val()?.trim();
+                if (!barcode || barcode.length < 3) {
+                    if (barcode) setStatus('ready', 'البحث جاري...');
+                    return;
+                }
 
-            $('#linesBody').on('blur', '[data-field="Barcode"]', function () {
-                var $row = $(this).closest('.erp-line-row');
-                var val = normalizeBarcode($(this).val());
-                $row.attr('data-barcode', val);
-                validateBarcodeUniqueness($row, { promptOnExisting: false, autofillOnConfirm: false });
-            });
+                if (isProcessingScan) return;
+                isProcessingScan = true;
+
+                BarcodeScanner.processScan(barcode, {
+                    lookupUrl: '/PharmacyPurchases/LookupByBarcode',
+                    findRowByBarcode: function (bc) {
+                        var found = null;
+                        $('#linesBody .erp-line-row').each(function() {
+                            if (($(this).attr('data-barcode') || '').toLowerCase() === bc.toLowerCase()) {
+                                found = $(this); return false;
+                            }
+                        });
+                        return found;
+                    },
+                    findActiveOrEmptyRow: function () {
+                        return PharmacyTransaction.getActiveRow();
+                    },
+                    createNewRow: function () {
+                        return PharmacyTransaction.addRow();
+                    },
+                    fillRow: function ($row, data, bc) {
+                        if (!$row || !$row.length) return;
+
+                        var itemId = data.itemId || data.ItemId;
+                        var price = data.purchasePrice || data.PurchasePrice || data.defaultPurchasePrice || data.DefaultPurchasePrice;
+                        var expiryDate = data.expiryDate || data.ExpiryDate || '';
+
+                        $row.attr('data-barcode', bc);
+                        $row.find('[data-field="Barcode"]').val(bc);
+
+                        if (itemId) {
+                            $row.find('.item-select').val(itemId).trigger('change');
+                        }
+                        $row.find('.qty-input').val(1);
+                        if (price) {
+                            $row.find('[data-field="PurchasePrice"]').val(parseFloat(price).toFixed(2));
+                        }
+                        if (expiryDate) {
+                            $row.find('[data-field="ExpiryDate"]').val(expiryDate);
+                        }
+                        updateLineTotal($row);
+                        highlightLine($row);
+                    },
+                    incrementQuantity: function ($row) {
+                        var $qty = $row.find('.qty-input');
+                        $qty.val((parseFloat($qty.val()) || 0) + 1).trigger('change');
+                        highlightLine($row);
+                    },
+                    onSuccess: function (type, $row, bc, data) {
+                        isProcessingScan = false;
+                        var name = data?.itemName || data?.ItemName || 'تم بنجاح';
+                        setStatus('success', name);
+                        setTimeout(function () { $('#barcodeInput').val('').focus(); }, 100);
+                    },
+                    onError: function (err, bc, $row) {
+                        isProcessingScan = false;
+                        if (err === 'not_found' && $row && $row.length) {
+                            $row.attr('data-barcode', bc);
+                            $row.find('[data-field="Barcode"]').val(bc);
+                            $row.find('.qty-input').val(1);
+                            setStatus('ready', 'صنف جديد: الرجاء اختياره');
+                        } else {
+                            setStatus('error', 'الباركود غير موجود');
+                        }
+                        setTimeout(function () { $('#barcodeInput').val('').focus(); }, 100);
+                    }
+                });
+            }
 
             $('#linesBody').on('click', '.btn-generate-barcode', function () {
                 var $btn = $(this);
@@ -836,11 +368,12 @@
                 var $barcodeInput = $row.find('[data-field="Barcode"]');
                 $btn.prop('disabled', true);
                 $.get('/PharmacyPurchases/GetNextBarcode', function (res) {
-                    if (res.success) {
-                        $barcodeInput.val(res.barcode).trigger('change');
-                        $row.attr('data-barcode', res.barcode);
-                        highlightRow($row, 'line-scan-highlight');
-                        validateBarcodeUniqueness($row, { promptOnExisting: true, autofillOnConfirm: true });
+                    var success = res.success || res.Success;
+                    var barcode = res.barcode || res.Barcode;
+                    if (success) {
+                        $barcodeInput.val(barcode).trigger('change');
+                        $row.attr('data-barcode', barcode);
+                        highlightLine($row);
                     } else {
                         Swal.fire({ icon: 'error', title: 'خطأ', text: res.message || 'تعذر توليد الباركود' });
                     }
@@ -848,55 +381,11 @@
                     $btn.prop('disabled', false);
                 });
             });
-
-            $('#purchaseForm').on('submit', async function (e) {
-                var $form = $(this);
-                if ($form.data('barcodeSubmitPass')) {
-                    $form.removeData('barcodeSubmitPass');
-                    return true;
-                }
-
-                e.preventDefault();
-                PharmacyTransaction.refreshValidation();
-                if (!$form.valid()) {
-                    return false;
-                }
-
-                var allValid = true;
-                var rows = $('#linesBody .erp-line-row').toArray();
-                for (var idx = 0; idx < rows.length; idx++) {
-                    var rowOk = await validateBarcodeUniqueness($(rows[idx]), { promptOnExisting: true, autofillOnConfirm: true });
-                    if (!rowOk) {
-                        allValid = false;
-                    }
-                }
-
-                if (!allValid) {
-                    var $firstInvalid = $('#linesBody .duplicate-barcode').first();
-                    if ($firstInvalid.length) {
-                        $firstInvalid.trigger('focus');
-                    }
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'تحقق من الباركود',
-                        text: 'يوجد باركود يحتاج مراجعة أو موافقة. أكمل التحقق ثم أعد المحاولة.'
-                    });
-                    return false;
-                }
-
-                $form.data('barcodeSubmitPass', true);
-                $form.trigger('submit');
-            });
-
-            $('#purchaseBarcodeInput').on('keydown', function (e) {
-                if (e.key === 'Enter' || e.which === 13) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    lookupPurchaseBarcode();
-                }
-            });
-
-            setTimeout(function () { $('#purchaseBarcodeInput').focus(); }, 200);
         });
+
+        // ─── Barcode Scan Pipeline (handover to BarcodeScanner shared js) ───
+        var isProcessingScan = false;
+        // logic moved to lookupBarcode within initialization block
+        // to keep scope clean and allow handleBarcodeScan unification.
     </script>
 }

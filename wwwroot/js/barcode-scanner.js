@@ -57,56 +57,65 @@ var BarcodeScanner = (function () {
             barcode = (barcode || '').trim();
             if (!barcode) return;
 
-            // Initialize audio context on first user interaction 
-            // to ensure it works in modern browsers
             initAudio();
+            console.log('[BarcodeScanner] Scanning:', barcode);
 
-            // Rule 1: Check existing rows
+            // Step 1: Find if row already exists for this barcode
             var existingRow = config.findRowByBarcode ? config.findRowByBarcode(barcode) : null;
             if (existingRow && existingRow.length) {
+                console.log('[BarcodeScanner] Found existing row, incrementing');
                 if (config.incrementQuantity) config.incrementQuantity(existingRow);
                 this.beepIncrement();
                 if (config.onSuccess) config.onSuccess('increment', existingRow, barcode, null);
                 return;
             }
 
-            // Not found in current UI -> lookup from server
+            // Step 2: NEW Barcode - Claim a row immediately
+            var targetRow = config.findActiveOrEmptyRow ? config.findActiveOrEmptyRow() : null;
+            if (!targetRow || targetRow.length === 0) {
+                console.log('[BarcodeScanner] No empty row, creating new one');
+                if (config.createNewRow) targetRow = config.createNewRow();
+            }
+
+            if (!targetRow || targetRow.length === 0) {
+                console.error('[BarcodeScanner] Failed to find or create a row.');
+                return;
+            }
+
+            // Step 3: CLAIM the row immediately with the barcode string
+            // This prevents the next scan (if very fast) from ignoring this row or overwriting it.
+            var targetRowId = targetRow.attr('id');
+            targetRow.attr('data-barcode', barcode);
+            targetRow.find('[data-field="Barcode"]').val(barcode);
+            console.log('[BarcodeScanner] Assigned barcode to row:', targetRowId);
+
             if (config.onLookupStart) config.onLookupStart(barcode);
 
+            // Step 4: Server lookup for item details
             $.get(config.lookupUrl, { barcode: barcode }, function (res) {
-                if (res.success && res.data) {
-                    // Success single match
-                    var targetRow = config.findActiveOrEmptyRow ? config.findActiveOrEmptyRow() : null;
-                    if (targetRow && targetRow.length) {
-                        if (config.fillRow) config.fillRow(targetRow, res.data, barcode);
-                    } else {
-                        if (config.addRowWithData) config.addRowWithData(res.data, barcode);
-                    }
-                    BarcodeScanner.beepSuccess();
-                    if (config.onSuccess) config.onSuccess('add_known', targetRow, barcode, res.data);
+                var success = res.success || res.Success;
+                var data = res.data || res.Data;
+                var multiMatch = res.multiMatch || res.MultiMatch;
 
-                } else if (res.multiMatch) {
-                    // Multiple batches match
-                    if (config.onMultiMatch) {
-                        config.onMultiMatch(res.matches, barcode);
-                    } else {
-                        BarcodeScanner.beepError();
-                        if (config.onError) config.onError('multi_match', barcode);
-                    }
+                // Re-select by ID to ensure we have the live element
+                var $row = $('#' + targetRowId);
+
+                if (success && data) {
+                    console.log('[BarcodeScanner] Lookup success, filling row');
+                    if (config.fillRow) config.fillRow($row, data, barcode);
+                    BarcodeScanner.beepSuccess();
+                    if (config.onSuccess) config.onSuccess('add_known', $row, barcode, data);
+                } else if (multiMatch) {
+                    console.log('[BarcodeScanner] Multi-match found');
+                    if (config.onMultiMatch) config.onMultiMatch(res.matches || res.Matches, barcode);
                 } else {
-                    // Not found in DB / server
-                    var targetRow = config.findActiveOrEmptyRow ? config.findActiveOrEmptyRow() : null;
-                    if (targetRow && targetRow.length) {
-                        if (config.fillRowBarcodeOnly) config.fillRowBarcodeOnly(targetRow, barcode);
-                    } else {
-                        if (config.addRowWithBarcodeOnly) config.addRowWithBarcodeOnly(barcode);
-                    }
+                    console.warn('[BarcodeScanner] Barcode not found on server');
                     BarcodeScanner.beepError();
-                    if (config.onError) config.onError('not_found', barcode);
+                    if (config.onError) config.onError('not_found', barcode, $row);
                 }
             }).fail(function () {
                 BarcodeScanner.beepError();
-                if (config.onError) config.onError('network_error', barcode);
+                if (config.onError) config.onError('network_error', barcode, $('#' + targetRowId));
             });
         }
     };

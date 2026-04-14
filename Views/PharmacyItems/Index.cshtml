@@ -203,9 +203,9 @@
 </div>
 
 @section Scripts {
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" />
-    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+    
+    
+    
     <script>
         $(function () {
             var columns = [
@@ -217,7 +217,7 @@
                 { "data": "isActive", "render": function(d, t, row) { return `<div class="form-check form-switch d-flex justify-content-center"><input class="form-check-input" type="checkbox" role="switch" ${d ? 'checked' : ''} onchange="toggleStatus(${row.id})"></div>`; } },
                 { "data": "id", "orderable": false, "render": function(d, t, row) { return `<div class="action-group"><button type="button" class="btn-action btn-action-primary" data-label="تعديل" data-id="${d}" data-name="${row.name}" data-generic="${row.genericName || ''}" data-unitname="${row.unitName}" data-categoryname="${row.categoryName}" data-locationcode="${row.locationCode}" data-price="${row.defaultSellingPrice}" data-reorder="${row.reorderLevel}" data-active="${row.isActive}" data-unitid="${row.unitId}" data-categoryid="${row.categoryId}" data-locationid="${row.locationId}" onclick="openEditItem(this)"><i class="bi bi-pencil-fill"></i></button></div>`; } }
             ];
-            initDataTable('.table', '/PharmacyItems/GetItemsData', columns, { "pageLength": 10 });
+            initDataTable('.table', '/PharmacyItems/GetItemsData', columns);
         });
 
         function toggleStatus(id) {
@@ -296,3 +296,5 @@
         }
     </script>
 }
+
+

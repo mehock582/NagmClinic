@@ -29,7 +29,26 @@ namespace NagmClinic.Models
         [Display(Name = "تاريخ الفحص")]
         public DateTime? PerformedAt { get; set; }
 
+        [Display(Name = "تاريخ الطلب")]
+        public DateTime RequestedAt { get; set; } = DateTime.Now;
+
         [Display(Name = "ملاحظات الفني")]
         public string? LabNotes { get; set; }
+
+        [MaxLength(100)]
+        public string? SourceDeviceId { get; set; }
+
+        [MaxLength(100)]
+        public string? SourceTestCode { get; set; }
+
+        [MaxLength(150)]
+        public string? PatientIdentifier { get; set; }
+
+        [MaxLength(100)]
+        public string? ConnectorSource { get; set; }
+
+        public DateTime? ImportedAt { get; set; }
+
+        public DateTime? SourceTimestamp { get; set; }
     }
 }

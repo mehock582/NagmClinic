@@ -32,9 +32,9 @@
 </div>
 
 @section Scripts {
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" />
-    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+    
+    
+    
     <script>
         $(function () {
             var columns = [
@@ -45,7 +45,9 @@
                 { "data": "totalAmount", "render": function(d) { return `<span class="fw-bold text-primary">${parseFloat(d).toFixed(2)}</span>`; } },
                 { "data": "id", "orderable": false, "render": function(d) { return `<div class="action-group"><a href="/PharmacyPurchases/Details/${d}" class="btn-action btn-action-info" data-label="تفاصيل الفاتورة"><i class="bi bi-receipt-cutoff"></i></a></div>`; } }
             ];
-            initDataTable('.table', '/PharmacyPurchases/GetPurchasesData', columns, { "pageLength": 10 });
+            initDataTable('.table', '/PharmacyPurchases/GetPurchasesData', columns);
         });
     </script>
 }
+
+

@@ -84,6 +84,13 @@ namespace NagmClinic.Controllers
             return View(sale);
         }
 
+        public async Task<IActionResult> PrintThermalReceipt(int id)
+        {
+            var sale = await _salesService.GetSaleDetailsAsync(id);
+            if (sale == null) return NotFound();
+            return View(sale);
+        }
+
         [HttpGet]
         public async Task<IActionResult> LookupByBarcode(string barcode)
         {

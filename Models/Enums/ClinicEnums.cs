@@ -30,12 +30,30 @@ namespace NagmClinic.Models.Enums
     {
         Text = 1,
         Number = 2,
-        Dropdown = 3
+        Dropdown = 3,
+        PositiveNegative = 4,
+        Calculated = 5
+    }
+
+    public enum LabTestSourceType
+    {
+        Manual = 1,
+        Device = 2,
+        Hybrid = 3
     }
 
     public enum PharmacySaleStatus
     {
         Completed = 1,
         Voided = 2
+    }
+
+    public enum LabImportProcessingStatus
+    {
+        Pending = 1,
+        Imported = 2,
+        Rejected = 3,
+        Duplicate = 4,
+        Failed = 5
     }
 }

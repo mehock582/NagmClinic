@@ -8,6 +8,7 @@ namespace NagmClinic.ViewModels
         public string? DocumentTitleEn { get; set; }
         public string? DocumentNumber { get; set; }
         public bool Compact { get; set; }
+        public bool ReverseOrder { get; set; }
     }
 
     public class PrintBrandingFooterViewModel
@@ -17,5 +18,6 @@ namespace NagmClinic.ViewModels
         public string? LeftValue { get; set; }
         public string? SecondaryLine { get; set; }
         public bool Compact { get; set; }
+        public bool SwapSides { get; set; }
     }
 }

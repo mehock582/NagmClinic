@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using NagmClinic.Data;
+using NagmClinic.Extensions;
 using NagmClinic.Models;
 using NagmClinic.Models.Enums;
 using NagmClinic.ViewModels;
@@ -31,6 +32,8 @@ namespace NagmClinic.Services.Appointments
             var appointment = await _context.Appointments
                 .Include(a => a.AppointmentItems)
                     .ThenInclude(ai => ai.Service)
+                .Include(a => a.AppointmentItems)
+                    .ThenInclude(ai => ai.LabResult)
                 .FirstOrDefaultAsync(m => m.Id == appointmentId);
 
             if (appointment == null) return null;
@@ -46,10 +49,17 @@ namespace NagmClinic.Services.Appointments
                 Notes = appointment.Notes,
                 Items = appointment.AppointmentItems.Select(ai => new AppointmentItemViewModel
                 {
+                    AppointmentItemId = ai.Id,
                     ServiceId = ai.ServiceId,
                     ServiceName = ai.Service?.NameAr ?? "",
+                    ServiceDisplayName = LabDisplayExtensions.BuildOperationalTestDisplay(
+                        ai.Service?.Code,
+                        ai.Service?.NameEn,
+                        ai.Service?.NameAr),
                     Quantity = ai.Quantity,
-                    UnitPrice = ai.UnitPrice
+                    UnitPrice = ai.UnitPrice,
+                    HasRecordedLabResult = HasRecordedLabResult(ai.LabResult),
+                    ItemType = ai.Service?.Type ?? ServiceType.Service
                 }).ToList()
             };
 
@@ -74,20 +84,24 @@ namespace NagmClinic.Services.Appointments
 
             var services = await _context.ClinicServices
                 .Where(s => s.IsActive)
-                .Select(s => new { s.Id, s.NameAr, s.Price })
+                .Select(s => new { s.Id, s.NameAr, s.NameEn, s.Code, s.Price, s.Type })
                 .ToListAsync();
 
             model.AvailableServices = services.Select(s => new SelectListItem
             {
                 Value = s.Id.ToString(),
-                Text = $"{s.NameAr} ({s.Price:N2})"
+                Text = $"{LabDisplayExtensions.BuildOperationalTestDisplay(s.Code, s.NameEn, s.NameAr)} ({s.Price:N2})"
             }).ToList();
 
             model.ServicesData = services.Select(s => new ServiceItemDto
             {
                 Id = s.Id,
                 NameAr = s.NameAr,
-                Price = s.Price
+                NameEn = s.NameEn,
+                Code = s.Code,
+                DisplayName = LabDisplayExtensions.BuildOperationalTestDisplay(s.Code, s.NameEn, s.NameAr),
+                Price = s.Price,
+                Type = s.Type
             }).ToList();
         }
 
@@ -146,7 +160,10 @@ namespace NagmClinic.Services.Appointments
                                 AppointmentItemId = appointmentItem.Id,
                                 Status = LabStatus.Pending,
                                 Unit = service.Unit,
-                                NormalRange = service.NormalRange
+                                NormalRange = !string.IsNullOrWhiteSpace(service.ReferenceRange)
+                                    ? service.ReferenceRange
+                                    : service.NormalRange,
+                                RequestedAt = DateTime.Now
                             };
                             _context.LabResults.Add(labResult);
                         }
@@ -171,6 +188,9 @@ namespace NagmClinic.Services.Appointments
             {
                 var appointment = await _context.Appointments
                     .Include(a => a.AppointmentItems)
+                        .ThenInclude(ai => ai.Service)
+                    .Include(a => a.AppointmentItems)
+                        .ThenInclude(ai => ai.LabResult)
                     .FirstOrDefaultAsync(a => a.Id == model.Id);
                 
                 if (appointment == null) return (false, "الموعد غير موجود");
@@ -181,25 +201,93 @@ namespace NagmClinic.Services.Appointments
                 
                 var existingItems = appointment.AppointmentItems.ToList();
                 var incomingItems = model.Items ?? new List<AppointmentItemViewModel>();
+                var incomingById = incomingItems
+                    .Where(i => i.AppointmentItemId > 0)
+                    .GroupBy(i => i.AppointmentItemId)
+                    .ToDictionary(g => g.Key, g => g.First());
+                var lockedItems = existingItems
+                    .Where(i => HasRecordedLabResult(i.LabResult))
+                    .ToList();
+
+                foreach (var lockedItem in lockedItems)
+                {
+                    if (!incomingById.TryGetValue(lockedItem.Id, out var incomingLockedItem))
+                    {
+                        return (false, "لا يمكن حذف أو تعديل فحص تم إدخال نتيجته بالفعل");
+                    }
+
+                    if (incomingLockedItem.ServiceId != lockedItem.ServiceId ||
+                        incomingLockedItem.Quantity != lockedItem.Quantity ||
+                        incomingLockedItem.UnitPrice != lockedItem.UnitPrice)
+                    {
+                        return (false, "لا يمكن تعديل أو حذف هذا الفحص لأنه يحتوي بالفعل على نتيجة مخبرية.");
+                    }
+                }
 
                 // 1. Remove items that are no longer in the request
-                var incomingServiceIds = incomingItems.Select(i => i.ServiceId).ToList();
-                var itemsToRemove = existingItems.Where(ei => !incomingServiceIds.Contains(ei.ServiceId)).ToList();
+                var incomingItemIds = incomingItems
+                    .Where(i => i.AppointmentItemId > 0)
+                    .Select(i => i.AppointmentItemId)
+                    .ToHashSet();
+                var itemsToRemove = existingItems
+                    .Where(ei => !incomingItemIds.Contains(ei.Id))
+                    .ToList();
                 _context.AppointmentItems.RemoveRange(itemsToRemove);
 
                 // 2. Add or Update
                 foreach (var item in incomingItems)
                 {
-                    var existingItem = existingItems.FirstOrDefault(ei => ei.ServiceId == item.ServiceId);
+                    var existingItem = item.AppointmentItemId > 0
+                        ? existingItems.FirstOrDefault(ei => ei.Id == item.AppointmentItemId)
+                        : null;
                     
-                    if (existingItem != null)
-                    {
-                        // Update existing, preserves the attached LabResult
+                        if (existingItem != null)
+                        {
+                            var serviceChanged = existingItem.ServiceId != item.ServiceId;
+
+                        existingItem.ServiceId = item.ServiceId;
                         existingItem.Quantity = item.Quantity;
                         existingItem.UnitPrice = item.UnitPrice;
                         existingItem.TotalPrice = item.Quantity * item.UnitPrice;
-                        
-                        existingItems.Remove(existingItem); // Remove from our local list to handle duplicates just in case
+
+                        if (serviceChanged)
+                        {
+                            var updatedService = await _context.ClinicServices.FindAsync(item.ServiceId);
+                            if (updatedService != null && updatedService.Type == ServiceType.LabTest)
+                            {
+                                if (existingItem.LabResult == null)
+                                {
+                                    _context.LabResults.Add(new LabResult
+                                    {
+                                        AppointmentItemId = existingItem.Id,
+                                        Status = LabStatus.Pending,
+                                        Unit = updatedService.Unit,
+                                        NormalRange = !string.IsNullOrWhiteSpace(updatedService.ReferenceRange)
+                                            ? updatedService.ReferenceRange
+                                            : updatedService.NormalRange,
+                                        RequestedAt = DateTime.Now
+                                    });
+                                }
+                                else
+                                {
+                                    existingItem.LabResult.ResultValue = null;
+                                    existingItem.LabResult.Unit = updatedService.Unit;
+                                    existingItem.LabResult.NormalRange = !string.IsNullOrWhiteSpace(updatedService.ReferenceRange)
+                                        ? updatedService.ReferenceRange
+                                        : updatedService.NormalRange;
+                                    existingItem.LabResult.Status = LabStatus.Pending;
+                                    existingItem.LabResult.PerformedBy = null;
+                                    existingItem.LabResult.PerformedAt = null;
+                                    existingItem.LabResult.LabNotes = null;
+                                    existingItem.LabResult.RequestedAt = DateTime.Now;
+                                }
+                            }
+                            else if (existingItem.LabResult != null)
+                            {
+                                _context.LabResults.Remove(existingItem.LabResult);
+                                existingItem.LabResult = null;
+                            }
+                        }
                     }
                     else
                     {
@@ -225,7 +313,10 @@ namespace NagmClinic.Services.Appointments
                                 AppointmentItemId = appointmentItem.Id,
                                 Status = LabStatus.Pending,
                                 Unit = service.Unit,
-                                NormalRange = service.NormalRange
+                                NormalRange = !string.IsNullOrWhiteSpace(service.ReferenceRange)
+                                    ? service.ReferenceRange
+                                    : service.NormalRange,
+                                RequestedAt = DateTime.Now
                             };
                             _context.LabResults.Add(labResult);
                         }
@@ -241,6 +332,14 @@ namespace NagmClinic.Services.Appointments
                 await transaction.RollbackAsync();
                 return (false, "حدث خطأ أثناء التعديل: " + ex.Message);
             }
+        }
+
+        private static bool HasRecordedLabResult(LabResult? labResult)
+        {
+            return labResult != null &&
+                   (!string.IsNullOrWhiteSpace(labResult.ResultValue) ||
+                    labResult.Status == LabStatus.Completed ||
+                    labResult.PerformedAt.HasValue);
         }
     }
 }

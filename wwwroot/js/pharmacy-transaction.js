@@ -62,24 +62,26 @@ var PharmacyTransaction = (function () {
 
     function addRow(prefillData) {
         var templateHtml = $(config.rowTemplateId).html();
-        var idx = config.lineCount;
+        var timestamp = new Date().getTime() + Math.floor(Math.random() * 1000);
+        var idx = timestamp; // Unique ID instead of sequential index to avoid prepending collisions
 
-        // Replace placeholders if they are generic, normally we inject idx later.
+        // Replace placeholders globally
         var rowHtml = templateHtml.replace(/\{idx\}/g, idx);
 
         var $newRow = $(rowHtml);
-        $newRow.attr('id', 'line_row_' + idx);
+        $newRow.attr('id', 'line_row_manual_' + timestamp);
         $newRow.attr('data-line-index', idx);
         
-        // Ensure barcode tracking for shared scanner integration
+        // CRITICAL: Immediately mark the row with the barcode to prevent concurrent 
+        // scans from trying to reuse it or creating duplicates.
         if (prefillData && prefillData.barcode) {
             $newRow.attr('data-barcode', prefillData.barcode);
             $newRow.find('[data-field="Barcode"]').val(prefillData.barcode);
         }
 
-        $(config.tableBodyId).append($newRow);
-        config.lineCount++;
-
+        // New Requirement: Insert at TOP (prepend)
+        $(config.tableBodyId).prepend($newRow);
+        
         toggleEmptyState();
 
         if (config.callbacks.onRowAdded) {
@@ -88,6 +90,25 @@ var PharmacyTransaction = (function () {
 
         refreshValidation();
         return $newRow;
+    }
+
+    function getActiveRow() {
+        // Returns the FIRST row that is truly empty (no item AND no barcode).
+        // If all rows have items or barcodes assigned, returns null.
+        var $rows = $(config.tableBodyId).find('.erp-line-row');
+        if ($rows.length === 0) return null;
+
+        var $empty = $rows.filter(function() {
+            var itemVal = $(this).find('.item-select').val();
+            var barcodeVal = $(this).attr('data-barcode') || $(this).find('[data-field="Barcode"]').val();
+            
+            var hasItem = itemVal && itemVal !== "0" && itemVal !== "";
+            var hasBarcode = barcodeVal && barcodeVal.trim() !== "";
+            
+            return !hasItem && !hasBarcode;
+        }).first();
+
+        return $empty.length ? $empty : null;
     }
 
     function removeRow($row) {
@@ -199,11 +220,30 @@ var PharmacyTransaction = (function () {
         }
     }
 
+    function renderFefoChips(allocations) {
+        if (!allocations || allocations.length === 0) {
+            return '<span class="text-danger fw-bold"><i class="bi bi-exclamation-triangle me-1"></i>غير متاح</span>';
+        }
+
+        return allocations.map(a => {
+            const remaining = a.remaining || a.Remaining || 0;
+            const isLow = remaining < 5;
+            
+            return `
+                <span class="pos-fefo-tag ${isLow ? 'low-stock' : ''}" title="الباتش: ${a.batchNumber || a.BatchNumber}">
+                    باقي: <strong>${remaining}</strong>
+                </span>
+            `;
+        }).join('');
+    }
+
     return {
         init: init,
         addRow: addRow,
         recalculateAll: recalculateAll,
-        getLineCount: function() { return config.lineCount; },
-        refreshValidation: refreshValidation
+        getLineCount: function() { return $(config.tableBodyId).find('.erp-line-row').length; },
+        getActiveRow: getActiveRow,
+        refreshValidation: refreshValidation,
+        renderFefoChips: renderFefoChips
     };
 })();

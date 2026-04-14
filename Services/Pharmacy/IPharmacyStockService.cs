@@ -55,7 +55,9 @@ namespace NagmClinic.Services.Pharmacy
         public string BatchNumber { get; set; } = string.Empty;
         public string Barcode { get; set; } = string.Empty;
         public DateTime ExpiryDate { get; set; }
-        public decimal Quantity { get; set; }
+        public decimal Quantity { get; set; } // This is 'taken'
+        public decimal Available { get; set; }
+        public decimal Remaining { get; set; }
         public decimal UnitPrice { get; set; }
         public string SlotCode { get; set; } = string.Empty;
     }
@@ -73,6 +75,7 @@ namespace NagmClinic.Services.Pharmacy
     public sealed class PharmacySaleRequestLine
     {
         public int ItemId { get; set; }
+        public string? Barcode { get; set; }
         public decimal Quantity { get; set; }
         public decimal SellingPrice { get; set; }
     }

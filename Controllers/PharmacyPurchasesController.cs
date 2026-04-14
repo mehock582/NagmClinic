@@ -90,13 +90,40 @@ namespace NagmClinic.Controllers
         [HttpGet]
         public async Task<IActionResult> LookupByBarcode(string barcode)
         {
-            var result = await _stockService.LookupByBarcodeAsync(barcode);
-            if (result == null)
+            var normalized = (barcode ?? "").Trim();
+            if (string.IsNullOrWhiteSpace(normalized))
+            {
+                return Json(new { success = false, message = "الباركود مطلوب" });
+            }
+
+            // Find ANY batch with this barcode (including expired/empty, for purchase re-entry)
+            var batch = await _context.ItemBatches
+                .Include(b => b.Item)
+                    .ThenInclude(i => i!.Unit)
+                .FirstOrDefaultAsync(b => b.Barcode == normalized && b.Item != null && b.Item.IsActive);
+
+            if (batch == null || batch.Item == null)
             {
                 return Json(new { success = false, message = "لم يتم العثور على الباركود" });
             }
 
-            return Json(new { success = true, data = result });
+            var item = batch.Item;
+            return Json(new
+            {
+                success = true,
+                data = new
+                {
+                    itemId = item.Id,
+                    itemName = item.Name,
+                    barcode = batch.Barcode,
+                    batchNumber = batch.BatchNumber,
+                    expiryDate = batch.ExpiryDate.ToString("yyyy-MM-dd"),
+                    purchasePrice = batch.PurchasePrice,
+                    sellingPrice = batch.SellingPrice > 0 ? batch.SellingPrice : item.DefaultSellingPrice,
+                    unitName = item.Unit?.Name ?? "-",
+                    quantityRemaining = batch.QuantityRemaining
+                }
+            });
         }
 
         [HttpGet]

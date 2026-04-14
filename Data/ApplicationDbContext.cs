@@ -17,6 +17,10 @@ namespace NagmClinic.Data
         public DbSet<Appointment> Appointments { get; set; }
         public DbSet<AppointmentItem> AppointmentItems { get; set; }
         public DbSet<LabResult> LabResults { get; set; }
+        public DbSet<LabCategory> LabCategories { get; set; }
+        public DbSet<LabAnalyzer> LabAnalyzers { get; set; }
+        public DbSet<LabDeviceTestMapping> LabDeviceTestMappings { get; set; }
+        public DbSet<LabResultImportRecord> LabResultImportRecords { get; set; }
         public DbSet<PharmacyUnit> PharmacyUnits { get; set; }
         public DbSet<PharmacyCategory> PharmacyCategories { get; set; }
         public DbSet<PharmacySupplier> PharmacySuppliers { get; set; }
@@ -52,6 +56,59 @@ namespace NagmClinic.Data
                 .HasOne(lr => lr.AppointmentItem)
                 .WithOne(ai => ai.LabResult)
                 .HasForeignKey<LabResult>(lr => lr.AppointmentItemId);
+
+            builder.Entity<LabResultImportRecord>()
+                .HasOne(r => r.LabResult)
+                .WithMany()
+                .HasForeignKey(r => r.LabResultId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            builder.Entity<LabDeviceTestMapping>()
+                .HasOne(m => m.LabTest)
+                .WithMany()
+                .HasForeignKey(m => m.LabTestId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ClinicService>()
+                .HasIndex(c => c.Code)
+                .IsUnique()
+                .HasFilter("[Code] IS NOT NULL");
+
+            builder.Entity<ClinicService>()
+                .HasIndex(c => c.DeviceCode)
+                .HasFilter("[DeviceCode] IS NOT NULL");
+
+            builder.Entity<LabDeviceTestMapping>()
+                .HasIndex(m => new { m.DeviceId, m.DeviceTestCode })
+                .IsUnique();
+
+            builder.Entity<LabResultImportRecord>()
+                .HasIndex(r => new { r.DeviceId, r.TestCode, r.PatientIdentifier, r.Timestamp })
+                .IsUnique();
+
+            builder.Entity<LabResultImportRecord>()
+                .HasIndex(r => r.ImportedAt);
+
+            builder.Entity<LabCategory>()
+                .HasIndex(c => c.NameAr)
+                .IsUnique();
+
+            builder.Entity<LabAnalyzer>()
+                .HasIndex(a => a.Code)
+                .IsUnique()
+                .HasFilter("[Code] IS NOT NULL");
+
+            builder.Entity<ClinicService>()
+                .HasOne(c => c.LabCategory)
+                .WithMany(c => c.Tests)
+                .HasForeignKey(c => c.LabCategoryId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ClinicService>()
+                .HasOne(c => c.LabAnalyzer)
+                .WithMany(a => a.Tests)
+                .HasForeignKey(c => c.LabAnalyzerId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             // Precision for currency values
             builder.Entity<ClinicService>().Property(c => c.Price).HasColumnType("decimal(18,2)");
