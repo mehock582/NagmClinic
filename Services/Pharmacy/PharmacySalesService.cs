@@ -98,6 +98,7 @@ namespace NagmClinic.Services.Pharmacy
             var lineRequests = validLines.Select(l => new PharmacySaleRequestLine
             {
                 ItemId = l.ItemId,
+                ItemBatchId = l.ItemBatchId,
                 Barcode = l.Barcode?.Trim(),
                 Quantity = l.Quantity,
                 SellingPrice = l.SellingPrice

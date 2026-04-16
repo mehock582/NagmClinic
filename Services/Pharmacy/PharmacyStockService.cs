@@ -35,12 +35,33 @@ namespace NagmClinic.Services.Pharmacy
                 return null;
             }
 
+            // 1. First, try to find an exact batch match (specific manufacturer barcode or internal barcode)
             var batch = await _context.ItemBatches
                 .Include(b => b.Item)
                     .ThenInclude(i => i!.Unit)
                 .Include(b => b.Item)
                     .ThenInclude(i => i!.Location)
-                .FirstOrDefaultAsync(b => b.Barcode == normalized && (b.Item == null || b.Item.IsActive), cancellationToken);
+                .Where(b => b.Barcode == normalized && (b.Item == null || b.Item.IsActive) && b.QuantityRemaining > 0 && b.ExpiryDate >= DateTime.Today)
+                .OrderBy(b => b.ExpiryDate)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            // 2. If no matching batch is found by barcode, search for an Item with this barcode and pick its best batch
+            if (batch == null)
+            {
+                var itemWithBarcode = await _context.PharmacyItems
+                    .Include(i => i.Unit)
+                    .Include(i => i.Location)
+                    .Include(i => i.Batches)
+                    .FirstOrDefaultAsync(i => i.Barcode == normalized && i.IsActive);
+
+                if (itemWithBarcode != null)
+                {
+                    batch = itemWithBarcode.Batches
+                        .Where(b => b.QuantityRemaining > 0 && b.ExpiryDate >= DateTime.Today)
+                        .OrderBy(b => b.ExpiryDate)
+                        .FirstOrDefault();
+                }
+            }
 
             if (batch == null || batch.Item == null)
             {
@@ -60,6 +81,9 @@ namespace NagmClinic.Services.Pharmacy
                 SlotCode = item.Location?.Code ?? "-",
                 DefaultSellingPrice = batch.SellingPrice > 0 ? batch.SellingPrice : item.DefaultSellingPrice,
                 AvailableQuantity = available,
+                ExpiryDate = batch.ExpiryDate,
+                ExpiryDateFormatted = batch.ExpiryDate.ToString("yyyy-MM-dd"),
+                BatchId = batch.Id,
                 SuggestedBatch = new FefoAllocationLine
                 {
                     BatchId = batch.Id,
@@ -103,7 +127,8 @@ namespace NagmClinic.Services.Pharmacy
             foreach (var batch in batches)
             {
                 var item = batch.Item!;
-                var available = await GetAvailableStockAsync(item.Id, today, cancellationToken);
+                // Correct Fix: Use the specific batch quantity, not the aggregate item quantity
+                var batchStock = batch.QuantityRemaining;
 
                 results.Add(new BarcodeLookupResult
                 {
@@ -114,7 +139,10 @@ namespace NagmClinic.Services.Pharmacy
                     UnitName = item.Unit?.Name ?? "-",
                     SlotCode = item.Location?.Code ?? "-",
                     DefaultSellingPrice = batch.SellingPrice > 0 ? batch.SellingPrice : item.DefaultSellingPrice,
-                    AvailableQuantity = available,
+                    AvailableQuantity = batchStock,
+                    ExpiryDate = batch.ExpiryDate,
+                    ExpiryDateFormatted = batch.ExpiryDate.ToString("yyyy-MM-dd"),
+                    BatchId = batch.Id,
                     SuggestedBatch = new FefoAllocationLine
                     {
                         BatchId = batch.Id,
@@ -245,20 +273,8 @@ namespace NagmClinic.Services.Pharmacy
                 return new PurchaseExecutionResult { Success = false, Message = "بيانات البنود (باتش وباركود) غير مكتملة" };
             }
 
-            var duplicateBarcodeInRequest = cleanedLines
-                .Select(l => (l.Barcode ?? string.Empty).Trim())
-                .Where(b => !string.IsNullOrWhiteSpace(b))
-                .GroupBy(b => b, StringComparer.OrdinalIgnoreCase)
-                .FirstOrDefault(g => g.Count() > 1);
-
-            if (duplicateBarcodeInRequest != null)
-            {
-                return new PurchaseExecutionResult
-                {
-                    Success = false,
-                    Message = $"الباركود {duplicateBarcodeInRequest.Key} مكرر داخل نفس الفاتورة. يجب استخدام باركود فريد لكل باتش."
-                };
-            }
+            // Note: Removed global duplicate barcode check to allow multiple items/batches to share a manufacturer UPC.
+            // Intra-batch uniqueness is now handled by finding existing matches below.
 
             await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
             try
@@ -291,19 +307,20 @@ namespace NagmClinic.Services.Pharmacy
                         };
                     }
 
-                    var itemDefaultSellingPrice = await _context.PharmacyItems
-                        .Where(i => i.Id == line.ItemId)
-                        .Select(i => (decimal?)i.DefaultSellingPrice)
-                        .FirstOrDefaultAsync(cancellationToken);
-
-                    if (!itemDefaultSellingPrice.HasValue)
+                    var item = await _context.PharmacyItems
+                        .FirstOrDefaultAsync(i => i.Id == line.ItemId, cancellationToken);
+                    
+                    if (item == null)
                     {
                         await transaction.RollbackAsync(cancellationToken);
-                        return new PurchaseExecutionResult
-                        {
-                            Success = false,
-                            Message = $"الصنف رقم {line.ItemId} غير موجود"
-                        };
+                        return new PurchaseExecutionResult { Success = false, Message = $"الصنف رقم {line.ItemId} غير موجود" };
+                    }
+
+                    // Strategic Fix: Link the scanned barcode to the item itself if not already set.
+                    // This allows any future batch to find this item by manufacturer barcode.
+                    if (string.IsNullOrWhiteSpace(item.Barcode))
+                    {
+                        item.Barcode = line.Barcode.Trim();
                     }
 
                     var batch = await _context.ItemBatches
@@ -312,8 +329,8 @@ namespace NagmClinic.Services.Pharmacy
                             cancellationToken);
 
                     var effectiveSellingPrice = batch != null
-                        ? (batch.SellingPrice > 0 ? batch.SellingPrice : itemDefaultSellingPrice.Value)
-                        : itemDefaultSellingPrice.Value;
+                        ? (batch.SellingPrice > 0 ? batch.SellingPrice : item.DefaultSellingPrice)
+                        : item.DefaultSellingPrice;
 
                     var purchaseLine = new PharmacyPurchaseLine
                     {
@@ -421,7 +438,37 @@ namespace NagmClinic.Services.Pharmacy
                 foreach (var line in lines)
                 {
                     List<FefoAllocationLine> allocationsToProcess = new List<FefoAllocationLine>();
+                    
+                    if (line.ItemBatchId.HasValue && line.ItemBatchId.Value > 0)
                     {
+                        // Manual Batch Selection (from Modal)
+                        var batch = await _context.ItemBatches
+                            .Include(b => b.Item)
+                                .ThenInclude(i => i!.Location)
+                            .FirstOrDefaultAsync(b => b.Id == line.ItemBatchId.Value, cancellationToken);
+
+                        if (batch == null || batch.ItemId != line.ItemId || batch.QuantityRemaining < line.Quantity || batch.ExpiryDate.Date < DateTime.Today)
+                        {
+                            await transaction.RollbackAsync(cancellationToken);
+                            return new SaleExecutionResult { Success = false, Message = $"الباتش المحدد غير متاح أو كميته غير كافية للصنف رقم {line.ItemId}" };
+                        }
+
+                        allocationsToProcess.Add(new FefoAllocationLine
+                        {
+                            BatchId = batch.Id,
+                            BatchNumber = batch.BatchNumber,
+                            Barcode = batch.Barcode,
+                            ExpiryDate = batch.ExpiryDate,
+                            Quantity = line.Quantity,
+                            Available = batch.QuantityRemaining,
+                            Remaining = batch.QuantityRemaining - line.Quantity,
+                            UnitPrice = batch.SellingPrice,
+                            SlotCode = batch.Item?.Location?.Code ?? "-"
+                        });
+                    }
+                    else
+                    {
+                        // Automatic FEFO Allocation
                         var allocation = await PreviewFefoAllocationAsync(line.ItemId, line.Quantity, DateTime.Today, cancellationToken);
                         if (!allocation.Success)
                         {

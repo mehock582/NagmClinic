@@ -94,19 +94,84 @@ namespace NagmClinic.Controllers
         [HttpGet]
         public async Task<IActionResult> LookupByBarcode(string barcode)
         {
-            var results = await _stockService.LookupAllByBarcodeAsync(barcode);
+            var safeBarcode = (barcode ?? "").Trim();
+            if (string.IsNullOrEmpty(safeBarcode)) return BadRequest();
 
-            if (results == null || results.Count == 0)
+            // ── Step 1: Strict Barcode Isolation ──
+            // Query ONLY batches that exactly match the physical barcode scanned.
+            // Never substitute a different barcode just because they share the same parent item.
+            var allMatchingBatches = await _context.ItemBatches
+                .Include(b => b.Item)
+                    .ThenInclude(i => i!.Unit)
+                .Include(b => b.Item)
+                    .ThenInclude(i => i!.Location)
+                .Where(b => b.Barcode == safeBarcode && b.Item != null && b.Item.IsActive)
+                .OrderBy(b => b.ExpiryDate)
+                .ToListAsync();
+
+            // Also check if barcode exists on the master PharmacyItems table
+            if (!allMatchingBatches.Any())
             {
-                return Json(new { success = false, message = "لم يتم العثور على دواء بهذا الباركود" });
+                var masterItem = await _context.PharmacyItems
+                    .FirstOrDefaultAsync(i => i.Barcode == safeBarcode && i.IsActive);
+
+                if (masterItem == null)
+                {
+                    // The barcode is truly unknown to the system
+                    return Json(new { success = false, status = "NOT_FOUND", message = "الصنف غير معرف في النظام" });
+                }
+
+                // Item exists in catalog but has zero batch records with this barcode
+                return Json(new {
+                    success = false,
+                    status = "OUT_OF_STOCK",
+                    message = $"عفواً، رصيد الباتش ({safeBarcode}) من الصنف ({masterItem.Name}) صفر في المخزن."
+                });
             }
 
+            // ── Step 2: Filter to sellable batches only (Qty > 0, not expired) ──
+            var sellableBatches = allMatchingBatches
+                .Where(b => b.QuantityRemaining > 0 && b.ExpiryDate.Date >= DateTime.Today)
+                .ToList();
+
+            if (!sellableBatches.Any())
+            {
+                // Batches exist for this exact barcode, but all are empty or expired
+                var firstFound = allMatchingBatches.First();
+                var batchNum = firstFound.BatchNumber ?? safeBarcode;
+                var itemName = firstFound.Item?.Name ?? "الصنف";
+
+                return Json(new {
+                    success = false,
+                    status = "OUT_OF_STOCK",
+                    message = $"عفواً، رصيد الباتش ({batchNum}) من الصنف ({itemName}) صفر في المخزن."
+                });
+            }
+
+            // ── Step 3: Build response DTOs ──
+            var results = sellableBatches.Select(b => new BarcodeLookupResult
+            {
+                ItemId = b.Item!.Id,
+                ItemName = b.Item.Name,
+                Barcode = b.Barcode,
+                BatchNumber = b.BatchNumber,
+                UnitName = b.Item.Unit?.Name ?? "-",
+                SlotCode = b.Item.Location?.Code ?? "-",
+                DefaultSellingPrice = b.SellingPrice > 0 ? b.SellingPrice : b.Item.DefaultSellingPrice,
+                AvailableQuantity = b.QuantityRemaining,
+                ExpiryDate = b.ExpiryDate,
+                ExpiryDateFormatted = b.ExpiryDate.ToString("yyyy-MM-dd"),
+                BatchId = b.Id
+            }).ToList();
+
+            // ── Step 4: Route based on batch count ──
+            // 1 batch  → auto-populate the row
+            // N batches → force the pharmacist to pick via modal
             if (results.Count == 1)
             {
                 return Json(new { success = true, multiMatch = false, data = results[0] });
             }
 
-            // Multiple batches matched — let the client pick
             return Json(new { success = true, multiMatch = true, matches = results });
         }
 

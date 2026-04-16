@@ -4,12 +4,18 @@
     var idx = ViewData["Index"]?.ToString() ?? "{idx}";
 }
 
-<div class="pos-line-card pos-fade-in erp-line-row service-row @(mode == "sale" ? "sale-service-row" : "purchase-service-row") pos-specific-batch" id="line_row_@idx" data-line-index="@idx">
+<div class="pos-line-card pos-fade-in erp-line-row service-row @(mode == "sale" ? "sale-service-row" : "purchase-service-row") pos-specific-batch" 
+     id="line_row_@idx" 
+     data-line-index="@idx"
+     data-item-id=""
+     data-batch-id=""
+     data-barcode="">
     <div class="pos-line-item">
         <span class="pos-field-label">الصنف <span class="text-danger">*</span></span>
         @if (mode == "sale")
         {
             <input type="hidden" id="Lines_@(idx)__Barcode" name="Lines[@(idx)].Barcode" data-field="Barcode" />
+            <input type="hidden" id="Lines_@(idx)__ItemBatchId" name="Lines[@(idx)].ItemBatchId" data-field="ItemBatchId" />
         }
         <select id="Lines_@(idx)__ItemId" name="Lines[@(idx)].ItemId" data-field="ItemId" class="form-select erp-input item-select @(mode == "sale" ? "sale-item-select" : "purchase-item-select")" required data-val="true" data-val-range="يرجى اختيار الصنف" data-val-range-min="1">
             <option value="">-- اختر الصنف --</option>

@@ -109,13 +109,29 @@ var BarcodeScanner = (function () {
                     console.log('[BarcodeScanner] Multi-match found');
                     if (config.onMultiMatch) config.onMultiMatch(res.matches || res.Matches, barcode);
                 } else {
-                    console.warn('[BarcodeScanner] Barcode not found on server');
+                    console.log('[BarcodeScanner] Debug Response:', res);
+                    console.warn('[BarcodeScanner] Barcode lookup failed:', res.message || 'Not found');
                     BarcodeScanner.beepError();
-                    if (config.onError) config.onError('not_found', barcode, $row);
+                    // Robust check for OUT_OF_STOCK status (case-insensitive for safety)
+                    var status = (res.status || res.Status || "").toUpperCase();
+                    var errCode = (status === 'OUT_OF_STOCK') ? 'out_of_stock' : 'not_found';
+                    if (config.onError) config.onError(errCode, barcode, $row, res);
                 }
-            }).fail(function () {
+            }).fail(function (xhr) {
                 BarcodeScanner.beepError();
-                if (config.onError) config.onError('network_error', barcode, $('#' + targetRowId));
+                // Try to parse the response body even on non-200 errors (e.g., 404 with JSON payload)
+                var res = null;
+                try { res = JSON.parse(xhr.responseText); } catch (e) { /* not JSON */ }
+                
+                console.log('[BarcodeScanner] AJAX .fail() triggered. Status:', xhr.status, 'Response:', res);
+                
+                if (res) {
+                    var status = (res.status || res.Status || "").toUpperCase();
+                    var errCode = (status === 'OUT_OF_STOCK') ? 'out_of_stock' : 'not_found';
+                    if (config.onError) config.onError(errCode, barcode, $('#' + targetRowId), res);
+                } else {
+                    if (config.onError) config.onError('network_error', barcode, $('#' + targetRowId), null);
+                }
             });
         }
     };

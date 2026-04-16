@@ -130,8 +130,7 @@ namespace NagmClinic.Data
                 .IsUnique();
 
             builder.Entity<ItemBatch>()
-                .HasIndex(b => b.Barcode)
-                .IsUnique();
+                .HasIndex(b => b.Barcode); // Removed IsUnique() to allow multiple batches sharing manufacturer UPC
 
             builder.Entity<PharmacyItem>()
                 .HasOne(i => i.Unit)
@@ -205,6 +204,11 @@ namespace NagmClinic.Data
                 .WithMany(b => b.SaleLines)
                 .HasForeignKey(l => l.ItemBatchId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<PharmacyItem>()
+                .HasIndex(i => i.Barcode)
+                .IsUnique()
+                .HasFilter("[Barcode] IS NOT NULL");
 
             builder.Entity<PharmacyItem>().Property(i => i.DefaultSellingPrice).HasColumnType("decimal(18,2)");
             builder.Entity<PharmacyItem>().Property(i => i.ReorderLevel).HasColumnType("decimal(18,2)");

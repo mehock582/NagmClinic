@@ -48,6 +48,10 @@ namespace NagmClinic
             builder.Services.AddScoped<ConnectorResultDispatchService>();
             builder.Services.AddScoped<IConnectorIngestionPipeline, ConnectorIngestionPipeline>();
             builder.Services.Configure<LabConnectorApiOptions>(builder.Configuration.GetSection(LabConnectorApiOptions.SectionName));
+            
+            builder.Services.AddSingleton<HeartbeatStore>();
+            builder.Services.AddHostedService<HeartbeatMonitorService>();
+
             builder.Services.Configure<ClinicBrandingOptions>(builder.Configuration.GetSection("ClinicBranding"));
             builder.Services.AddSingleton<IClinicBrandingService, ClinicBrandingService>();
             builder.Services.AddScoped<IQrCodeService, QrCodeService>();

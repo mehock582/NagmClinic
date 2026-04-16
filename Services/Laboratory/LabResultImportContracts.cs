@@ -57,4 +57,19 @@ namespace NagmClinic.Services.Laboratory
         public string Status { get; set; } = string.Empty;
         public string? Message { get; set; }
     }
+
+    public class HeartbeatPayload
+    {
+        [Required]
+        [MaxLength(100)]
+        public string ConnectorSource { get; set; } = string.Empty;
+        
+        [Required]
+        [MaxLength(50)]
+        public string Status { get; set; } = "OK";
+        
+        public int QueueSize { get; set; }
+        
+        public DateTime Timestamp { get; set; }
+    }
 }

@@ -81,6 +81,30 @@ namespace NagmClinic.Controllers
             });
         }
 
+        [HttpPost("heartbeat")]
+        [IgnoreAntiforgeryToken]
+        public IActionResult Heartbeat([FromBody] HeartbeatPayload payload, [FromServices] HeartbeatStore heartbeatStore)
+        {
+            if (!Request.IsHttps && !_connectorOptions.AllowHttpInDevelopment)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, new { success = false, message = "HTTPS is required." });
+            }
+
+            if (!IsAuthorized(Request))
+            {
+                return Unauthorized(new { success = false, message = "Invalid connector API key." });
+            }
+
+            if (payload == null || string.IsNullOrWhiteSpace(payload.ConnectorSource))
+            {
+                return BadRequest(new { success = false, message = "Invalid payload." });
+            }
+
+            heartbeatStore.UpdateHeartbeat(payload);
+
+            return Ok(new { success = true });
+        }
+
         private bool IsAuthorized(HttpRequest request)
         {
             if (_environment.IsDevelopment() && _connectorOptions.AllowAnonymousInDevelopment)

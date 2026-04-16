@@ -15,6 +15,10 @@ namespace NagmClinic.Models
         [Display(Name = "الاسم العلمي")]
         public string? GenericName { get; set; }
 
+        [MaxLength(100)]
+        [Display(Name = "باركود الصنف")]
+        public string? Barcode { get; set; }
+
         [Required(ErrorMessage = "الوحدة مطلوبة")]
         [Display(Name = "الوحدة")]
         public int UnitId { get; set; }

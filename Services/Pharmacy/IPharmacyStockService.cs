@@ -38,6 +38,9 @@ namespace NagmClinic.Services.Pharmacy
         public string SlotCode { get; set; } = string.Empty;
         public decimal DefaultSellingPrice { get; set; }
         public decimal AvailableQuantity { get; set; }
+        public DateTime? ExpiryDate { get; set; }
+        public string? ExpiryDateFormatted { get; set; }
+        public int BatchId { get; set; }
         public FefoAllocationLine? SuggestedBatch { get; set; }
     }
 
@@ -75,6 +78,7 @@ namespace NagmClinic.Services.Pharmacy
     public sealed class PharmacySaleRequestLine
     {
         public int ItemId { get; set; }
+        public int? ItemBatchId { get; set; }
         public string? Barcode { get; set; }
         public decimal Quantity { get; set; }
         public decimal SellingPrice { get; set; }

@@ -90,7 +90,28 @@ namespace NagmClinic.Controllers
 
             _context.PharmacyItems.Add(item);
             await _context.SaveChangesAsync();
-            return Json(new { success = true });
+
+            // If a barcode was provided (workflow from purchases), create a mapping batch
+            if (!string.IsNullOrWhiteSpace(model.Barcode))
+            {
+                var ghostBatch = new ItemBatch
+                {
+                    ItemId = item.Id,
+                    Barcode = model.Barcode.Trim(),
+                    BatchNumber = "MAPPED-" + DateTime.Now.ToString("yyMMddHHmm"),
+                    ExpiryDate = DateTime.Today.AddYears(1),
+                    QuantityReceived = 0,
+                    QuantityRemaining = 0,
+                    PurchasePrice = item.DefaultSellingPrice * 0.7m,
+                    SellingPrice = item.DefaultSellingPrice,
+                    ReceivedAt = DateTime.Now,
+                    UpdatedAt = DateTime.Now
+                };
+                _context.ItemBatches.Add(ghostBatch);
+                await _context.SaveChangesAsync();
+            }
+
+            return Json(new { success = true, itemId = item.Id });
         }
 
         [HttpPost]

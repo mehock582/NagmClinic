@@ -104,6 +104,9 @@ namespace NagmClinic.ViewModels
         [Range(0, 999999, ErrorMessage = "قيمة حد إعادة الطلب غير صحيحة")]
         public decimal ReorderLevel { get; set; }
 
+        [Display(Name = "الباركود")]
+        public string? Barcode { get; set; }
+
         [Display(Name = "الحالة")]
         public bool IsActive { get; set; } = true;
     }
@@ -194,6 +197,8 @@ namespace NagmClinic.ViewModels
     {
         [Range(1, int.MaxValue, ErrorMessage = "يرجى اختيار الصنف")]
         public int ItemId { get; set; }
+
+        public int? ItemBatchId { get; set; }
 
         public string? Barcode { get; set; }
 

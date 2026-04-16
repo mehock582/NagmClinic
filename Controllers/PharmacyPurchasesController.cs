@@ -198,6 +198,66 @@ namespace NagmClinic.Controllers
             }
         }
 
+        [HttpPost]
+        public async Task<IActionResult> AssignBarcode(string barcode, int itemId)
+        {
+            var normalized = (barcode ?? "").Trim();
+            if (string.IsNullOrWhiteSpace(normalized) || itemId <= 0)
+            {
+                return Json(new { success = false, message = "بيانات غير مكتملة" });
+            }
+
+            // Check if barcode already exists
+            var exists = await _context.ItemBatches.AnyAsync(b => b.Barcode == normalized);
+            if (exists)
+            {
+                return Json(new { success = false, message = "هذا الباركود مربوط بصنف آخر بالفعل" });
+            }
+
+            var item = await _context.PharmacyItems
+                .Include(i => i.Unit)
+                .FirstOrDefaultAsync(i => i.Id == itemId);
+
+            if (item == null)
+            {
+                return Json(new { success = false, message = "الصنف غير موجود" });
+            }
+
+            // Create a ghost batch to store the barcode mapping if the system relies on ItemBatches for lookup
+            var ghostBatch = new ItemBatch
+            {
+                ItemId = itemId,
+                Barcode = normalized,
+                BatchNumber = "MAPPED-" + DateTime.Now.ToString("yyMMddHHmm"),
+                ExpiryDate = DateTime.Today.AddYears(1), // Default buffer
+                QuantityReceived = 0,
+                QuantityRemaining = 0,
+                PurchasePrice = item.DefaultSellingPrice * 0.7m, // Placeholder estimate
+                SellingPrice = item.DefaultSellingPrice,
+                ReceivedAt = DateTime.Now,
+                UpdatedAt = DateTime.Now
+            };
+
+            _context.ItemBatches.Add(ghostBatch);
+            await _context.SaveChangesAsync();
+
+            return Json(new
+            {
+                success = true,
+                message = "تم ربط الباركود بنجاح",
+                data = new
+                {
+                    itemId = item.Id,
+                    itemName = item.Name,
+                    barcode = normalized,
+                    purchasePrice = ghostBatch.PurchasePrice,
+                    sellingPrice = item.DefaultSellingPrice,
+                    unitName = item.Unit?.Name ?? "-",
+                    expiryDate = ghostBatch.ExpiryDate.ToString("yyyy-MM-dd")
+                }
+            });
+        }
+
         [HttpGet]
         public async Task<IActionResult> SearchItems(string query)
         {

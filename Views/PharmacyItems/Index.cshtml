@@ -101,6 +101,10 @@
                             <input type="number" id="itemPrice" class="form-control form-control-sm" step="0.01" value="0">
                         </div>
                         <div class="col-md-6">
+                            <label class="form-label small fw-bold text-primary">الباركود</label>
+                            <input type="text" id="itemBarcode" class="form-control form-control-sm bg-primary-subtle border-primary" placeholder="اختياري أو ممرر من المشتريات">
+                        </div>
+                        <div class="col-md-6">
                             <label class="form-label small fw-bold">حد إعادة الطلب</label>
                             <input type="number" id="itemReorder" class="form-control form-control-sm" step="0.01" value="0">
                         </div>
@@ -218,6 +222,14 @@
                 { "data": "id", "orderable": false, "render": function(d, t, row) { return `<div class="action-group"><button type="button" class="btn-action btn-action-primary" data-label="تعديل" data-id="${d}" data-name="${row.name}" data-generic="${row.genericName || ''}" data-unitname="${row.unitName}" data-categoryname="${row.categoryName}" data-locationcode="${row.locationCode}" data-price="${row.defaultSellingPrice}" data-reorder="${row.reorderLevel}" data-active="${row.isActive}" data-unitid="${row.unitId}" data-categoryid="${row.categoryId}" data-locationid="${row.locationId}" onclick="openEditItem(this)"><i class="bi bi-pencil-fill"></i></button></div>`; } }
             ];
             initDataTable('.table', '/PharmacyItems/GetItemsData', columns);
+
+            // Handle newBarcode parameter
+            const urlParams = new URLSearchParams(window.location.search);
+            const newBarcode = urlParams.get('newBarcode');
+            if (newBarcode) {
+                $('#itemBarcode').val(newBarcode);
+                new bootstrap.Modal(document.getElementById('quickCreateItemModal')).show();
+            }
         });
 
         function toggleStatus(id) {
@@ -237,7 +249,8 @@
                 categoryId: parseInt($('#itemCategoryId').val()),
                 locationId: parseInt($('#itemLocationId').val()),
                 defaultSellingPrice: parseFloat($('#itemPrice').val() || 0),
-                reorderLevel: parseFloat($('#itemReorder').val() || 0)
+                reorderLevel: parseFloat($('#itemReorder').val() || 0),
+                barcode: $('#itemBarcode').val() // Include barcode
             };
 
             $.ajax({
@@ -246,7 +259,22 @@
                 contentType: 'application/json',
                 data: JSON.stringify(data),
                 success: function (res) {
-                    if (res.success) location.reload();
+                    if (res.success) {
+                        // If it came from purchases, maybe show a special message or redirect back
+                        const urlParams = new URLSearchParams(window.location.search);
+                        if (urlParams.get('newBarcode')) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'تم الحفظ والربط',
+                                text: 'تم إنشاء الصنف وربطه بالباركود بنجاح. يمكنك الآن العودة لصفحة المشتريات ومسح الباركود مرة أخرى.',
+                                confirmButtonText: 'إغلاق النافذة'
+                            }).then(() => {
+                                window.close();
+                            });
+                        } else {
+                            location.reload();
+                        }
+                    }
                     else Swal.fire('خطأ', res.message, 'error');
                 }
             });
