@@ -107,6 +107,137 @@ namespace NagmClinic.Services.Pharmacy
             return await _stockService.ExecuteSaleAsync(sale, lineRequests);
         }
 
+        public async Task<SaleExecutionResult> EditSaleAsync(PharmacySaleEditViewModel model)
+        {
+            try
+            {
+                var strategy = _context.Database.CreateExecutionStrategy();
+                return await strategy.ExecuteAsync(async () =>
+                {
+                    await using var transaction = await _context.Database.BeginTransactionAsync();
+                    try
+                    {
+                        // Step A: Snapshot
+                        var sale = await _context.PharmacySales
+                            .Include(s => s.Lines)
+                            .ThenInclude(l => l.ItemBatch)
+                            .FirstOrDefaultAsync(s => s.Id == model.SaleId);
+
+                        if (sale == null)
+                            return new SaleExecutionResult { Success = false, Message = "الفاتورة غير موجودة" };
+
+                        sale.CustomerName = model.CustomerName?.Trim();
+                        sale.Notes = model.Notes?.Trim();
+
+                        // Step B: Restore unconditionally
+                        foreach (var oldLine in sale.Lines)
+                        {
+                            if (oldLine.ItemBatch != null)
+                            {
+                                oldLine.ItemBatch.QuantityRemaining += oldLine.Quantity;
+                                oldLine.ItemBatch.UpdatedAt = DateTime.Now;
+                            }
+                        }
+
+                        // Step C: Apply New
+                        _context.PharmacySaleLines.RemoveRange(sale.Lines);
+                        sale.Lines.Clear();
+                        await _context.SaveChangesAsync(); // Ensure items are removed before FEFO logic runs again
+
+                        var newTotal = 0m;
+                        var validIncoming = model.Lines.Where(l => l.ItemId > 0 && l.Quantity > 0 && l.SellingPrice > 0).ToList();
+
+                        foreach (var incoming in validIncoming)
+                        {
+                            // Allocate stock via FEFO
+                            var allocation = await _stockService.PreviewFefoAllocationAsync(
+                                incoming.ItemId, incoming.Quantity, DateTime.Today);
+
+                            if (!allocation.Success)
+                            {
+                                // Custom validation exception handling as requested
+                                await transaction.RollbackAsync();
+                                throw new InvalidOperationException($"الكمية المطلوبة غير متوفرة في المخزون للصنف رقم {incoming.ItemId}. {allocation.Message}");
+                            }
+
+                            foreach (var alloc in allocation.Allocations)
+                            {
+                                var batch = await _context.ItemBatches
+                                    .Include(b => b.Item).ThenInclude(i => i!.Location)
+                                    .FirstOrDefaultAsync(b => b.Id == alloc.BatchId);
+
+                                if (batch == null || batch.QuantityRemaining < alloc.Quantity)
+                                {
+                                    await transaction.RollbackAsync();
+                                    throw new InvalidOperationException("الكمية غير كافية في المخزن");
+                                }
+
+                                batch.QuantityRemaining -= alloc.Quantity;
+                                batch.UpdatedAt = DateTime.Now;
+
+                                var saleLine = new PharmacySaleLine
+                                {
+                                    SaleId = sale.Id,
+                                    ItemId = incoming.ItemId,
+                                    ItemBatchId = batch.Id,
+                                    Quantity = alloc.Quantity,
+                                    UnitPrice = incoming.SellingPrice,
+                                    LineTotal = alloc.Quantity * incoming.SellingPrice,
+                                    BatchNumberSnapshot = batch.BatchNumber,
+                                    ExpiryDateSnapshot = batch.ExpiryDate.Date,
+                                    SlotCodeSnapshot = batch.Item?.Location?.Code ?? "-",
+                                    CreatedAt = DateTime.Now
+                                };
+                                _context.PharmacySaleLines.Add(saleLine);
+                                newTotal += saleLine.LineTotal;
+                            }
+                        }
+
+                        // Step D: Finalize
+                        sale.TotalAmount = newTotal;
+
+                        // Assign RowVersion for concurrency check
+                        _context.Entry(sale).Property("RowVersion").OriginalValue = model.RowVersion;
+
+                        try
+                        {
+                            await _context.SaveChangesAsync();
+                            await transaction.CommitAsync();
+                        }
+                        catch (DbUpdateConcurrencyException)
+                        {
+                            await transaction.RollbackAsync();
+                            throw new NagmClinic.Exceptions.ConcurrencyException("هذا السجل تم تعديله بواسطة مستخدم آخر. يرجى تحديث الصفحة والمحاولة مرة أخرى.");
+                        }
+
+                        return new SaleExecutionResult
+                        {
+                            Success = true,
+                            Message = "تم تعديل الفاتورة بنجاح",
+                            SaleId = sale.Id
+                        };
+                    }
+                    catch
+                    {
+                        await transaction.RollbackAsync();
+                        throw;
+                    }
+                });
+            }
+            catch (NagmClinic.Exceptions.ConcurrencyException)
+            {
+                throw;
+            }
+            catch (InvalidOperationException ex)
+            {
+                return new SaleExecutionResult { Success = false, Message = ex.Message };
+            }
+            catch
+            {
+                throw;
+            }
+        }
+
         private async Task LoadItemLookupAsync(PharmacySaleCreateViewModel model)
         {
             var today = DateTime.Today;

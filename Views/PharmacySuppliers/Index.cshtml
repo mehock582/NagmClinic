@@ -132,7 +132,7 @@
                 { "data": "contactPerson", "render": function(d) { return d || '-'; } },
                 { "data": "phoneNumber", "render": function(d) { return d || '-'; } },
                 { "data": "isActive", "render": function(d, t, row) { return `<div class="form-check form-switch d-flex justify-content-center"><input class="form-check-input" type="checkbox" role="switch" ${d ? 'checked' : ''} onchange="toggleStatus(${row.id})"></div>`; } },
-                { "data": "id", "orderable": false, "render": function(d, t, row) { return `<div class="action-group"><button type="button" class="btn-action btn-action-primary" data-label="تعديل" data-id="${d}" data-name="${row.name}" data-contact="${row.contactPerson || ''}" data-phone="${row.phoneNumber || ''}" data-address="${row.address || ''}" data-notes="${row.notes || ''}" data-active="${row.isActive}" onclick="openEditSupplier(this)"><i class="bi bi-pencil-fill"></i></button></div>`; } }
+                { "data": "id", "orderable": false, "render": function(d, t, row) { return renderModalEditButton(d, 'openEditSupplier', `data-name="${row.name}" data-contact="${row.contactPerson || ''}" data-phone="${row.phoneNumber || ''}" data-address="${row.address || ''}" data-notes="${row.notes || ''}" data-active="${row.isActive}"`); } }
             ];
             initDataTable('.table', '/PharmacySuppliers/GetSuppliersData', columns);
         });

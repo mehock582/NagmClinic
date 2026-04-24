@@ -3,7 +3,7 @@ using NagmClinic.Models.Enums;
 
 namespace NagmClinic.Models
 {
-    public class PharmacySale
+    public class PharmacySale : BaseEntity
     {
         public int Id { get; set; }
 
@@ -24,8 +24,9 @@ namespace NagmClinic.Models
         [Display(Name = "ملاحظات")]
         public string? Notes { get; set; }
 
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
-
         public virtual ICollection<PharmacySaleLine> Lines { get; set; } = new List<PharmacySaleLine>();
+        
+        [Timestamp]
+        public byte[] RowVersion { get; set; } = null!;
     }
 }

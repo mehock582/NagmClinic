@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -16,7 +17,8 @@ using NagmClinic.Services.Appointments;
 
 namespace NagmClinic.Controllers
 {
-    public class AppointmentsController : Controller
+    [Authorize]
+    public class AppointmentsController : BaseController
     {
         private readonly ApplicationDbContext _context;
         private readonly IAppointmentService _appointmentService;
@@ -40,96 +42,9 @@ namespace NagmClinic.Controllers
         [HttpPost]
         public async Task<IActionResult> GetAppointmentsData()
         {
-            try
-            {
-                var dtParams = Request.GetDataTablesParameters();
-                string searchValue = dtParams.Search["value"];
-
-                var query = _context.Appointments
-                    .Include(a => a.Patient)
-                    .Include(a => a.Doctor)
-                    .AsQueryable();
-
-                // Unified Search Logic (Patient Name, Phone, or Daily Number)
-                if (!string.IsNullOrEmpty(searchValue))
-                {
-                    query = query.Where(m => (m.Patient != null && (
-                                                m.Patient.FullName.Contains(searchValue) ||
-                                                m.Patient.PhoneNumber.Contains(searchValue))) ||
-                                            m.DailyNumber.ToString().Contains(searchValue));
-                }
-
-                int recordsTotal = await query.CountAsync();
-
-                // 3. Sorting Logic
-                if (dtParams.Order.Any())
-                {
-                    var sort = dtParams.Order.First();
-                    bool isAsc = sort.Dir == "asc";
-
-                    switch (sort.Column)
-                    {
-                        case 0: // DailyNumber
-                            query = isAsc ? query.OrderBy(x => x.DailyNumber) : query.OrderByDescending(x => x.DailyNumber);
-                            break;
-                        case 1: // Date
-                            query = isAsc ? query.OrderBy(x => x.AppointmentDate) : query.OrderByDescending(x => x.AppointmentDate);
-                            break;
-                        case 2: // Patient
-                            query = isAsc
-                                ? query.OrderBy(x => x.Patient != null ? x.Patient.FullName : string.Empty)
-                                : query.OrderByDescending(x => x.Patient != null ? x.Patient.FullName : string.Empty);
-                            break;
-                        case 3: // Doctor
-                            query = isAsc
-                                ? query.OrderBy(x => x.Doctor != null ? x.Doctor.NameAr : string.Empty)
-                                : query.OrderByDescending(x => x.Doctor != null ? x.Doctor.NameAr : string.Empty);
-                            break;
-                        case 4: // Status
-                            query = isAsc ? query.OrderBy(x => x.Status) : query.OrderByDescending(x => x.Status);
-                            break;
-                        default:
-                            query = query.OrderByDescending(x => x.AppointmentDate).ThenByDescending(x => x.DailyNumber);
-                            break;
-                    }
-                }
-                else
-                {
-                    query = query.OrderByDescending(x => x.AppointmentDate).ThenByDescending(x => x.DailyNumber);
-                }
-
-                var data = await query
-                    .Skip(dtParams.Start)
-                    .Take(dtParams.Length)
-                    .Select(a => new
-                    {
-                        a.Id,
-                        a.DailyNumber,
-                        AppointmentDate = a.AppointmentDate.ToString("yyyy-MM-dd"),
-                        PatientName = a.Patient != null ? a.Patient.FullName : string.Empty,
-                        PatientPhone = a.Patient != null ? a.Patient.PhoneNumber : string.Empty,
-                        DoctorName = a.Doctor != null ? a.Doctor.NameAr : string.Empty,
-                        Status = a.Status.ToString(),
-                        BillableTotal = a.Status == AppointmentStatus.Confirmed 
-                            ? a.ConsultationFee + (a.AppointmentItems != null ? a.AppointmentItems.Sum(i => i.TotalPrice) : 0m) 
-                            : 0m
-                    })
-                    .ToListAsync();
-
-                var response = new DataTablesResponse<object>
-                {
-                    draw = dtParams.Draw,
-                    recordsTotal = recordsTotal,
-                    recordsFiltered = recordsTotal,
-                    data = data
-                };
-
-                return Json(response);
-            }
-            catch (Exception ex)
-            {
-                return Json(new DataTablesResponse<object> { error = ex.Message });
-            }
+            var dtParams = Request.GetDataTablesParameters();
+            var response = await _appointmentService.GetAppointmentsDataTableAsync(dtParams);
+            return Json(response);
         }
 
         // GET: Appointments/Create
@@ -155,7 +70,7 @@ namespace NagmClinic.Controllers
             var result = await _appointmentService.CreateAppointmentAsync(model);
             if (result.Success)
             {
-                TempData["SuccessMessage"] = result.Message;
+                ShowAlert(result.Message);
                 if (model.PrintReceipt)
                 {
                     return RedirectToAction(nameof(Details), new { id = result.AppointmentId, print = true });
@@ -189,6 +104,17 @@ namespace NagmClinic.Controllers
         {
             if (id != model.Id) return NotFound();
 
+            if (model.Items != null)
+            {
+                for (int i = 0; i < model.Items.Count; i++)
+                {
+                    if (model.Items[i].AppointmentItemId == 0) // New item
+                    {
+                        ModelState.Remove($"Items[{i}].RowVersion");
+                    }
+                }
+            }
+
             if (!ModelState.IsValid)
             {
                 ViewData["FormErrorMessage"] = "تعذر حفظ التعديلات، يرجى مراجعة البيانات المدخلة.";
@@ -198,7 +124,7 @@ namespace NagmClinic.Controllers
             var result = await _appointmentService.UpdateAppointmentAsync(model);
             if (result.Success)
             {
-                TempData["SuccessMessage"] = "تم تحديث بيانات الموعد بنجاح";
+                ShowAlert("تم تحديث بيانات الموعد بنجاح");
                 return RedirectToAction(nameof(Index));
             }
 
@@ -224,6 +150,7 @@ namespace NagmClinic.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Cashier,Admin")]
         public async Task<IActionResult> UpdateStatus(int id, AppointmentStatus status)
         {
             var appointment = await _context.Appointments
@@ -249,6 +176,14 @@ namespace NagmClinic.Controllers
 
             await _context.SaveChangesAsync();
             return Json(new { success = true });
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Cashier,Admin")]
+        public async Task<IActionResult> RefundItem(int id)
+        {
+            var result = await _appointmentService.RefundAppointmentItemAsync(id);
+            return Json(new { success = result.Success, message = result.Message });
         }
 
         private async Task PopulateEditMetadataAsync(AppointmentCreateViewModel model)

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using NagmClinic.Models.Configuration;
@@ -5,6 +6,7 @@ using NagmClinic.Services.Laboratory;
 
 namespace NagmClinic.Controllers
 {
+    [AllowAnonymous]
     [ApiController]
     [Route("api/lab-results")]
     public class LabResultsImportController : ControllerBase

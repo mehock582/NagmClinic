@@ -1,7 +1,5 @@
-@using NagmClinic.Models.Enums
 @{
     ViewData["Title"] = "قائمة المواعيد اليومية";
-    var successMessage = TempData["SuccessMessage"]?.ToString();
 }
 
 <div class="row">
@@ -45,7 +43,6 @@
 
     <script>
         $(document).ready(function () {
-            var successMessage = @Html.Raw(Json.Serialize(successMessage));
             var columns = [
                 { 
                     "data": "dailyNumber",
@@ -93,38 +90,13 @@
                     "data": "id",
                     "orderable": false,
                     "render": function (data, type, row) {
-                        var actions = `
-                            <div class="action-group">
-                                <a href="/Appointments/Details/${data}" class="btn-action btn-action-view" data-label="التفاصيل / الفاتورة">
-                                    <i class="bi bi-receipt"></i>
-                                </a>
-                                <a href="/Appointments/Edit/${data}" class="btn-action btn-action-edit" data-label="إضافة خدمات / متابعة">
-                                    <i class="bi bi-plus-circle"></i>
-                                </a>`;
-                        
-                        if (row.status !== 'Cancelled') {
-                            actions += `
-                                <button type="button" class="btn-action btn-action-delete" data-label="إلغاء الحجز" onclick="updateStatus(${data}, 'Cancelled')">
-                                    <i class="bi bi-x-circle"></i>
-                                </button>`;
-                        }
-
-                        actions += `</div>`;
-                        return actions;
+                        // Using the new global helper
+                        return renderActionButtons(data, '/Appointments');
                     }
                 }
             ];
 
             initDataTable('#appointmentsTable', '/Appointments/GetAppointmentsData', columns, { "pageLength": 5, "order": [[1, "desc"]] });
-
-            if (successMessage) {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'تم بنجاح',
-                    text: successMessage,
-                    confirmButtonColor: '#198754'
-                });
-            }
         });
 
         function updateStatus(id, newStatus) {

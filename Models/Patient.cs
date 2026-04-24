@@ -5,7 +5,7 @@ using NagmClinic.Models.Enums;
 
 namespace NagmClinic.Models
 {
-    public class Patient
+    public class Patient : NagmClinic.Interfaces.IAuditableEntity
     {
         public int Id { get; set; }
 
@@ -28,8 +28,10 @@ namespace NagmClinic.Models
         public string? Address { get; set; }
 
         public bool IsActive { get; set; } = true;
+        public bool IsDeleted { get; set; } = false;
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime? UpdatedAt { get; set; }
 
         // Navigation properties
         public virtual ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();

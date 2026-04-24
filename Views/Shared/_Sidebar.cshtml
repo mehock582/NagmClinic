@@ -37,6 +37,7 @@
         "PharmacyCategories",
         "PharmacySuppliers",
         "PharmacyLocations");
+    var isAdminGroupOpen = IsInControllers("Users");
 }
 
 <aside class="sidebar" id="sidebar">
@@ -88,92 +89,136 @@
             </div>
         </section>
 
-        <section class="sidebar-group @(isMedicalGroupOpen ? "is-open" : string.Empty)">
-            <button class="sidebar-group-toggle" type="button"
-                    data-bs-toggle="collapse"
-                    data-bs-target="#sidebarGroupMedical"
-                    aria-expanded="@isMedicalGroupOpen.ToString().ToLowerInvariant()"
-                    aria-controls="sidebarGroupMedical"
-                    data-tooltip="العمليات الطبية">
-                <span class="sidebar-group-title">
-                    <i class="bi bi-hospital-fill sidebar-group-icon"></i>
-                    <span class="sidebar-group-label">العمليات الطبية</span>
-                </span>
-                <i class="bi bi-chevron-down sidebar-group-chevron"></i>
-            </button>
+        @if (User.IsInRole("Admin") || User.IsInRole("Doctor"))
+        {
+            <section class="sidebar-group @(isMedicalGroupOpen ? "is-open" : string.Empty)">
+                <button class="sidebar-group-toggle" type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#sidebarGroupMedical"
+                        aria-expanded="@isMedicalGroupOpen.ToString().ToLowerInvariant()"
+                        aria-controls="sidebarGroupMedical"
+                        data-tooltip="العمليات الطبية">
+                    <span class="sidebar-group-title">
+                        <i class="bi bi-hospital-fill sidebar-group-icon"></i>
+                        <span class="sidebar-group-label">العمليات الطبية</span>
+                    </span>
+                    <i class="bi bi-chevron-down sidebar-group-chevron"></i>
+                </button>
 
-            <div id="sidebarGroupMedical" class="sidebar-group-body collapse @(isMedicalGroupOpen ? "show" : string.Empty)" data-bs-parent="#erpSidebarAccordion">
-                <a asp-controller="Doctors" asp-action="Index" class="nav-item nav-sub-item @(IsController("Doctors") ? "active" : string.Empty)" data-tooltip="الطاقم الطبي">
-                    <i class="bi bi-person-badge-fill"></i>
-                    <span class="nav-text">الطاقم الطبي</span>
-                </a>
-                <a asp-controller="Services" asp-action="Index" class="nav-item nav-sub-item @(IsController("Services") ? "active" : string.Empty)" data-tooltip="الخدمات الطبية">
-                    <i class="bi bi-clipboard2-pulse-fill"></i>
-                    <span class="nav-text">الخدمات الطبية</span>
-                </a>
-                <a asp-controller="Laboratory" asp-action="Index" class="nav-item nav-sub-item @(IsController("Laboratory") ? "active" : string.Empty)" data-tooltip="عمليات المختبر">
-                    <i class="bi bi-activity"></i>
-                    <span class="nav-text">عمليات المختبر</span>
-                </a>
-                <a asp-controller="LabTests" asp-action="Index" class="nav-item nav-sub-item @(IsController("LabTests") ? "active" : string.Empty)" data-tooltip="قائمة الفحوصات">
-                    <i class="bi bi-view-list"></i>
-                    <span class="nav-text">قائمة الفحوصات</span>
-                </a>
-                <a asp-controller="LabDeviceMappings" asp-action="Index" class="nav-item nav-sub-item @(IsController("LabDeviceMappings") ? "active" : string.Empty)" data-tooltip="ربط أكواد الأجهزة">
-                    <i class="bi bi-diagram-3"></i>
-                    <span class="nav-text">ربط أكواد الأجهزة</span>
-                </a>
-            </div>
-        </section>
+                <div id="sidebarGroupMedical" class="sidebar-group-body collapse @(isMedicalGroupOpen ? "show" : string.Empty)" data-bs-parent="#erpSidebarAccordion">
+                    <a asp-controller="Doctors" asp-action="Index" class="nav-item nav-sub-item @(IsController("Doctors") ? "active" : string.Empty)" data-tooltip="الطاقم الطبي">
+                        <i class="bi bi-person-badge-fill"></i>
+                        <span class="nav-text">الطاقم الطبي</span>
+                    </a>
+                    <a asp-controller="Services" asp-action="Index" class="nav-item nav-sub-item @(IsController("Services") ? "active" : string.Empty)" data-tooltip="الخدمات الطبية">
+                        <i class="bi bi-clipboard2-pulse-fill"></i>
+                        <span class="nav-text">الخدمات الطبية</span>
+                    </a>
+                    <a asp-controller="Laboratory" asp-action="Index" class="nav-item nav-sub-item @(IsController("Laboratory") ? "active" : string.Empty)" data-tooltip="عمليات المختبر">
+                        <i class="bi bi-activity"></i>
+                        <span class="nav-text">عمليات المختبر</span>
+                    </a>
+                    <a asp-controller="LabTests" asp-action="Index" class="nav-item nav-sub-item @(IsController("LabTests") ? "active" : string.Empty)" data-tooltip="قائمة الفحوصات">
+                        <i class="bi bi-view-list"></i>
+                        <span class="nav-text">قائمة الفحوصات</span>
+                    </a>
+                    <a asp-controller="LabDeviceMappings" asp-action="Index" class="nav-item nav-sub-item @(IsController("LabDeviceMappings") ? "active" : string.Empty)" data-tooltip="ربط أكواد الأجهزة">
+                        <i class="bi bi-diagram-3"></i>
+                        <span class="nav-text">ربط أكواد الأجهزة</span>
+                    </a>
+                </div>
+            </section>
+        }
 
-        <section class="sidebar-group @(isPharmacyGroupOpen ? "is-open" : string.Empty)">
-            <button class="sidebar-group-toggle" type="button"
-                    data-bs-toggle="collapse"
-                    data-bs-target="#sidebarGroupPharmacy"
-                    aria-expanded="@isPharmacyGroupOpen.ToString().ToLowerInvariant()"
-                    aria-controls="sidebarGroupPharmacy"
-                    data-tooltip="الصيدلية والمخزون">
-                <span class="sidebar-group-title">
-                    <i class="bi bi-capsule-pill sidebar-group-icon"></i>
-                    <span class="sidebar-group-label">الصيدلية والمخزون</span>
-                </span>
-                <i class="bi bi-chevron-down sidebar-group-chevron"></i>
-            </button>
+        @if (User.IsInRole("Admin") || User.IsInRole("Pharmacist"))
+        {
+            <section class="sidebar-group @(isPharmacyGroupOpen ? "is-open" : string.Empty)">
+                <button class="sidebar-group-toggle" type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#sidebarGroupPharmacy"
+                        aria-expanded="@isPharmacyGroupOpen.ToString().ToLowerInvariant()"
+                        aria-controls="sidebarGroupPharmacy"
+                        data-tooltip="الصيدلية والمخزون">
+                    <span class="sidebar-group-title">
+                        <i class="bi bi-capsule-pill sidebar-group-icon"></i>
+                        <span class="sidebar-group-label">الصيدلية والمخزون</span>
+                    </span>
+                    <i class="bi bi-chevron-down sidebar-group-chevron"></i>
+                </button>
 
-            <div id="sidebarGroupPharmacy" class="sidebar-group-body collapse @(isPharmacyGroupOpen ? "show" : string.Empty)" data-bs-parent="#erpSidebarAccordion">
-                <a asp-controller="PharmacyInventory" asp-action="Index" class="nav-item nav-sub-item @(IsController("PharmacyInventory") ? "active" : string.Empty)" data-tooltip="المخزون">
-                    <i class="bi bi-boxes"></i>
-                    <span class="nav-text">المخزون</span>
-                </a>
-                <a asp-controller="PharmacySales" asp-action="Index" class="nav-item nav-sub-item @(IsController("PharmacySales") ? "active" : string.Empty)" data-tooltip="صرف الأدوية">
-                    <i class="bi bi-bag-check-fill"></i>
-                    <span class="nav-text">صرف الأدوية</span>
-                </a>
-                <a asp-controller="PharmacyPurchases" asp-action="Index" class="nav-item nav-sub-item @(IsController("PharmacyPurchases") ? "active" : string.Empty)" data-tooltip="المشتريات">
-                    <i class="bi bi-cart-plus-fill"></i>
-                    <span class="nav-text">المشتريات</span>
-                </a>
-                <a asp-controller="PharmacyItems" asp-action="Index" class="nav-item nav-sub-item @(IsController("PharmacyItems") ? "active" : string.Empty)" data-tooltip="الأصناف">
-                    <i class="bi bi-capsule"></i>
-                    <span class="nav-text">الأصناف</span>
-                </a>
-                <a asp-controller="PharmacyCategories" asp-action="Index" class="nav-item nav-sub-item @(IsController("PharmacyCategories") ? "active" : string.Empty)" data-tooltip="التصنيفات">
-                    <i class="bi bi-tags-fill"></i>
-                    <span class="nav-text">التصنيفات</span>
-                </a>
-                <a asp-controller="PharmacyUnits" asp-action="Index" class="nav-item nav-sub-item @(IsController("PharmacyUnits") ? "active" : string.Empty)" data-tooltip="الوحدات">
-                    <i class="bi bi-rulers"></i>
-                    <span class="nav-text">الوحدات</span>
-                </a>
-                <a asp-controller="PharmacySuppliers" asp-action="Index" class="nav-item nav-sub-item @(IsController("PharmacySuppliers") ? "active" : string.Empty)" data-tooltip="الموردين">
-                    <i class="bi bi-truck"></i>
-                    <span class="nav-text">الموردين</span>
-                </a>
-                <a asp-controller="PharmacyLocations" asp-action="Index" class="nav-item nav-sub-item @(IsController("PharmacyLocations") ? "active" : string.Empty)" data-tooltip="مواقع التخزين">
-                    <i class="bi bi-grid-3x3-gap-fill"></i>
-                    <span class="nav-text">مواقع التخزين</span>
-                </a>
-            </div>
-        </section>
+                <div id="sidebarGroupPharmacy" class="sidebar-group-body collapse @(isPharmacyGroupOpen ? "show" : string.Empty)" data-bs-parent="#erpSidebarAccordion">
+                    <a asp-controller="PharmacyInventory" asp-action="Index" class="nav-item nav-sub-item @(IsController("PharmacyInventory") ? "active" : string.Empty)" data-tooltip="المخزون">
+                        <i class="bi bi-boxes"></i>
+                        <span class="nav-text">المخزون</span>
+                    </a>
+                    <a asp-controller="PharmacySales" asp-action="Index" class="nav-item nav-sub-item @(IsController("PharmacySales") ? "active" : string.Empty)" data-tooltip="صرف الأدوية">
+                        <i class="bi bi-bag-check-fill"></i>
+                        <span class="nav-text">صرف الأدوية</span>
+                    </a>
+                    <a asp-controller="PharmacyPurchases" asp-action="Index" class="nav-item nav-sub-item @(IsController("PharmacyPurchases") ? "active" : string.Empty)" data-tooltip="المشتريات">
+                        <i class="bi bi-cart-plus-fill"></i>
+                        <span class="nav-text">المشتريات</span>
+                    </a>
+                    <a asp-controller="PharmacyItems" asp-action="Index" class="nav-item nav-sub-item @(IsController("PharmacyItems") ? "active" : string.Empty)" data-tooltip="الأصناف">
+                        <i class="bi bi-capsule"></i>
+                        <span class="nav-text">الأصناف</span>
+                    </a>
+                    <a asp-controller="PharmacyCategories" asp-action="Index" class="nav-item nav-sub-item @(IsController("PharmacyCategories") ? "active" : string.Empty)" data-tooltip="التصنيفات">
+                        <i class="bi bi-tags-fill"></i>
+                        <span class="nav-text">التصنيفات</span>
+                    </a>
+                    <a asp-controller="PharmacyUnits" asp-action="Index" class="nav-item nav-sub-item @(IsController("PharmacyUnits") ? "active" : string.Empty)" data-tooltip="الوحدات">
+                        <i class="bi bi-rulers"></i>
+                        <span class="nav-text">الوحدات</span>
+                    </a>
+                    <a asp-controller="PharmacySuppliers" asp-action="Index" class="nav-item nav-sub-item @(IsController("PharmacySuppliers") ? "active" : string.Empty)" data-tooltip="الموردين">
+                        <i class="bi bi-truck"></i>
+                        <span class="nav-text">الموردين</span>
+                    </a>
+                    <a asp-controller="PharmacyLocations" asp-action="Index" class="nav-item nav-sub-item @(IsController("PharmacyLocations") ? "active" : string.Empty)" data-tooltip="مواقع التخزين">
+                        <i class="bi bi-grid-3x3-gap-fill"></i>
+                        <span class="nav-text">مواقع التخزين</span>
+                    </a>
+                </div>
+            </section>
+        }
+
+        @if (User.IsInRole("Admin"))
+        {
+            <section class="sidebar-group @(isAdminGroupOpen ? "is-open" : string.Empty)">
+                <button class="sidebar-group-toggle" type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#sidebarGroupAdmin"
+                        aria-expanded="@isAdminGroupOpen.ToString().ToLowerInvariant()"
+                        aria-controls="sidebarGroupAdmin"
+                        data-tooltip="إدارة النظام">
+                    <span class="sidebar-group-title">
+                        <i class="bi bi-shield-lock-fill sidebar-group-icon"></i>
+                        <span class="sidebar-group-label">إدارة النظام</span>
+                    </span>
+                    <i class="bi bi-chevron-down sidebar-group-chevron"></i>
+                </button>
+
+                <div id="sidebarGroupAdmin" class="sidebar-group-body collapse @(isAdminGroupOpen ? "show" : string.Empty)" data-bs-parent="#erpSidebarAccordion">
+                    <a asp-controller="Users" asp-action="Index" class="nav-item nav-sub-item @(IsController("Users") ? "active" : string.Empty)" data-tooltip="إدارة المستخدمين">
+                        <i class="bi bi-people-fill"></i>
+                        <span class="nav-text">إدارة المستخدمين</span>
+                    </a>
+                </div>
+            </section>
+        }
     </nav>
+
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        <div class="sidebar-footer">
+            <form asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="~/Identity/Account/Login" method="post">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="nav-item nav-item-logout" data-tooltip="تسجيل الخروج">
+                    <i class="bi bi-box-arrow-right"></i>
+                    <span class="nav-text">تسجيل الخروج</span>
+                </button>
+            </form>
+        </div>
+    }
 </aside>

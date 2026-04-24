@@ -114,6 +114,7 @@
                                 <th>الكمية</th>
                                 <th>السعر الأفردي</th>
                                 <th>المجموع</th>
+                                <th>الإجراءات</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -121,11 +122,20 @@
                             {
                                 @foreach (var item in Model.AppointmentItems)
                                 {
+                                    bool isRefunded = item.Status == PaymentStatus.Refunded;
+                                    var rowClass = isRefunded ? "text-muted text-decoration-line-through bg-light" : "";
                                     <tr>
-                                        <td>@GetPrintItemName(item)</td>
-                                        <td>@item.Quantity</td>
-                                        <td>@item.UnitPrice.ToString("N2")</td>
-                                        <td class="fw-bold">@item.TotalPrice.ToString("N2")</td>
+                                        <td class="@rowClass">@GetPrintItemName(item) @(isRefunded ? "(مسترجع)" : "")</td>
+                                        <td class="@rowClass">@item.Quantity</td>
+                                        <td class="@rowClass">@item.UnitPrice.ToString("N2")</td>
+                                        <td class="fw-bold @rowClass">@item.TotalPrice.ToString("N2")</td>
+                                        <td>
+                                            <button onclick="printSingleItem('@item.Id', '@item.TotalPrice.ToString("N2")')" class="btn btn-sm btn-outline-dark me-1" title="طباعة فاتورة منفصلة"><i class="bi bi-printer"></i></button>
+                                            @if (!isRefunded)
+                                            {
+                                                <button onclick="refundItem(@item.Id)" class="btn btn-sm btn-outline-danger" title="استرجاع"><i class="bi bi-arrow-counterclockwise"></i></button>
+                                            }
+                                        </td>
                                     </tr>
                                 }
                             }
@@ -210,7 +220,7 @@
                 </tr>
             </thead>
             <tbody>
-                <tr>
+                <tr class="thermal-item-row" data-id="consultation">
                     <td style="padding: 8px 0;">كشف طبي</td>
                     <td style="padding: 8px 0; text-align: left;">@Model.ConsultationFee.ToString("N2")</td>
                 </tr>
@@ -218,10 +228,13 @@
                 {
                     @foreach (var item in Model.AppointmentItems)
                     {
-                        <tr>
-                            <td style="padding: 5px 0;">@GetPrintItemName(item)</td>
-                            <td style="padding: 5px 0; text-align: left;">@item.TotalPrice.ToString("N2")</td>
-                        </tr>
+                        if (item.Status != PaymentStatus.Refunded)
+                        {
+                            <tr class="thermal-item-row" data-id="@item.Id">
+                                <td style="padding: 5px 0;">@GetPrintItemName(item)</td>
+                                <td style="padding: 5px 0; text-align: left;">@item.TotalPrice.ToString("N2")</td>
+                            </tr>
+                        }
                     }
                 }
             </tbody>
@@ -236,7 +249,7 @@
         }
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 5px 0;">
             <h4 style="margin: 0; font-size: 16px;">الإجمالي:</h4>
-            <h4 style="margin: 0; font-size: 16px;">@receiptTotal.ToString("N2") ج.س</h4>
+            <h4 style="margin: 0; font-size: 16px;" id="receiptTotalValue">@receiptTotal.ToString("N2") ج.س</h4>
         </div>
 
         @if (Model.Status == AppointmentStatus.Cancelled)
@@ -311,6 +324,64 @@
 
 @section Scripts {
     <script>
+        function printSingleItem(id, priceStr) {
+            $('.thermal-item-row').hide();
+            $('.thermal-item-row[data-id="' + id + '"]').show();
+            
+            let $totalEl = $('#receiptTotalValue');
+            let originalTotal = $totalEl.text();
+            $totalEl.text(priceStr + ' ج.س');
+            
+            window.print();
+            
+            setTimeout(function() {
+                $('.thermal-item-row').show();
+                $totalEl.text(originalTotal);
+            }, 500);
+        }
+
+        function refundItem(id) {
+            Swal.fire({
+                title: 'تأكيد الاسترجاع',
+                text: 'هل أنت متأكد من رغبتك في استرجاع هذه الخدمة؟ (سيتم تصفير المبلغ المالي)',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'نعم، تأكيد الاسترجاع',
+                cancelButtonText: 'إلغاء',
+                reverseButtons: true // Consistent with RTL
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.post('@Url.Action("RefundItem", "Appointments")', { id: id }, function(res) {
+                        if (res.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'تم الاسترجاع',
+                                text: res.message,
+                                showConfirmButton: false,
+                                timer: 1500
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'خطأ',
+                                text: res.message || 'حدث خطأ أثناء الاسترجاع'
+                            });
+                        }
+                    }).fail(function() {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'خطأ في الاتصال',
+                            text: 'تعذر الاتصال بالخادم.'
+                        });
+                    });
+                }
+            });
+        }
+
         $(document).ready(function() {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('print') === 'true') {

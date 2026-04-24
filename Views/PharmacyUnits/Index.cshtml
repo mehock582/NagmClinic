@@ -106,7 +106,7 @@
                 { "data": "name", "render": function(d) { return `<span class="fw-bold">${d}</span>`; } },
                 { "data": "nameEn", "render": function(d) { return d || '-'; } },
                 { "data": "isActive", "render": function(d, t, row) { return `<div class="form-check form-switch d-flex justify-content-center"><input class="form-check-input" type="checkbox" role="switch" ${d ? 'checked' : ''} onchange="toggleStatus(${row.id})"></div>`; } },
-                { "data": "id", "orderable": false, "render": function(d, t, row) { return `<div class="action-group"><button type="button" class="btn-action btn-action-primary" data-label="تعديل" data-id="${d}" data-name="${row.name}" data-nameen="${row.nameEn || ''}" data-active="${row.isActive}" onclick="openEditUnit(this)"><i class="bi bi-pencil-fill"></i></button></div>`; } }
+                { "data": "id", "orderable": false, "render": function(d, t, row) { return renderModalEditButton(d, 'openEditUnit', `data-name="${row.name}" data-nameen="${row.nameEn || ''}" data-active="${row.isActive}"`); } }
             ];
             initDataTable('.table', '/PharmacyUnits/GetUnitsData', columns);
         });

@@ -23,14 +23,10 @@
     <!-- Custom Clinic Styles -->
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 
-    @* Phase 4: Global TempData → SweetAlert Toast bridge *@
-    @if (TempData["SuccessMessage"] != null)
+    @if (TempData["AlertMessage"] != null)
     {
-        <meta name="toast-success" content="@TempData["SuccessMessage"]" />
-    }
-    @if (TempData["ErrorMessage"] != null)
-    {
-        <meta name="toast-error" content="@TempData["ErrorMessage"]" />
+        <meta name="alert-message" content="@TempData["AlertMessage"]" />
+        <meta name="alert-type" content="@TempData["AlertType"]" />
     }
 </head>
 <body>
@@ -57,12 +53,7 @@
                     <i class="bi bi-layout-sidebar-inset"></i>
                 </button>
                 <div class="d-none d-md-block">
-                    <nav aria-label="breadcrumb">
-                        <ol class="breadcrumb mb-0 small">
-                            <li class="breadcrumb-item"><a href="/" class="text-decoration-none">الرئيسية</a></li>
-                            <li class="breadcrumb-item active">@ViewData["Title"]</li>
-                        </ol>
-                    </nav>
+                    <partial name="_Breadcrumbs" />
                 </div>
             </div>
             <div class="d-flex align-items-center gap-3">
@@ -84,6 +75,25 @@
             @RenderBody()
         </main>
 
+        <!-- Global Modal -->
+        <div class="modal fade" id="appModal" tabindex="-1" aria-labelledby="appModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow-lg rounded-4">
+                    <div class="modal-header border-0 pb-0">
+                        <h5 class="modal-title fw-bold" id="appModalLabel"></h5>
+                        <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body pt-2" id="appModalBody">
+                        <!-- Content loaded via AJAX -->
+                        <div class="text-center py-5">
+                            <div class="spinner-border text-primary" role="status"></div>
+                            <p class="mt-2 text-muted">جاري تحميل البيانات...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Footer -->
         <footer class="app-footer">
             <p class="mb-0">@DateTime.Now.Year © @BrandingService.GetBranding().CenterNameAr - <span class="small">Designed by Elharith Elsiidiq</span></p>
@@ -103,6 +113,22 @@
     <script src="~/js/shared-datatable.js" asp-append-version="true"></script>
     
     <script src="~/js/site.js" asp-append-version="true"></script>
+    
+    <script>
+        $(function () {
+            var alertMsg = $('meta[name="alert-message"]').attr('content');
+            var alertType = $('meta[name="alert-type"]').attr('content') || 'success';
+            if (alertMsg) {
+                Swal.fire({
+                    icon: alertType,
+                    title: alertType === 'success' ? 'نجاح' : 'تنبيه',
+                    text: alertMsg,
+                    confirmButtonColor: '#4361ee'
+                });
+            }
+        });
+    </script>
+    
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

@@ -279,10 +279,22 @@ namespace NagmClinic.Data.Migrations
                     b.Property<int>("AppointmentId")
                         .HasColumnType("int");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
 
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.Property<int>("ServiceId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
                         .HasColumnType("int");
 
                     b.Property<decimal>("TotalPrice")
@@ -291,6 +303,9 @@ namespace NagmClinic.Data.Migrations
                     b.Property<decimal>("UnitPrice")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AppointmentId");
@@ -298,6 +313,39 @@ namespace NagmClinic.Data.Migrations
                     b.HasIndex("ServiceId");
 
                     b.ToTable("AppointmentItems");
+                });
+
+            modelBuilder.Entity("NagmClinic.Models.AuditLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("NewValues")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("OldValues")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TableName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("AuditLogs");
                 });
 
             modelBuilder.Entity("NagmClinic.Models.ClinicService", b =>
@@ -311,6 +359,9 @@ namespace NagmClinic.Data.Migrations
                     b.Property<string>("Code")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("CriticalRange")
                         .HasColumnType("nvarchar(max)");
@@ -376,6 +427,9 @@ namespace NagmClinic.Data.Migrations
 
                     b.Property<string>("Unit")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
@@ -456,6 +510,9 @@ namespace NagmClinic.Data.Migrations
                     b.Property<decimal>("BonusQuantity")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime>("ExpiryDate")
                         .HasColumnType("datetime2");
 
@@ -471,8 +528,11 @@ namespace NagmClinic.Data.Migrations
                     b.Property<decimal>("QuantityRemaining")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<DateTime>("ReceivedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.Property<decimal>("SellingPrice")
                         .HasColumnType("decimal(18,2)");
@@ -480,7 +540,7 @@ namespace NagmClinic.Data.Migrations
                     b.Property<int?>("SupplierId")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("UpdatedAt")
+                    b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
@@ -771,9 +831,15 @@ namespace NagmClinic.Data.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
                     b.Property<string>("PhoneNumber")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
@@ -922,6 +988,12 @@ namespace NagmClinic.Data.Migrations
                     b.Property<DateTime>("PurchaseDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.Property<int>("SupplierId")
                         .HasColumnType("int");
 
@@ -983,6 +1055,9 @@ namespace NagmClinic.Data.Migrations
                     b.Property<decimal>("SellingPrice")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ItemBatchId");
@@ -1013,6 +1088,12 @@ namespace NagmClinic.Data.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.Property<DateTime>("SaleDate")
                         .HasColumnType("datetime2");
 
@@ -1021,6 +1102,9 @@ namespace NagmClinic.Data.Migrations
 
                     b.Property<decimal>("TotalAmount")
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 

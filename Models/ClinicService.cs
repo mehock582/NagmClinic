@@ -4,7 +4,7 @@ using NagmClinic.Models.Enums;
 
 namespace NagmClinic.Models
 {
-    public class ClinicService
+    public class ClinicService : BaseEntity
     {
         public int Id { get; set; }
 

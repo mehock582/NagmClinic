@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NagmClinic.Data;
@@ -9,7 +10,8 @@ using NagmClinic.Models.DataTables;
 
 namespace NagmClinic.Controllers
 {
-    public class PharmacySalesController : Controller
+    [Authorize(Roles = "Pharmacist,Admin")]
+    public class PharmacySalesController : BaseController
     {
         private readonly IPharmacySalesService _salesService;
         private readonly IPharmacyStockService _stockService;
@@ -72,7 +74,7 @@ namespace NagmClinic.Controllers
                 return View(model);
             }
 
-            TempData["SuccessMessage"] = result.Message;
+            ShowAlert(result.Message);
             return RedirectToAction(nameof(Index));
         }
 
@@ -186,6 +188,68 @@ namespace NagmClinic.Controllers
                 available = result.AvailableQuantity,
                 allocations = result.Allocations
             });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Edit(int id)
+        {
+            var sale = await _context.PharmacySales
+                .Include(s => s.Lines)
+                .FirstOrDefaultAsync(s => s.Id == id);
+
+            if (sale == null) return NotFound();
+
+            var model = new NagmClinic.ViewModels.PharmacySaleEditViewModel
+            {
+                SaleId = sale.Id,
+                RowVersion = sale.RowVersion,
+                SaleDate = sale.SaleDate,
+                CustomerName = sale.CustomerName,
+                Notes = sale.Notes,
+                Lines = sale.Lines.Select(l => new NagmClinic.ViewModels.PharmacySaleLineEditViewModel
+                {
+                    LineId = l.Id,
+                    ItemId = l.ItemId,
+                    ItemBatchId = l.ItemBatchId,
+                    Barcode = l.BatchNumberSnapshot,
+                    Quantity = l.Quantity,
+                    SellingPrice = l.UnitPrice
+                }).ToList()
+            };
+
+            var freshModel = await _salesService.BuildCreateViewModelAsync();
+            model.ItemLookup = freshModel.ItemLookup;
+
+            return View(model);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(int id, NagmClinic.ViewModels.PharmacySaleEditViewModel model)
+        {
+            if (id != model.SaleId) return BadRequest();
+
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    var result = await _salesService.EditSaleAsync(model);
+                    if (result.Success)
+                    {
+                        TempData["SuccessMessage"] = result.Message;
+                        return RedirectToAction(nameof(Index));
+                    }
+                    ModelState.AddModelError("", result.Message);
+                }
+                catch (Exception ex)
+                {
+                    ModelState.AddModelError("", ex.Message);
+                }
+            }
+
+            var freshModel = await _salesService.BuildCreateViewModelAsync();
+            model.ItemLookup = freshModel.ItemLookup;
+            return View(model);
         }
 
         [HttpGet]

@@ -198,7 +198,7 @@ namespace NagmClinic.Services.Pharmacy
             var candidateBatches = await _context.ItemBatches
                 .Where(b => b.ItemId == itemId && b.QuantityRemaining > 0 && b.ExpiryDate.Date >= date)
                 .OrderBy(b => b.ExpiryDate)
-                .ThenBy(b => b.ReceivedAt)
+                .ThenBy(b => b.CreatedAt)
                 .ToListAsync(cancellationToken);
 
             var available = candidateBatches.Sum(b => b.QuantityRemaining);
@@ -273,140 +273,136 @@ namespace NagmClinic.Services.Pharmacy
                 return new PurchaseExecutionResult { Success = false, Message = "بيانات البنود (باتش وباركود) غير مكتملة" };
             }
 
-            // Note: Removed global duplicate barcode check to allow multiple items/batches to share a manufacturer UPC.
-            // Intra-batch uniqueness is now handled by finding existing matches below.
-
-            await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
-            try
+            var strategy = _context.Database.CreateExecutionStrategy();
+            return await strategy.ExecuteAsync(async () =>
             {
-                purchase.PurchaseDate = purchase.PurchaseDate == default ? DateTime.Now : purchase.PurchaseDate;
-                _context.PharmacyPurchases.Add(purchase);
-                await _context.SaveChangesAsync(cancellationToken);
-
-                decimal total = 0m;
-
-                foreach (var line in cleanedLines)
+                await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+                try
                 {
-                    if (line.ExpiryDate.Date < today)
-                    {
-                        await transaction.RollbackAsync(cancellationToken);
-                        return new PurchaseExecutionResult
-                        {
-                            Success = false,
-                            Message = $"لا يمكن شراء باتش منتهي للصنف رقم {line.ItemId}"
-                        };
-                    }
-
-                    if (line.Quantity <= 0 || line.PurchasePrice < 0)
-                    {
-                        await transaction.RollbackAsync(cancellationToken);
-                        return new PurchaseExecutionResult
-                        {
-                            Success = false,
-                            Message = $"بيانات الكمية أو الأسعار غير صحيحة للصنف رقم {line.ItemId}"
-                        };
-                    }
-
-                    var item = await _context.PharmacyItems
-                        .FirstOrDefaultAsync(i => i.Id == line.ItemId, cancellationToken);
-                    
-                    if (item == null)
-                    {
-                        await transaction.RollbackAsync(cancellationToken);
-                        return new PurchaseExecutionResult { Success = false, Message = $"الصنف رقم {line.ItemId} غير موجود" };
-                    }
-
-                    // Strategic Fix: Link the scanned barcode to the item itself if not already set.
-                    // This allows any future batch to find this item by manufacturer barcode.
-                    if (string.IsNullOrWhiteSpace(item.Barcode))
-                    {
-                        item.Barcode = line.Barcode.Trim();
-                    }
-
-                    var batch = await _context.ItemBatches
-                        .FirstOrDefaultAsync(
-                            b => b.ItemId == line.ItemId && b.BatchNumber == line.BatchNumber.Trim() && b.Barcode == line.Barcode.Trim(),
-                            cancellationToken);
-
-                    var effectiveSellingPrice = batch != null
-                        ? (batch.SellingPrice > 0 ? batch.SellingPrice : item.DefaultSellingPrice)
-                        : item.DefaultSellingPrice;
-
-                    var purchaseLine = new PharmacyPurchaseLine
-                    {
-                        PurchaseId = purchase.Id,
-                        ItemId = line.ItemId,
-                        BatchNumber = line.BatchNumber.Trim(),
-                        Barcode = line.Barcode.Trim(),
-                        ExpiryDate = line.ExpiryDate.Date,
-                        Quantity = line.Quantity,
-                        BonusQuantity = 0,
-                        PurchasePrice = line.PurchasePrice,
-                        SellingPrice = effectiveSellingPrice,
-                        LineTotal = line.Quantity * line.PurchasePrice,
-                        CreatedAt = DateTime.Now
-                    };
-
-                    _context.PharmacyPurchaseLines.Add(purchaseLine);
+                    purchase.PurchaseDate = purchase.PurchaseDate == default ? DateTime.Now : purchase.PurchaseDate;
+                    _context.PharmacyPurchases.Add(purchase);
                     await _context.SaveChangesAsync(cancellationToken);
 
-                    var receivedTotal = purchaseLine.Quantity;
+                    decimal total = 0m;
 
-                    if (batch == null)
+                    foreach (var line in cleanedLines)
                     {
-                        batch = new ItemBatch
+                        if (line.ExpiryDate.Date < today)
                         {
-                            ItemId = line.ItemId,
-                            BatchNumber = purchaseLine.BatchNumber,
-                            Barcode = purchaseLine.Barcode,
-                            ExpiryDate = purchaseLine.ExpiryDate.Date,
-                            QuantityReceived = purchaseLine.Quantity,
-                            BonusQuantity = 0,
-                            QuantityRemaining = receivedTotal,
-                            PurchasePrice = purchaseLine.PurchasePrice,
-                            SellingPrice = effectiveSellingPrice,
-                            SupplierId = purchase.SupplierId,
-                            ReceivedAt = DateTime.Now,
-                            UpdatedAt = DateTime.Now
-                        };
-                        _context.ItemBatches.Add(batch);
-                        await _context.SaveChangesAsync(cancellationToken);
-                    }
-                    else
-                    {
-                        batch.ExpiryDate = purchaseLine.ExpiryDate.Date;
-                        batch.QuantityReceived += purchaseLine.Quantity;
-                        batch.BonusQuantity = 0;
-                        batch.QuantityRemaining += receivedTotal;
-                        batch.PurchasePrice = purchaseLine.PurchasePrice;
-                        if (batch.SellingPrice <= 0 && effectiveSellingPrice > 0)
-                        {
-                            batch.SellingPrice = effectiveSellingPrice;
+                            await transaction.RollbackAsync(cancellationToken);
+                            return new PurchaseExecutionResult
+                            {
+                                Success = false,
+                                Message = $"لا يمكن شراء باتش منتهي للصنف رقم {line.ItemId}"
+                            };
                         }
-                        batch.SupplierId = purchase.SupplierId;
-                        batch.UpdatedAt = DateTime.Now;
+
+                        if (line.Quantity <= 0 || line.PurchasePrice < 0)
+                        {
+                            await transaction.RollbackAsync(cancellationToken);
+                            return new PurchaseExecutionResult
+                            {
+                                Success = false,
+                                Message = $"بيانات الكمية أو الأسعار غير صحيحة للصنف رقم {line.ItemId}"
+                            };
+                        }
+
+                        var item = await _context.PharmacyItems
+                            .FirstOrDefaultAsync(i => i.Id == line.ItemId, cancellationToken);
+
+                        if (item == null)
+                        {
+                            await transaction.RollbackAsync(cancellationToken);
+                            return new PurchaseExecutionResult { Success = false, Message = $"الصنف رقم {line.ItemId} غير موجود" };
+                        }
+
+                        // Strategic Fix: Link the scanned barcode to the item itself if not already set.
+                        // This allows any future batch to find this item by manufacturer barcode.
+                        if (string.IsNullOrWhiteSpace(item.Barcode))
+                        {
+                            item.Barcode = line.Barcode.Trim();
+                        }
+
+                        var batch = await _context.ItemBatches
+                            .FirstOrDefaultAsync(
+                                b => b.ItemId == line.ItemId && b.BatchNumber == line.BatchNumber.Trim() && b.Barcode == line.Barcode.Trim(),
+                                cancellationToken);
+
+                        var effectiveSellingPrice = batch != null
+                            ? (batch.SellingPrice > 0 ? batch.SellingPrice : item.DefaultSellingPrice)
+                            : item.DefaultSellingPrice;
+
+                        var purchaseLine = new PharmacyPurchaseLine
+                        {
+                            PurchaseId = purchase.Id,
+                            ItemId = line.ItemId,
+                            BatchNumber = line.BatchNumber.Trim(),
+                            Barcode = line.Barcode.Trim(),
+                            ExpiryDate = line.ExpiryDate.Date,
+                            Quantity = line.Quantity,
+                            BonusQuantity = 0,
+                            PurchasePrice = line.PurchasePrice,
+                            LineTotal = line.Quantity * line.PurchasePrice
+                        };
+
+                        _context.PharmacyPurchaseLines.Add(purchaseLine);
+                        await _context.SaveChangesAsync(cancellationToken);
+
+                        var receivedTotal = purchaseLine.Quantity;
+
+                        if (batch == null)
+                        {
+                            batch = new ItemBatch
+                            {
+                                ItemId = line.ItemId,
+                                BatchNumber = purchaseLine.BatchNumber,
+                                Barcode = purchaseLine.Barcode,
+                                ExpiryDate = purchaseLine.ExpiryDate.Date,
+                                QuantityReceived = purchaseLine.Quantity,
+                                BonusQuantity = 0,
+                                QuantityRemaining = receivedTotal,
+                                PurchasePrice = purchaseLine.PurchasePrice,
+                                SellingPrice = effectiveSellingPrice,
+                                SupplierId = purchase.SupplierId
+                            };
+                            _context.ItemBatches.Add(batch);
+                            await _context.SaveChangesAsync(cancellationToken);
+                        }
+                        else
+                        {
+                            batch.ExpiryDate = purchaseLine.ExpiryDate.Date;
+                            batch.QuantityReceived += purchaseLine.Quantity;
+                            batch.BonusQuantity = 0;
+                            batch.QuantityRemaining += receivedTotal;
+                            batch.PurchasePrice = purchaseLine.PurchasePrice;
+                            if (batch.SellingPrice <= 0 && effectiveSellingPrice > 0)
+                            {
+                                batch.SellingPrice = effectiveSellingPrice;
+                            }
+                            batch.SupplierId = purchase.SupplierId;
+                        }
+
+                        purchaseLine.ItemBatchId = batch.Id;
+                        total += purchaseLine.LineTotal;
                     }
 
-                    purchaseLine.ItemBatchId = batch.Id;
-                    total += purchaseLine.LineTotal;
+                    purchase.TotalAmount = total;
+                    await _context.SaveChangesAsync(cancellationToken);
+                    await transaction.CommitAsync(cancellationToken);
+
+                    return new PurchaseExecutionResult
+                    {
+                        Success = true,
+                        Message = "تم حفظ فاتورة الشراء بنجاح",
+                        PurchaseId = purchase.Id
+                    };
                 }
-
-                purchase.TotalAmount = total;
-                await _context.SaveChangesAsync(cancellationToken);
-                await transaction.CommitAsync(cancellationToken);
-
-                return new PurchaseExecutionResult
+                catch
                 {
-                    Success = true,
-                    Message = "تم حفظ فاتورة الشراء بنجاح",
-                    PurchaseId = purchase.Id
-                };
-            }
-            catch
-            {
-                await transaction.RollbackAsync(cancellationToken);
-                throw;
-            }
+                    await transaction.RollbackAsync(cancellationToken);
+                    throw;
+                }
+            });
         }
 
         public async Task<SaleExecutionResult> ExecuteSaleAsync(
@@ -425,128 +421,225 @@ namespace NagmClinic.Services.Pharmacy
                 return new SaleExecutionResult { Success = false, Message = "بيانات البنود غير صحيحة" };
             }
 
-            await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
-            try
+            var strategy = _context.Database.CreateExecutionStrategy();
+            return await strategy.ExecuteAsync(async () =>
             {
-                sale.SaleDate = sale.SaleDate == default ? DateTime.Now : sale.SaleDate;
-                sale.Status = PharmacySaleStatus.Completed;
-                _context.PharmacySales.Add(sale);
-                await _context.SaveChangesAsync(cancellationToken);
-
-                decimal total = 0m;
-
-                foreach (var line in lines)
+                await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+                try
                 {
-                    List<FefoAllocationLine> allocationsToProcess = new List<FefoAllocationLine>();
-                    
-                    if (line.ItemBatchId.HasValue && line.ItemBatchId.Value > 0)
-                    {
-                        // Manual Batch Selection (from Modal)
-                        var batch = await _context.ItemBatches
-                            .Include(b => b.Item)
-                                .ThenInclude(i => i!.Location)
-                            .FirstOrDefaultAsync(b => b.Id == line.ItemBatchId.Value, cancellationToken);
+                    sale.SaleDate = sale.SaleDate == default ? DateTime.Now : sale.SaleDate;
+                    sale.Status = PharmacySaleStatus.Completed;
+                    _context.PharmacySales.Add(sale);
+                    await _context.SaveChangesAsync(cancellationToken);
 
-                        if (batch == null || batch.ItemId != line.ItemId || batch.QuantityRemaining < line.Quantity || batch.ExpiryDate.Date < DateTime.Today)
-                        {
-                            await transaction.RollbackAsync(cancellationToken);
-                            return new SaleExecutionResult { Success = false, Message = $"الباتش المحدد غير متاح أو كميته غير كافية للصنف رقم {line.ItemId}" };
-                        }
+                    decimal total = 0m;
 
-                        allocationsToProcess.Add(new FefoAllocationLine
-                        {
-                            BatchId = batch.Id,
-                            BatchNumber = batch.BatchNumber,
-                            Barcode = batch.Barcode,
-                            ExpiryDate = batch.ExpiryDate,
-                            Quantity = line.Quantity,
-                            Available = batch.QuantityRemaining,
-                            Remaining = batch.QuantityRemaining - line.Quantity,
-                            UnitPrice = batch.SellingPrice,
-                            SlotCode = batch.Item?.Location?.Code ?? "-"
-                        });
-                    }
-                    else
+                    foreach (var line in lines)
                     {
-                        // Automatic FEFO Allocation
-                        var allocation = await PreviewFefoAllocationAsync(line.ItemId, line.Quantity, DateTime.Today, cancellationToken);
-                        if (!allocation.Success)
+                        List<FefoAllocationLine> allocationsToProcess = new List<FefoAllocationLine>();
+
+                        if (line.ItemBatchId.HasValue && line.ItemBatchId.Value > 0)
                         {
-                            await transaction.RollbackAsync(cancellationToken);
-                            return new SaleExecutionResult
+                            // Manual Batch Selection (from Modal)
+                            var batch = await _context.ItemBatches
+                                .Include(b => b.Item)
+                                    .ThenInclude(i => i!.Location)
+                                .FirstOrDefaultAsync(b => b.Id == line.ItemBatchId.Value, cancellationToken);
+
+                            if (batch == null || batch.ItemId != line.ItemId || batch.QuantityRemaining < line.Quantity || batch.ExpiryDate.Date < DateTime.Today)
                             {
-                                Success = false,
-                                Message = $"تعذر صرف الصنف رقم {line.ItemId}: {allocation.Message}"
+                                await transaction.RollbackAsync(cancellationToken);
+                                return new SaleExecutionResult { Success = false, Message = $"الباتش المحدد غير متاح أو كميته غير كافية للصنف رقم {line.ItemId}" };
+                            }
+
+                            allocationsToProcess.Add(new FefoAllocationLine
+                            {
+                                BatchId = batch.Id,
+                                BatchNumber = batch.BatchNumber,
+                                Barcode = batch.Barcode,
+                                ExpiryDate = batch.ExpiryDate,
+                                Quantity = line.Quantity,
+                                Available = batch.QuantityRemaining,
+                                Remaining = batch.QuantityRemaining - line.Quantity,
+                                UnitPrice = batch.SellingPrice,
+                                SlotCode = batch.Item?.Location?.Code ?? "-"
+                            });
+                        }
+                        else
+                        {
+                            // Automatic FEFO Allocation
+                            var allocation = await PreviewFefoAllocationAsync(line.ItemId, line.Quantity, DateTime.Today, cancellationToken);
+                            if (!allocation.Success)
+                            {
+                                await transaction.RollbackAsync(cancellationToken);
+                                return new SaleExecutionResult
+                                {
+                                    Success = false,
+                                    Message = $"تعذر صرف الصنف رقم {line.ItemId}: {allocation.Message}"
+                                };
+                            }
+                            allocationsToProcess.AddRange(allocation.Allocations);
+                        }
+
+                        foreach (var alloc in allocationsToProcess)
+                        {
+                            var batch = await _context.ItemBatches
+                                .Include(b => b.Item)
+                                    .ThenInclude(i => i!.Location)
+                                .FirstOrDefaultAsync(b => b.Id == alloc.BatchId, cancellationToken);
+
+                            if (batch == null)
+                            {
+                                await transaction.RollbackAsync(cancellationToken);
+                                return new SaleExecutionResult { Success = false, Message = "باتش غير موجود أثناء عملية الصرف" };
+                            }
+
+                            if (batch.ExpiryDate.Date < DateTime.Today)
+                            {
+                                await transaction.RollbackAsync(cancellationToken);
+                                return new SaleExecutionResult { Success = false, Message = $"الباتش {batch.BatchNumber} منتهي الصلاحية" };
+                            }
+
+                            if (batch.QuantityRemaining < alloc.Quantity)
+                            {
+                                await transaction.RollbackAsync(cancellationToken);
+                                return new SaleExecutionResult { Success = false, Message = $"نفدت الكمية من الباتش {batch.BatchNumber}" };
+                            }
+
+                            batch.QuantityRemaining -= alloc.Quantity;
+                            batch.UpdatedAt = DateTime.Now;
+
+                            var unitPrice = line.SellingPrice > 0 ? line.SellingPrice : alloc.UnitPrice;
+
+                            var saleLine = new PharmacySaleLine
+                            {
+                                SaleId = sale.Id,
+                                ItemId = line.ItemId,
+                                ItemBatchId = batch.Id,
+                                Quantity = alloc.Quantity,
+                                UnitPrice = unitPrice,
+                                LineTotal = alloc.Quantity * unitPrice,
+                                BatchNumberSnapshot = batch.BatchNumber,
+                                ExpiryDateSnapshot = batch.ExpiryDate.Date,
+                                SlotCodeSnapshot = batch.Item?.Location?.Code ?? "-",
+                                CreatedAt = DateTime.Now
                             };
+
+                            _context.PharmacySaleLines.Add(saleLine);
+                            total += saleLine.LineTotal;
                         }
-                        allocationsToProcess.AddRange(allocation.Allocations);
                     }
 
-                    foreach (var alloc in allocationsToProcess)
+                    sale.TotalAmount = total;
+                    await _context.SaveChangesAsync(cancellationToken);
+                    await transaction.CommitAsync(cancellationToken);
+
+                    return new SaleExecutionResult
                     {
-                        var batch = await _context.ItemBatches
-                            .Include(b => b.Item)
-                                .ThenInclude(i => i!.Location)
-                            .FirstOrDefaultAsync(b => b.Id == alloc.BatchId, cancellationToken);
-
-                        if (batch == null)
-                        {
-                            await transaction.RollbackAsync(cancellationToken);
-                            return new SaleExecutionResult { Success = false, Message = "باتش غير موجود أثناء عملية الصرف" };
-                        }
-
-                        if (batch.ExpiryDate.Date < DateTime.Today)
-                        {
-                            await transaction.RollbackAsync(cancellationToken);
-                            return new SaleExecutionResult { Success = false, Message = $"الباتش {batch.BatchNumber} منتهي الصلاحية" };
-                        }
-
-                        if (batch.QuantityRemaining < alloc.Quantity)
-                        {
-                            await transaction.RollbackAsync(cancellationToken);
-                            return new SaleExecutionResult { Success = false, Message = $"نفدت الكمية من الباتش {batch.BatchNumber}" };
-                        }
-
-                        batch.QuantityRemaining -= alloc.Quantity;
-                        batch.UpdatedAt = DateTime.Now;
-
-                        var unitPrice = line.SellingPrice > 0 ? line.SellingPrice : alloc.UnitPrice;
-
-                        var saleLine = new PharmacySaleLine
-                        {
-                            SaleId = sale.Id,
-                            ItemId = line.ItemId,
-                            ItemBatchId = batch.Id,
-                            Quantity = alloc.Quantity,
-                            UnitPrice = unitPrice,
-                            LineTotal = alloc.Quantity * unitPrice,
-                            BatchNumberSnapshot = batch.BatchNumber,
-                            ExpiryDateSnapshot = batch.ExpiryDate.Date,
-                            SlotCodeSnapshot = batch.Item?.Location?.Code ?? "-",
-                            CreatedAt = DateTime.Now
-                        };
-
-                        _context.PharmacySaleLines.Add(saleLine);
-                        total += saleLine.LineTotal;
-                    }
+                        Success = true,
+                        Message = "تم صرف الفاتورة بنجاح",
+                        SaleId = sale.Id
+                    };
                 }
-
-                sale.TotalAmount = total;
-                await _context.SaveChangesAsync(cancellationToken);
-                await transaction.CommitAsync(cancellationToken);
-
-                return new SaleExecutionResult
+                catch
                 {
-                    Success = true,
-                    Message = "تم صرف الفاتورة بنجاح",
-                    SaleId = sale.Id
-                };
-            }
-            catch
+                    await transaction.RollbackAsync(cancellationToken);
+                    throw;
+                }
+            });
+        }
+
+        public async Task<NagmClinic.Models.DataTables.DataTablesResponse<object>> GetItemsDataAsync(NagmClinic.Models.DataTables.DataTablesParameters dtParams)
+        {
+            var today = DateTime.Today;
+            var query = _context.PharmacyItems
+                .Include(i => i.Unit)
+                .Include(i => i.Category)
+                .Include(i => i.Location)
+                .AsQueryable();
+
+            var searchValue = dtParams.Search != null && dtParams.Search.ContainsKey("value") ? dtParams.Search["value"] : null;
+            if (!string.IsNullOrEmpty(searchValue))
+                query = query.Where(i => i.Name.Contains(searchValue) || (i.GenericName != null && i.GenericName.Contains(searchValue)));
+
+            int recordsTotal = await query.CountAsync();
+            var data = await query.OrderBy(i => i.Name).Skip(dtParams.Start).Take(dtParams.Length)
+                .Select(i => new
+                {
+                    i.Id, i.Name, i.GenericName,
+                    i.UnitId, UnitName = i.Unit != null ? i.Unit.Name : "-",
+                    i.CategoryId, CategoryName = i.Category != null ? i.Category.Name : "-",
+                    i.LocationId, LocationCode = i.Location != null ? i.Location.Code : "-",
+                    i.DefaultSellingPrice, i.ReorderLevel, i.IsActive,
+                    AvailableStock = i.Batches
+                        .Where(b => b.ExpiryDate.Date >= today && b.QuantityRemaining > 0)
+                        .Sum(b => (decimal?)b.QuantityRemaining) ?? 0
+                }).ToListAsync();
+
+            return new NagmClinic.Models.DataTables.DataTablesResponse<object> { draw = dtParams.Draw, recordsTotal = recordsTotal, recordsFiltered = recordsTotal, data = data };
+        }
+
+        public async Task<NagmClinic.Models.DataTables.DataTablesResponse<object>> GetInventoryItemsDataAsync(NagmClinic.Models.DataTables.DataTablesParameters dtParams)
+        {
+            var today = DateTime.Today;
+            var query = _context.PharmacyItems
+                .Include(i => i.Unit).Include(i => i.Category).Include(i => i.Location).AsQueryable();
+
+            var searchValue = dtParams.Search != null && dtParams.Search.ContainsKey("value") ? dtParams.Search["value"] : null;
+            if (!string.IsNullOrEmpty(searchValue))
             {
-                await transaction.RollbackAsync(cancellationToken);
-                throw;
+                query = query.Where(i => i.Name.Contains(searchValue) || 
+                                       (i.Category != null && i.Category.Name.Contains(searchValue)));
             }
+
+            int recordsTotal = await query.CountAsync();
+            var dataItems = await query.OrderBy(i => i.Name)
+                .Skip(dtParams.Start).Take(dtParams.Length)
+                .Select(i => new NagmClinic.ViewModels.InventoryItemSummaryViewModel
+                {
+                    Name = i.Name,
+                    UnitName = i.Unit != null ? i.Unit.Name : "-",
+                    CategoryName = i.Category != null ? i.Category.Name : "-",
+                    Location = i.Location != null ? i.Location.Code : "-",
+                    ReorderLevel = i.ReorderLevel,
+                    AvailableQuantity = i.Batches.Where(b => b.QuantityRemaining > 0 && b.ExpiryDate.Date >= today).Sum(b => (decimal?)b.QuantityRemaining) ?? 0
+                }).ToListAsync();
+
+            var data = dataItems.Cast<object>().ToList();
+            return new NagmClinic.Models.DataTables.DataTablesResponse<object> { draw = dtParams.Draw, recordsTotal = recordsTotal, recordsFiltered = recordsTotal, data = data };
+        }
+
+        public async Task<NagmClinic.Models.DataTables.DataTablesResponse<object>> GetInventoryBatchesDataAsync(NagmClinic.Models.DataTables.DataTablesParameters dtParams)
+        {
+            var today = DateTime.Today;
+            var query = _context.ItemBatches.Include(b => b.Item).Include(b => b.Supplier).AsQueryable();
+
+            var searchValue = dtParams.Search != null && dtParams.Search.ContainsKey("value") ? dtParams.Search["value"] : null;
+            if (!string.IsNullOrEmpty(searchValue))
+            {
+                query = query.Where(b => (b.Item != null && b.Item.Name.Contains(searchValue)) || 
+                                       b.BatchNumber.Contains(searchValue) || 
+                                       b.Barcode.Contains(searchValue));
+            }
+
+            int recordsTotal = await query.CountAsync();
+            var dataBatches = await query.OrderBy(b => b.ExpiryDate).ThenBy(b => b.ItemId)
+                .Skip(dtParams.Start).Take(dtParams.Length)
+                .Select(b => new NagmClinic.ViewModels.InventoryBatchDetailViewModel
+                {
+                    ItemName = b.Item != null ? b.Item.Name : "-",
+                    BatchNumber = b.BatchNumber,
+                    Barcode = b.Barcode,
+                    ExpiryDate = b.ExpiryDate,
+                    Quantity = b.QuantityRemaining,
+                    PurchasePrice = b.PurchasePrice,
+                    Supplier = b.Supplier != null ? b.Supplier.Name : "-",
+                    Status = b.ExpiryDate.Date < today ? "Expired" : 
+                             (b.ExpiryDate.Date <= today.AddDays(60) ? "Near Expiry" : "OK")
+                }).ToListAsync();
+
+            var data = dataBatches.Cast<object>().ToList();
+            return new NagmClinic.Models.DataTables.DataTablesResponse<object> { draw = dtParams.Draw, recordsTotal = recordsTotal, recordsFiltered = recordsTotal, data = data };
         }
     }
 }

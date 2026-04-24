@@ -4,6 +4,7 @@ function initDataTable(selector, url, columns, extraOptions = {}) {
         "pageLength": 5,
         "processing": true,
         "serverSide": true,
+        "dom": '<"table-responsive"<"table-hover align-middle"t>>lrip',
         "ajax": {
             "url": url,
             "type": "POST"

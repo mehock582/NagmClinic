@@ -182,5 +182,17 @@ namespace NagmClinic.Services.Patients
 
             return ServiceResult.SuccessResult("تم تحديث بيانات المريض بنجاح");
         }
+
+        public async Task<ServiceResult> SoftDeletePatientAsync(int id)
+        {
+            var patient = await _context.Patients.FindAsync(id);
+            if (patient == null) return ServiceResult.Error("لم يتم العثور على المريض");
+
+            patient.IsDeleted = true;
+            patient.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+            return ServiceResult.SuccessResult("تم حذف المريض بنجاح");
+        }
     }
 }

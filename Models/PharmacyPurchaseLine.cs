@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace NagmClinic.Models
 {
-    public class PharmacyPurchaseLine
+    public class PharmacyPurchaseLine : BaseEntity
     {
         public int Id { get; set; }
 
@@ -45,7 +45,5 @@ namespace NagmClinic.Models
 
         public int? ItemBatchId { get; set; }
         public virtual ItemBatch? ItemBatch { get; set; }
-
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
     }
 }

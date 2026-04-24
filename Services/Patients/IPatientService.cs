@@ -17,5 +17,6 @@ namespace NagmClinic.Services.Patients
         Task<IEnumerable<object>> SearchPatientsAsync(string query);
         Task<ServiceResult<Patient>> QuickCreatePatientAsync(string fullName, string phoneNumber, string genderString, string address, int age);
         Task<ServiceResult> QuickEditPatientAsync(int id, string fullName, string phoneNumber, string genderString, string address, int age, bool isActive);
+        Task<ServiceResult> SoftDeletePatientAsync(int id);
     }
 }

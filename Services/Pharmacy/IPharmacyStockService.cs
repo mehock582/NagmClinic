@@ -26,6 +26,10 @@ namespace NagmClinic.Services.Pharmacy
             PharmacySale sale,
             IReadOnlyCollection<PharmacySaleRequestLine> requestedLines,
             CancellationToken cancellationToken = default);
+
+        Task<NagmClinic.Models.DataTables.DataTablesResponse<object>> GetItemsDataAsync(NagmClinic.Models.DataTables.DataTablesParameters dtParams);
+        Task<NagmClinic.Models.DataTables.DataTablesResponse<object>> GetInventoryItemsDataAsync(NagmClinic.Models.DataTables.DataTablesParameters dtParams);
+        Task<NagmClinic.Models.DataTables.DataTablesResponse<object>> GetInventoryBatchesDataAsync(NagmClinic.Models.DataTables.DataTablesParameters dtParams);
     }
 
     public sealed class BarcodeLookupResult

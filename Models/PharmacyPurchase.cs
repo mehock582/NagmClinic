@@ -28,5 +28,8 @@ namespace NagmClinic.Models
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
         public virtual ICollection<PharmacyPurchaseLine> Lines { get; set; } = new List<PharmacyPurchaseLine>();
+        
+        [Timestamp]
+        public byte[] RowVersion { get; set; } = null!;
     }
 }

@@ -47,6 +47,7 @@ namespace NagmClinic.ViewModels
     public class AppointmentItemViewModel
     {
         public int AppointmentItemId { get; set; }
+        public byte[]? RowVersion { get; set; }
         public int ServiceId { get; set; }
         public string ServiceName { get; set; } = string.Empty;
         public string ServiceDisplayName { get; set; } = string.Empty;

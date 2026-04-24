@@ -124,6 +124,167 @@ namespace NagmClinic.Services.Pharmacy
             return await _stockService.GenerateUniqueBarcodeAsync();
         }
 
+        public async Task<PurchaseExecutionResult> EditPurchaseAsync(PharmacyPurchaseEditViewModel model)
+        {
+            try
+            {
+                var strategy = _context.Database.CreateExecutionStrategy();
+                return await strategy.ExecuteAsync(async () =>
+                {
+                    await using var transaction = await _context.Database.BeginTransactionAsync();
+                    try
+                    {
+                        // Step A: Snapshot
+                        var purchase = await _context.PharmacyPurchases
+                            .Include(p => p.Lines)
+                            .ThenInclude(l => l.ItemBatch)
+                            .FirstOrDefaultAsync(p => p.Id == model.PurchaseId);
+
+                        if (purchase == null)
+                            return new PurchaseExecutionResult { Success = false, Message = "فاتورة الشراء غير موجودة" };
+
+                        purchase.SupplierId = model.SupplierId;
+                        purchase.InvoiceNumber = model.InvoiceNumber?.Trim();
+                        purchase.Notes = model.Notes?.Trim();
+
+                        // Step B: Restore Phase (Unconditionally subtract old quantities)
+                        foreach (var oldLine in purchase.Lines)
+                        {
+                            if (oldLine.ItemBatch != null)
+                            {
+                                oldLine.ItemBatch.QuantityReceived -= oldLine.Quantity;
+                                oldLine.ItemBatch.QuantityRemaining -= oldLine.Quantity;
+
+                                if (oldLine.ItemBatch.QuantityRemaining < 0)
+                                {
+                                    await transaction.RollbackAsync();
+                                    throw new InvalidOperationException($"لا يمكن تقليل الكمية المشتراة للصنف رقم {oldLine.ItemId} لأن جزءاً منها تم بيعه بالفعل.");
+                                }
+
+                                oldLine.ItemBatch.UpdatedAt = DateTime.Now;
+                            }
+                        }
+
+                        // Step C: Apply New Phase
+                        _context.PharmacyPurchaseLines.RemoveRange(purchase.Lines);
+                        purchase.Lines.Clear();
+                        await _context.SaveChangesAsync();
+
+                        decimal newTotal = 0m;
+                        var validIncoming = model.Lines.Where(l => l.ItemId > 0 && l.Quantity > 0).ToList();
+
+                        foreach (var incoming in validIncoming)
+                        {
+                            var item = await _context.PharmacyItems.FirstOrDefaultAsync(i => i.Id == incoming.ItemId);
+                            if (item == null)
+                            {
+                                await transaction.RollbackAsync();
+                                throw new InvalidOperationException($"الصنف رقم {incoming.ItemId} غير موجود");
+                            }
+
+                            // Try to generate or reuse batch
+                            var batchNumber = await GenerateBatchNumberAsync();
+
+                            var newPurchaseLine = new PharmacyPurchaseLine
+                            {
+                                PurchaseId = purchase.Id,
+                                ItemId = incoming.ItemId,
+                                BatchNumber = batchNumber,
+                                Barcode = incoming.Barcode.Trim(),
+                                ExpiryDate = incoming.ExpiryDate.Date,
+                                Quantity = incoming.Quantity,
+                                BonusQuantity = 0,
+                                PurchasePrice = incoming.PurchasePrice,
+                                SellingPrice = item.DefaultSellingPrice,
+                                LineTotal = incoming.Quantity * incoming.PurchasePrice,
+                                CreatedAt = DateTime.Now
+                            };
+
+                            _context.PharmacyPurchaseLines.Add(newPurchaseLine);
+                            await _context.SaveChangesAsync();
+
+                            var existingBatch = await _context.ItemBatches.FirstOrDefaultAsync(b =>
+                                b.ItemId == incoming.ItemId &&
+                                b.Barcode == incoming.Barcode.Trim());
+
+                            if (existingBatch == null)
+                            {
+                                var newBatch = new ItemBatch
+                                {
+                                    ItemId = incoming.ItemId,
+                                    BatchNumber = batchNumber,
+                                    Barcode = incoming.Barcode.Trim(),
+                                    ExpiryDate = incoming.ExpiryDate.Date,
+                                    QuantityReceived = incoming.Quantity,
+                                    BonusQuantity = 0,
+                                    QuantityRemaining = incoming.Quantity,
+                                    PurchasePrice = incoming.PurchasePrice,
+                                    SellingPrice = item.DefaultSellingPrice,
+                                    SupplierId = purchase.SupplierId
+                                };
+                                _context.ItemBatches.Add(newBatch);
+                                await _context.SaveChangesAsync();
+                                newPurchaseLine.ItemBatchId = newBatch.Id;
+                                newPurchaseLine.BatchNumber = batchNumber;
+                            }
+                            else
+                            {
+                                existingBatch.QuantityReceived += incoming.Quantity;
+                                existingBatch.QuantityRemaining += incoming.Quantity;
+                                existingBatch.PurchasePrice = incoming.PurchasePrice; // Update cost price if changed
+                                existingBatch.ExpiryDate = incoming.ExpiryDate.Date;
+                                newPurchaseLine.ItemBatchId = existingBatch.Id;
+                                newPurchaseLine.BatchNumber = existingBatch.BatchNumber; // Reuse existing batch number
+                            }
+
+                            newTotal += newPurchaseLine.LineTotal;
+                        }
+
+                        // Step D: Finalize
+                        purchase.TotalAmount = newTotal;
+
+                        // Assign RowVersion for concurrency check
+                        _context.Entry(purchase).Property("RowVersion").OriginalValue = model.RowVersion;
+
+                        try
+                        {
+                            await _context.SaveChangesAsync();
+                            await transaction.CommitAsync();
+                        }
+                        catch (DbUpdateConcurrencyException)
+                        {
+                            await transaction.RollbackAsync();
+                            throw new NagmClinic.Exceptions.ConcurrencyException("هذا السجل تم تعديله بواسطة مستخدم آخر. يرجى تحديث الصفحة والمحاولة مرة أخرى.");
+                        }
+
+                        return new PurchaseExecutionResult
+                        {
+                            Success = true,
+                            Message = "تم تعديل فاتورة الشراء بنجاح",
+                            PurchaseId = purchase.Id
+                        };
+                    }
+                    catch
+                    {
+                        await transaction.RollbackAsync();
+                        throw;
+                    }
+                });
+            }
+            catch (NagmClinic.Exceptions.ConcurrencyException)
+            {
+                throw;
+            }
+            catch (InvalidOperationException ex)
+            {
+                return new PurchaseExecutionResult { Success = false, Message = ex.Message };
+            }
+            catch
+            {
+                throw;
+            }
+        }
+
         private async Task LoadLookupsAsync(PharmacyPurchaseCreateViewModel model)
         {
             model.SupplierLookup = await _context.PharmacySuppliers
@@ -146,5 +307,3 @@ namespace NagmClinic.Services.Pharmacy
         }
     }
 }
-
-

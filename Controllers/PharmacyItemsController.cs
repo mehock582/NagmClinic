@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NagmClinic.Data;
@@ -9,7 +10,8 @@ using NagmClinic.Models.DataTables;
 
 namespace NagmClinic.Controllers
 {
-    public class PharmacyItemsController : Controller
+    [Authorize(Roles = "Admin,Pharmacist")]
+    public class PharmacyItemsController : BaseController
     {
         private readonly ApplicationDbContext _context;
         private readonly IPharmacyStockService _stockService;
@@ -33,34 +35,13 @@ namespace NagmClinic.Controllers
             try
             {
                 var dtParams = Request.GetDataTablesParameters();
-                var today = DateTime.Today;
-                var query = _context.PharmacyItems
-                    .Include(i => i.Unit)
-                    .Include(i => i.Category)
-                    .Include(i => i.Location)
-                    .AsQueryable();
-
-                var searchValue = dtParams.Search != null && dtParams.Search.ContainsKey("value") ? dtParams.Search["value"] : null;
-                if (!string.IsNullOrEmpty(searchValue))
-                    query = query.Where(i => i.Name.Contains(searchValue) || (i.GenericName != null && i.GenericName.Contains(searchValue)));
-
-                int recordsTotal = await query.CountAsync();
-                var data = await query.OrderBy(i => i.Name).Skip(dtParams.Start).Take(dtParams.Length)
-                    .Select(i => new
-                    {
-                        i.Id, i.Name, i.GenericName,
-                        i.UnitId, UnitName = i.Unit != null ? i.Unit.Name : "-",
-                        i.CategoryId, CategoryName = i.Category != null ? i.Category.Name : "-",
-                        i.LocationId, LocationCode = i.Location != null ? i.Location.Code : "-",
-                        i.DefaultSellingPrice, i.ReorderLevel, i.IsActive,
-                        AvailableStock = i.Batches
-                            .Where(b => b.ExpiryDate.Date >= today && b.QuantityRemaining > 0)
-                            .Sum(b => (decimal?)b.QuantityRemaining) ?? 0
-                    }).ToListAsync();
-
-                return Json(new DataTablesResponse<object> { draw = dtParams.Draw, recordsTotal = recordsTotal, recordsFiltered = recordsTotal, data = data });
+                var response = await _stockService.GetItemsDataAsync(dtParams);
+                return Json(response);
             }
-            catch (Exception ex) { return Json(new DataTablesResponse<object> { error = ex.Message }); }
+            catch (Exception ex)
+            {
+                return Json(new DataTablesResponse<object> { error = ex.Message });
+            }
         }
 
         [HttpPost]
@@ -103,9 +84,7 @@ namespace NagmClinic.Controllers
                     QuantityReceived = 0,
                     QuantityRemaining = 0,
                     PurchasePrice = item.DefaultSellingPrice * 0.7m,
-                    SellingPrice = item.DefaultSellingPrice,
-                    ReceivedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
+                    SellingPrice = item.DefaultSellingPrice
                 };
                 _context.ItemBatches.Add(ghostBatch);
                 await _context.SaveChangesAsync();

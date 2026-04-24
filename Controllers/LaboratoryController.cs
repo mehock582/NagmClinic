@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -20,6 +21,7 @@ using NagmClinic.Services.Reports;
 
 namespace NagmClinic.Controllers
 {
+    [Authorize]
     public class LaboratoryController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -345,6 +347,7 @@ namespace NagmClinic.Controllers
 
         // POST: Laboratory/UpdateResult
         [HttpPost]
+        [Authorize(Roles = "LabTech,Doctor,Admin")]
         public async Task<IActionResult> UpdateResult(int id, string resultValue, string? unit, string? normalRange, LabStatus status, string? labNotes, string? performedBy)
         {
             var labResult = await _context.LabResults.FindAsync(id);
@@ -367,6 +370,7 @@ namespace NagmClinic.Controllers
         }
 
         // POST: /api/lab/import
+        [AllowAnonymous]
         [HttpPost]
         [Route("/api/lab/import")]
         [IgnoreAntiforgeryToken]

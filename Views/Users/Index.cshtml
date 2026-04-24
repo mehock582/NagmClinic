@@ -1,0 +1,161 @@
+@using NagmClinic.ViewModels
+@model List<UserIndexViewModel>
+@{
+    ViewData["Title"] = "إدارة المستخدمين";
+}
+
+<div class="row align-items-center mb-4">
+    <div class="col-md-6">
+        <h2 class="fw-bold mb-0">إدارة المستخدمين</h2>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">الرئيسية</a></li>
+                <li class="breadcrumb-item active">المستخدمين</li>
+            </ol>
+        </nav>
+    </div>
+    <div class="col-md-6 text-md-start mt-3 mt-md-0">
+        <a asp-action="Create" class="btn btn-primary rounded-pill px-4" data-ajax-modal="true" data-title="إضافة مستخدم جديد">
+            <i class="bi bi-person-plus me-1"></i> إضافة مستخدم جديد
+        </a>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm rounded-4">
+    <div class="card-body p-4">
+        @Html.AntiForgeryToken()
+        <div class="table-responsive">
+            <table class="table table-hover align-middle dataTable" id="usersTable" style="width:100%">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">المستخدم</th>
+                        <th class="text-center">الدور الحالي</th>
+                        <th class="text-center">الحالة</th>
+                        <th class="text-center pe-4">الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Populated by DataTables -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            var token = $('input[name="__RequestVerificationToken"]').val();
+
+            $('#usersTable').DataTable({
+                "language": {
+                    "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Arabic.json"
+                },
+                "processing": true,
+                "serverSide": true,
+                "ajax": {
+                    "url": "/Users/GetUsersData",
+                    "type": "POST",
+                    "data": function (d) {
+                        d.__RequestVerificationToken = token;
+                    },
+                    "error": function (xhr, error, thrown) {
+                        console.error("DataTables Error: ", xhr.responseText);
+                    }
+                },
+                "columns": [
+                    {
+                        "data": null,
+                        "render": function (data, type, row) {
+                            var email = row.email || "-";
+                            var initial = email.charAt(0).toUpperCase();
+                            var circleClass = row.isLocked ? "bg-secondary-subtle text-secondary" : "bg-primary-subtle text-primary";
+                            
+                            return `<div class="d-flex align-items-center gap-3">
+                                        <div class="avatar-circle ${circleClass} fw-bold shadow-sm">
+                                            ${initial}
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold text-dark">${email}</div>
+                                            <small class="text-muted">ID: ${(row.id || "").substring(0, 8)}...</small>
+                                        </div>
+                                    </div>`;
+                        }
+                    },
+                    {
+                        "data": "role",
+                        "className": "text-center",
+                        "render": function (data) {
+                            var badgeClass = "bg-secondary";
+                            if (data === "Admin") badgeClass = "bg-danger";
+                            else if (data === "Doctor") badgeClass = "bg-success";
+                            else if (data === "Cashier") badgeClass = "bg-warning";
+                            else if (data === "Pharmacist") badgeClass = "bg-primary";
+                            else if (data === "LabTech") badgeClass = "bg-info";
+
+                            return `<span class="badge ${badgeClass} rounded-pill px-3 py-2 shadow-sm">${data}</span>`;
+                        }
+                    },
+                    {
+                        "data": "isLocked",
+                        "className": "text-center",
+                        "render": function (data) {
+                            if (data) {
+                                return `<span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-3">
+                                            <i class="bi bi-lock-fill me-1"></i> موقف
+                                        </span>`;
+                            } else {
+                                return `<span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3">
+                                            <i class="bi bi-check-circle-fill me-1"></i> نشط
+                                        </span>`;
+                            }
+                        }
+                    },
+                    {
+                        "data": null,
+                        "className": "text-center pe-4",
+                        "orderable": false,
+                        "render": function (data, type, row) {
+                            var lockBtnHtml = row.isLocked
+                                ? `<button type="submit" class="btn btn-sm btn-outline-success rounded-circle p-2" title="تفعيل الحساب"><i class="bi bi-unlock-fill"></i></button>`
+                                : `<button type="submit" class="btn btn-sm btn-outline-danger rounded-circle p-2" title="إيقاف الحساب"><i class="bi bi-shield-slash-fill"></i></button>`;
+
+                            return `<div class="d-flex justify-content-center gap-2">
+                                        <a href="/Users/Edit/${row.id}" class="btn btn-sm btn-outline-primary rounded-circle p-2" 
+                                           title="تعديل الأدوار" data-ajax-modal="true" data-title="تعديل صلاحيات المستخدم">
+                                            <i class="bi bi-shield-lock"></i>
+                                        </a>
+                                        
+                                        <a href="/Users/ResetPassword/${row.id}" class="btn btn-sm btn-outline-warning rounded-circle p-2" 
+                                           title="إعادة تعيين كلمة المرور" data-ajax-modal="true" data-title="إعادة تعيين كلمة المرور">
+                                            <i class="bi bi-key-fill"></i>
+                                        </a>
+
+                                        <form action="/Users/ToggleStatus/${row.id}" method="post" class="d-inline">
+                                            <input name="__RequestVerificationToken" type="hidden" value="${token}">
+                                            ${lockBtnHtml}
+                                        </form>
+                                    </div>`;
+                        }
+                    }
+                ],
+                "pageLength": 10,
+                "order": [[0, "asc"]]
+            });
+        });
+    </script>
+}
+
+<style>
+    .avatar-circle {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        flex-shrink: 0;
+    }
+    .badge { font-weight: 500; }
+</style>

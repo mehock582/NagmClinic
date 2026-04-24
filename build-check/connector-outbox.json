@@ -1,0 +1,404 @@
+[
+  {
+    "Id": "d1bde2ba-6bb6-409f-aee4-20061e64347e",
+    "ConnectorSource": "SIMULATION-MULTITESTNORMAL",
+    "Payload": {
+      "DeviceId": "EC38",
+      "PatientIdentifier": "LAB-20260411-26041101",
+      "TestCode": "MCV",
+      "ResultValue": "92.9",
+      "Unit": "fL",
+      "Timestamp": "2026-04-11T11:53:00.5192182Z",
+      "RawPayload": "SIM::EC38|LAB-20260411-26041101|MCV|92.9|fL"
+    },
+    "AttemptCount": 0,
+    "NextAttemptAtUtc": "2026-04-11T11:53:00.5195642Z"
+  },
+  {
+    "Id": "a3ef5585-4cb9-4a72-827b-bda96d45b6bf",
+    "ConnectorSource": "SIMULATION-MULTITESTNORMAL",
+    "Payload": {
+      "DeviceId": "EC38",
+      "PatientIdentifier": "LAB-20260411-26041101",
+      "TestCode": "LYM#",
+      "ResultValue": "2.26",
+      "Unit": "10^9/L",
+      "Timestamp": "2026-04-11T11:53:00.5193081Z",
+      "RawPayload": "SIM::EC38|LAB-20260411-26041101|LYM#|2.26|10^9/L"
+    },
+    "AttemptCount": 0,
+    "NextAttemptAtUtc": "2026-04-11T11:53:00.5343198Z"
+  },
+  {
+    "Id": "ed950ae6-d381-411b-b261-458f53962d6a",
+    "ConnectorSource": "SIMULATION-MULTITESTNORMAL",
+    "Payload": {
+      "DeviceId": "LANSIONBIO",
+      "PatientIdentifier": "LAB-20260410-26041001",
+      "TestCode": "PRL",
+      "ResultValue": "4.54",
+      "Unit": "ng/mL",
+      "Timestamp": "2026-04-11T11:53:00.5193123Z",
+      "RawPayload": "SIM::LANSIONBIO|LAB-20260410-26041001|PRL|4.54|ng/mL"
+    },
+    "AttemptCount": 0,
+    "NextAttemptAtUtc": "2026-04-11T11:53:00.5514421Z"
+  },
+  {
+    "Id": "c6da2e14-0fac-4326-95e2-e20c8d7c483a",
+    "ConnectorSource": "SIMULATION-MULTITESTNORMAL",
+    "Payload": {
+      "DeviceId": "EC38",
+      "PatientIdentifier": "LAB-20260411-26041101",
+      "TestCode": "MCV",
+      "ResultValue": "83.36",
+      "Unit": "fL",
+      "Timestamp": "2026-04-11T11:53:04.4937225Z",
+      "RawPayload": "SIM::EC38|LAB-20260411-26041101|MCV|83.36|fL"
+    },
+    "AttemptCount": 0,
+    "NextAttemptAtUtc": "2026-04-11T11:53:04.4937383Z"
+  },
+  {
+    "Id": "a3146b7e-b3fa-42e6-a0c4-8c7e2c6c2695",
+    "ConnectorSource": "SIMULATION-MULTITESTNORMAL",
+    "Payload": {
+      "DeviceId": "EC38",
+      "PatientIdentifier": "LAB-20260411-26041101",
+      "TestCode": "LYM#",
+      "ResultValue": "3.21",
+      "Unit": "10^9/L",
+      "Timestamp": "2026-04-11T11:53:04.4937259Z",
+      "RawPayload": "SIM::EC38|LAB-20260411-26041101|LYM#|3.21|10^9/L"
+    },
+    "AttemptCount": 0,
+    "NextAttemptAtUtc": "2026-04-11T11:53:04.4954396Z"
+  },
+  {
+    "Id": "707caa47-19d7-43c4-804d-0238357765bd",
+    "ConnectorSource": "SIMULATION-MULTITESTNORMAL",
+    "Payload": {
+      "DeviceId": "LANSIONBIO",
+      "PatientIdentifier": "LAB-20260410-26041001",
+      "TestCode": "PRL",
+      "ResultValue": "6.71",
+      "Unit": "ng/mL",
+      "Timestamp": "2026-04-11T11:53:04.4937335Z",
+      "RawPayload": "SIM::LANSIONBIO|LAB-20260410-26041001|PRL|6.71|ng/mL"
+    },
+    "AttemptCount": 0,
+    "NextAttemptAtUtc": "2026-04-11T11:53:04.5074097Z"
+  },
+  {
+    "Id": "79bd3cb1-dbdb-4773-a49c-300f0598102d",
+    "ConnectorSource": "SIMULATION-MULTITESTNORMAL",
+    "Payload": {
+      "DeviceId": "EC38",
+      "PatientIdentifier": "LAB-20260411-26041101",
+      "TestCode": "MCV",
+      "ResultValue": "84.28",
+      "Unit": "fL",
+      "Timestamp": "2026-04-11T11:53:05.1473762Z",
+      "RawPayload": "SIM::EC38|LAB-20260411-26041101|MCV|84.28|fL"
+    },
+    "AttemptCount": 0,
+    "NextAttemptAtUtc": "2026-04-11T11:53:05.1473954Z"
+  },
+  {
+    "Id": "9bb73be1-38f2-44fd-b952-807ed04cd929",
+    "ConnectorSource": "SIMULATION-MULTITESTNORMAL",
+    "Payload": {
+      "DeviceId": "EC38",
+      "PatientIdentifier": "LAB-20260411-26041101",
+      "TestCode": "LYM#",
+      "ResultValue": "2.95",
+      "Unit": "10^9/L",
+      "Timestamp": "2026-04-11T11:53:05.1473813Z",
+      "RawPayload": "SIM::EC38|LAB-20260411-26041101|LYM#|2.95|10^9/L"
+    },
+    "AttemptCount": 0,
+    "NextAttemptAtUtc": "2026-04-11T11:53:05.1571284Z"
+  },
+  {
+    "Id": "972efe5f-9a5e-4d50-a886-a8a5f5b8446a",
+    "ConnectorSource": "SIMULATION-MULTITESTNORMAL",
+    "Payload": {
+      "DeviceId": "LANSIONBIO",
+      "PatientIdentifier": "LAB-20260410-26041001",
+      "TestCode": "PRL",
+      "ResultValue": "11.53",
+      "Unit": "ng/mL",
+      "Timestamp": "2026-04-11T11:53:05.1473866Z",
+      "RawPayload": "SIM::LANSIONBIO|LAB-20260410-26041001|PRL|11.53|ng/mL"
+    },
+    "AttemptCount": 0,
+    "NextAttemptAtUtc": "2026-04-11T11:53:05.1771831Z"
+  },
+  {
+    "Id": "602a9645-feaa-4cc9-869a-0c9a5e47d804",
+    "ConnectorSource": "SIMULATION-MULTITESTNORMAL",
+    "Payload": {
+      "DeviceId": "EC38",
+      "PatientIdentifier": "LAB-20260411-26041101",
+      "TestCode": "MCV",
+      "ResultValue": "85.24",
+      "Unit": "fL",
+      "Timestamp": "2026-04-11T11:53:05.3545549Z",
+      "RawPayload": "SIM::EC38|LAB-20260411-26041101|MCV|85.24|fL"
+    },
+    "AttemptCount": 0,
+    "NextAttemptAtUtc": "2026-04-11T11:53:05.3545834Z"
+  },
+  {
+    "Id": "c3f2eee6-b620-4199-b6b7-44843874057e",
+    "ConnectorSource": "SIMULATION-MULTITESTNORMAL",
+    "Payload": {
+      "DeviceId": "EC38",
+      "PatientIdentifier": "LAB-20260411-26041101",
+      "TestCode": "LYM#",
+      "ResultValue": "1.5",
+      "Unit": "10^9/L",
+      "Timestamp": "2026-04-11T11:53:05.3545646Z",
+      "RawPayload": "SIM::EC38|LAB-20260411-26041101|LYM#|1.5|10^9/L"
+    },
+    "AttemptCount": 0,
+    "NextAttemptAtUtc": "2026-04-11T11:53:05.3568056Z"
+  },
+  {
+    "Id": "11af085e-41b7-498b-bdb8-4aa3246cf8f2",
+    "ConnectorSource": "SIMULATION-MULTITESTNORMAL",
+    "Payload": {
+      "DeviceId": "LANSIONBIO",
+      "PatientIdentifier": "LAB-20260410-26041001",
+      "TestCode": "PRL",
+      "ResultValue": "5.1",
+      "Unit": "ng/mL",
+      "Timestamp": "2026-04-11T11:53:05.3545742Z",
+      "RawPayload": "SIM::LANSIONBIO|LAB-20260410-26041001|PRL|5.1|ng/mL"
+    },
+    "AttemptCount": 0,
+    "NextAttemptAtUtc": "2026-04-11T11:53:05.3659948Z"
+  },
+  {
+    "Id": "b8540265-0fbe-4f64-8cc4-ae5d07f0b3df",
+    "ConnectorSource": "SIMULATION-SINGLETEST",
+    "Payload": {
+      "DeviceId": "EC38",
+      "PatientIdentifier": "LAB-20260411-26041101",
+      "TestCode": "MCV",
+      "ResultValue": "97.17",
+      "Unit": "fL",
+      "Timestamp": "2026-04-11T11:53:11.1948831Z",
+      "RawPayload": "SIM::EC38|LAB-20260411-26041101|MCV|97.17|fL"
+    },
+    "AttemptCount": 0,
+    "NextAttemptAtUtc": "2026-04-11T11:53:11.1948936Z"
+  },
+  {
+    "Id": "0dcbb5f3-6371-4488-975e-2be24e9b9254",
+    "ConnectorSource": "SIMULATION-SINGLETEST",
+    "Payload": {
+      "DeviceId": "EC38",
+      "PatientIdentifier": "LAB-20260411-26041101",
+      "TestCode": "MCV",
+      "ResultValue": "93.12",
+      "Unit": "fL",
+      "Timestamp": "2026-04-11T11:53:12.4593661Z",
+      "RawPayload": "SIM::EC38|LAB-20260411-26041101|MCV|93.12|fL"
+    },
+    "AttemptCount": 0,
+    "NextAttemptAtUtc": "2026-04-11T11:53:12.4593742Z"
+  },
+  {
+    "Id": "34909be6-ca27-402b-acfa-7c4bdb3db21b",
+    "ConnectorSource": "SIMULATION-SINGLETEST",
+    "Payload": {
+      "DeviceId": "EC38",
+      "PatientIdentifier": "LAB-20260411-26041101",
+      "TestCode": "MCV",
+      "ResultValue": "83.66",
+      "Unit": "fL",
+      "Timestamp": "2026-04-11T11:54:10.3883718Z",
+      "RawPayload": "SIM::EC38|LAB-20260411-26041101|MCV|83.66|fL"
+    },
+    "AttemptCount": 0,
+    "NextAttemptAtUtc": "2026-04-11T11:54:10.3883783Z"
+  },
+  {
+    "Id": "a98fad0f-0ce9-4212-8d3b-0d1a9cc06025",
+    "ConnectorSource": "SIMULATION-SINGLETEST",
+    "Payload": {
+      "DeviceId": "EC38",
+      "PatientIdentifier": "LAB-20260411-26041101",
+      "TestCode": "MCV",
+      "ResultValue": "97.68",
+      "Unit": "fL",
+      "Timestamp": "2026-04-11T11:54:13.6289264Z",
+      "RawPayload": "SIM::EC38|LAB-20260411-26041101|MCV|97.68|fL"
+    },
+    "AttemptCount": 0,
+    "NextAttemptAtUtc": "2026-04-11T11:54:13.628934Z"
+  },
+  {
+    "Id": "11ea9ae3-ce37-41da-9786-bee5dcdae2a0",
+    "ConnectorSource": "SIMULATION-SINGLETEST",
+    "Payload": {
+      "DeviceId": "EC38",
+      "PatientIdentifier": "LAB-20260411-26041101",
+      "TestCode": "MCV",
+      "ResultValue": "98.88",
+      "Unit": "fL",
+      "Timestamp": "2026-04-11T11:54:14.7242572Z",
+      "RawPayload": "SIM::EC38|LAB-20260411-26041101|MCV|98.88|fL"
+    },
+    "AttemptCount": 0,
+    "NextAttemptAtUtc": "2026-04-11T11:54:14.7242646Z"
+  },
+  {
+    "Id": "09757043-f055-4b96-804d-a4e92e7ac749",
+    "ConnectorSource": "SIMULATION-SINGLETEST",
+    "Payload": {
+      "DeviceId": "EC38",
+      "PatientIdentifier": "LAB-20260411-26041101",
+      "TestCode": "MCV",
+      "ResultValue": "94.81",
+      "Unit": "fL",
+      "Timestamp": "2026-04-11T11:54:22.2088434Z",
+      "RawPayload": "SIM::EC38|LAB-20260411-26041101|MCV|94.81|fL"
+    },
+    "AttemptCount": 0,
+    "NextAttemptAtUtc": "2026-04-11T11:54:22.2088502Z"
+  },
+  {
+    "Id": "f4a614cb-3c38-47ba-b2e4-7f96c2734de5",
+    "ConnectorSource": "SIMULATION-PARTIALRESULTS",
+    "Payload": {
+      "DeviceId": "EC38",
+      "PatientIdentifier": "LAB-20260408-26040802",
+      "TestCode": "WBC",
+      "ResultValue": "12.5",
+      "Unit": "",
+      "Timestamp": "2026-04-11T11:54:25.8265351Z",
+      "RawPayload": "SIM::EC38|LAB-20260408-26040802|WBC|12.5|"
+    },
+    "AttemptCount": 0,
+    "NextAttemptAtUtc": "2026-04-11T11:54:25.8265925Z"
+  },
+  {
+    "Id": "afc2877d-9d98-481e-aef9-c2e7d36941b4",
+    "ConnectorSource": "SIMULATION-PARTIALRESULTS",
+    "Payload": {
+      "DeviceId": "EC38",
+      "PatientIdentifier": "LAB-20260408-26040802",
+      "TestCode": "WBC",
+      "ResultValue": "12.5",
+      "Timestamp": "2026-04-11T11:54:25.8265832Z",
+      "RawPayload": "SIM::EC38|LAB-20260408-26040802|WBC|12.5|"
+    },
+    "AttemptCount": 0,
+    "NextAttemptAtUtc": "2026-04-11T11:54:25.8282907Z"
+  },
+  {
+    "Id": "6fcae530-eaee-4be9-a81e-db5994d0e4e8",
+    "ConnectorSource": "SIMULATION-PARTIALRESULTS",
+    "Payload": {
+      "DeviceId": "EC38",
+      "PatientIdentifier": "LAB-20260408-26040802",
+      "TestCode": "WBC",
+      "ResultValue": "12.5",
+      "Unit": "",
+      "Timestamp": "2026-04-11T11:54:26.1177821Z",
+      "RawPayload": "SIM::EC38|LAB-20260408-26040802|WBC|12.5|"
+    },
+    "AttemptCount": 0,
+    "NextAttemptAtUtc": "2026-04-11T11:54:26.1177914Z"
+  },
+  {
+    "Id": "0b2fd769-209c-4dd1-b9d9-04201de78f58",
+    "ConnectorSource": "SIMULATION-PARTIALRESULTS",
+    "Payload": {
+      "DeviceId": "EC38",
+      "PatientIdentifier": "LAB-20260408-26040802",
+      "TestCode": "WBC",
+      "ResultValue": "12.5",
+      "Timestamp": "2026-04-11T11:54:26.1177836Z",
+      "RawPayload": "SIM::EC38|LAB-20260408-26040802|WBC|12.5|"
+    },
+    "AttemptCount": 0,
+    "NextAttemptAtUtc": "2026-04-11T11:54:26.1195076Z"
+  },
+  {
+    "Id": "d9e43258-c0af-48b4-8289-37bf85813aa2",
+    "ConnectorSource": "SIMULATION-PARTIALRESULTS",
+    "Payload": {
+      "DeviceId": "EC38",
+      "PatientIdentifier": "LAB-20260408-26040802",
+      "TestCode": "WBC",
+      "ResultValue": "12.5",
+      "Unit": "",
+      "Timestamp": "2026-04-11T11:54:26.2910017Z",
+      "RawPayload": "SIM::EC38|LAB-20260408-26040802|WBC|12.5|"
+    },
+    "AttemptCount": 0,
+    "NextAttemptAtUtc": "2026-04-11T11:54:26.2910108Z"
+  },
+  {
+    "Id": "d7b2248e-43f6-410e-95de-1341b302ed3a",
+    "ConnectorSource": "SIMULATION-PARTIALRESULTS",
+    "Payload": {
+      "DeviceId": "EC38",
+      "PatientIdentifier": "LAB-20260408-26040802",
+      "TestCode": "WBC",
+      "ResultValue": "12.5",
+      "Timestamp": "2026-04-11T11:54:26.2910034Z",
+      "RawPayload": "SIM::EC38|LAB-20260408-26040802|WBC|12.5|"
+    },
+    "AttemptCount": 0,
+    "NextAttemptAtUtc": "2026-04-11T11:54:26.2936804Z"
+  },
+  {
+    "Id": "a5a9bb22-bfd2-4c2b-aa19-9c52095d3755",
+    "ConnectorSource": "SIMULATION-SINGLETEST",
+    "Payload": {
+      "DeviceId": "EC38",
+      "PatientIdentifier": "LAB-20260411-26041101",
+      "TestCode": "MCV",
+      "ResultValue": "92.69",
+      "Unit": "fL",
+      "Timestamp": "2026-04-11T11:54:27.5037396Z",
+      "RawPayload": "SIM::EC38|LAB-20260411-26041101|MCV|92.69|fL"
+    },
+    "AttemptCount": 0,
+    "NextAttemptAtUtc": "2026-04-11T11:54:27.5037479Z"
+  },
+  {
+    "Id": "1de190cc-9768-4ace-88d5-2e4726d9e338",
+    "ConnectorSource": "SIMULATION-SINGLETEST",
+    "Payload": {
+      "DeviceId": "EC38",
+      "PatientIdentifier": "LAB-20260411-26041101",
+      "TestCode": "MCV",
+      "ResultValue": "83.28",
+      "Unit": "fL",
+      "Timestamp": "2026-04-11T11:54:27.7489174Z",
+      "RawPayload": "SIM::EC38|LAB-20260411-26041101|MCV|83.28|fL"
+    },
+    "AttemptCount": 0,
+    "NextAttemptAtUtc": "2026-04-11T11:54:27.7489262Z"
+  },
+  {
+    "Id": "8ae20fec-379b-4b92-ba5e-441fcbf54e59",
+    "ConnectorSource": "SIMULATION-SINGLETEST",
+    "Payload": {
+      "DeviceId": "EC38",
+      "PatientIdentifier": "LAB-20260411-26041101",
+      "TestCode": "MCV",
+      "ResultValue": "92.38",
+      "Unit": "fL",
+      "Timestamp": "2026-04-11T11:54:27.9287364Z",
+      "RawPayload": "SIM::EC38|LAB-20260411-26041101|MCV|92.38|fL"
+    },
+    "AttemptCount": 0,
+    "NextAttemptAtUtc": "2026-04-11T11:54:27.9287421Z"
+  }
+]

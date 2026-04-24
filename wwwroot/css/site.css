@@ -100,6 +100,52 @@ a { text-decoration: none; }
     overflow-y: auto;
 }
 
+/* ── Sidebar Footer (Logout) ──────────────────────── */
+.sidebar-footer {
+    padding: 0.5rem 0.65rem;
+    border-top: 1px solid #dbe4f0;
+    flex-shrink: 0;
+}
+
+.nav-item-logout {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    width: 100%;
+    padding: 0.6rem 0.9rem;
+    border-radius: 0.6rem;
+    border: none;
+    background: transparent;
+    color: #e53e3e;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.18s ease, color 0.18s ease;
+    text-align: start;
+}
+
+.nav-item-logout:hover {
+    background: #fff5f5;
+    color: #c53030;
+}
+
+.nav-item-logout i {
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+/* Mini-mode: hide logout text, center icon */
+body.sidebar-mini .sidebar-footer {
+    padding: 0.5rem 0.4rem;
+}
+body.sidebar-mini .nav-item-logout {
+    justify-content: center;
+    padding: 0.6rem;
+}
+body.sidebar-mini .nav-item-logout .nav-text {
+    display: none;
+}
+
 .sidebar-nav::-webkit-scrollbar {
     width: 4px;
 }

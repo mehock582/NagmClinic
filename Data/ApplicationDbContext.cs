@@ -1,16 +1,21 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using NagmClinic.Models;
+using NagmClinic.Interfaces;
 
 namespace NagmClinic.Data
 {
     public class ApplicationDbContext : IdentityDbContext
     {
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+        private readonly Microsoft.AspNetCore.Http.IHttpContextAccessor _httpContextAccessor;
+
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, Microsoft.AspNetCore.Http.IHttpContextAccessor httpContextAccessor)
             : base(options)
         {
+            _httpContextAccessor = httpContextAccessor;
         }
 
+        public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<Patient> Patients { get; set; }
         public DbSet<Doctor> Doctors { get; set; }
         public DbSet<ClinicService> ClinicServices { get; set; }
@@ -32,9 +37,156 @@ namespace NagmClinic.Data
         public DbSet<PharmacySale> PharmacySales { get; set; }
         public DbSet<PharmacySaleLine> PharmacySaleLines { get; set; }
 
+        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            ApplyAuditTimestamps();
+            var auditEntries = OnBeforeSaveChanges();
+            var result = await base.SaveChangesAsync(cancellationToken);
+            await OnAfterSaveChanges(auditEntries);
+            return result;
+        }
+
+        private void ApplyAuditTimestamps()
+        {
+            var entries = ChangeTracker.Entries<IAuditableEntity>();
+            foreach (var entry in entries)
+            {
+                if (entry.State == EntityState.Added)
+                {
+                    entry.Entity.CreatedAt = DateTime.UtcNow;
+                    entry.Entity.UpdatedAt = DateTime.UtcNow;
+                }
+                else if (entry.State == EntityState.Modified)
+                {
+                    entry.Entity.UpdatedAt = DateTime.UtcNow;
+                    // Ensure EF doesn't accidentally overwrite the original CreatedAt date
+                    entry.Property(p => p.CreatedAt).IsModified = false;
+                }
+            }
+        }
+
+        private List<AuditEntry> OnBeforeSaveChanges()
+        {
+            ChangeTracker.DetectChanges();
+            var auditEntries = new List<AuditEntry>();
+            foreach (var entry in ChangeTracker.Entries())
+            {
+                if (entry.Entity is AuditLog || entry.State == EntityState.Detached || entry.State == EntityState.Unchanged)
+                    continue;
+
+                var auditEntry = new AuditEntry(entry);
+                auditEntry.TableName = entry.Entity.GetType().Name;
+                auditEntry.UserId = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                auditEntries.Add(auditEntry);
+
+                foreach (var property in entry.Properties)
+                {
+                    string propertyName = property.Metadata.Name;
+                    if (property.Metadata.IsPrimaryKey())
+                    {
+                        auditEntry.KeyValues[propertyName] = property.CurrentValue;
+                        continue;
+                    }
+
+                    if (property.IsTemporary)
+                    {
+                        auditEntry.TemporaryProperties.Add(property);
+                        continue;
+                    }
+
+                    switch (entry.State)
+                    {
+                        case EntityState.Added:
+                            auditEntry.AuditType = "Insert";
+                            auditEntry.NewValues[propertyName] = property.CurrentValue;
+                            break;
+
+                        case EntityState.Deleted:
+                            auditEntry.AuditType = "Delete";
+                            auditEntry.OldValues[propertyName] = property.OriginalValue;
+                            break;
+
+                        case EntityState.Modified:
+                            if (property.IsModified)
+                            {
+                                auditEntry.AuditType = "Update";
+                                auditEntry.OldValues[propertyName] = property.OriginalValue;
+                                auditEntry.NewValues[propertyName] = property.CurrentValue;
+                            }
+                            break;
+                    }
+                }
+            }
+
+            // Save audit entries that have no temporary properties
+            foreach (var auditEntry in auditEntries.Where(_ => !_.HasTemporaryProperties))
+            {
+                AuditLogs.Add(auditEntry.ToAudit());
+            }
+
+            // Return audit entries that have temporary properties (like generated IDs)
+            return auditEntries.Where(_ => _.HasTemporaryProperties).ToList();
+        }
+
+        private Task OnAfterSaveChanges(List<AuditEntry> auditEntries)
+        {
+            if (auditEntries == null || auditEntries.Count == 0)
+                return Task.CompletedTask;
+
+            foreach (var auditEntry in auditEntries)
+            {
+                // Get the generated ID
+                foreach (var prop in auditEntry.TemporaryProperties)
+                {
+                    if (prop.Metadata.IsPrimaryKey())
+                    {
+                        auditEntry.KeyValues[prop.Metadata.Name] = prop.CurrentValue;
+                    }
+                    else
+                    {
+                        auditEntry.NewValues[prop.Metadata.Name] = prop.CurrentValue;
+                    }
+                }
+                AuditLogs.Add(auditEntry.ToAudit());
+            }
+            return base.SaveChangesAsync();
+        }
+
+        private class AuditEntry
+        {
+            public AuditEntry(Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry entry)
+            {
+                Entry = entry;
+            }
+            public Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry Entry { get; }
+            public string? UserId { get; set; }
+            public string TableName { get; set; } = string.Empty;
+            public Dictionary<string, object?> KeyValues { get; } = new();
+            public Dictionary<string, object?> OldValues { get; } = new();
+            public Dictionary<string, object?> NewValues { get; } = new();
+            public string AuditType { get; set; } = string.Empty;
+            public List<Microsoft.EntityFrameworkCore.ChangeTracking.PropertyEntry> TemporaryProperties { get; } = new();
+
+            public bool HasTemporaryProperties => TemporaryProperties.Any();
+
+            public AuditLog ToAudit()
+            {
+                var audit = new AuditLog();
+                audit.UserId = UserId;
+                audit.Action = AuditType;
+                audit.TableName = TableName;
+                audit.Timestamp = DateTime.Now;
+                audit.OldValues = OldValues.Count == 0 ? null : System.Text.Json.JsonSerializer.Serialize(OldValues);
+                audit.NewValues = NewValues.Count == 0 ? null : System.Text.Json.JsonSerializer.Serialize(NewValues);
+                return audit;
+            }
+        }
+
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
+
+            builder.Entity<Patient>().HasQueryFilter(p => !p.IsDeleted);
 
             // Configure Appointment relationship
             builder.Entity<Appointment>()

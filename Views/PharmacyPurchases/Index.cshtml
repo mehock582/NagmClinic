@@ -43,7 +43,7 @@
                 { "data": "supplierName" },
                 { "data": "linesCount", "render": function(d) { return `<span class="badge bg-light text-dark border">${d}</span>`; } },
                 { "data": "totalAmount", "render": function(d) { return `<span class="fw-bold text-primary">${parseFloat(d).toFixed(2)}</span>`; } },
-                { "data": "id", "orderable": false, "render": function(d) { return `<div class="action-group"><a href="/PharmacyPurchases/Details/${d}" class="btn-action btn-action-info" data-label="تفاصيل الفاتورة"><i class="bi bi-receipt-cutoff"></i></a></div>`; } }
+                { "data": "id", "orderable": false, "render": function(d) { return renderPharmacyActionButtons(d, '/PharmacyPurchases', 'purchases'); } }
             ];
             initDataTable('.table', '/PharmacyPurchases/GetPurchasesData', columns);
         });

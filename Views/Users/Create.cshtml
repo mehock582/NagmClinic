@@ -1,0 +1,81 @@
+@model NagmClinic.ViewModels.CreateUserViewModel
+
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "إضافة مستخدم جديد";
+}
+
+<div class="row align-items-center mb-4">
+    <div class="col-12">
+        <h2 class="fw-bold mb-0">إضافة مستخدم جديد</h2>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">الرئيسية</a></li>
+                <li class="breadcrumb-item"><a asp-action="Index">إدارة المستخدمين</a></li>
+                <li class="breadcrumb-item active">إضافة مستخدم</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-sm border-0 rounded-4">
+            <div class="card-body p-4 p-md-5">
+                <form asp-action="Create" method="post">
+                    @Html.AntiForgeryToken()
+                    <div asp-validation-summary="All" class="text-danger small mb-4"></div>
+
+                    <div class="mb-4">
+                        <label asp-for="Email" class="form-label fw-bold"></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0"><i class="bi bi-envelope text-primary"></i></span>
+                            <input asp-for="Email" class="form-control bg-light border-start-0" placeholder="example@clinic.com" />
+                        </div>
+                        <span asp-validation-for="Email" class="text-danger small"></span>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label asp-for="Password" class="form-label fw-bold"></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-key text-primary"></i></span>
+                                <input asp-for="Password" class="form-control bg-light border-start-0" />
+                            </div>
+                            <span asp-validation-for="Password" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6 mt-4 mt-md-0">
+                            <label asp-for="ConfirmPassword" class="form-label fw-bold"></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-shield-lock text-primary"></i></span>
+                                <input asp-for="ConfirmPassword" class="form-control bg-light border-start-0" />
+                            </div>
+                            <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div class="mb-5">
+                        <label asp-for="SelectedRole" class="form-label fw-bold"></label>
+                        <select asp-for="SelectedRole" asp-items="ViewBag.Roles" class="form-select bg-light">
+                            <option value="">-- اختر الدور الصلاحي --</option>
+                        </select>
+                        <span asp-validation-for="SelectedRole" class="text-danger small"></span>
+                    </div>
+
+                    <hr class="my-4 opacity-25" />
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a asp-action="Index" class="btn btn-secondary rounded-pill px-4">إلغاء</a>
+                        <button type="submit" class="btn btn-primary rounded-pill px-4">
+                            <i class="bi bi-person-plus-fill me-1"></i> حفظ
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

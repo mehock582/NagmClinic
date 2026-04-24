@@ -146,3 +146,5 @@ build_warnings.txt
 final_build.txt
 final_clean_build.txt
 build_errors*.txt
+appsettings.Production.json
+remote_setup.sql

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NagmClinic.Models;
 using NagmClinic.ViewModels;
@@ -75,6 +76,7 @@ namespace NagmClinic.Controllers
             }
         }
 
+        [AllowAnonymous]
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
         {

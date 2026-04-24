@@ -257,7 +257,85 @@ namespace NagmClinic.ViewModels
         public string Status { get; set; } = string.Empty;
         public int LinesCount { get; set; }
     }
+
+    public class PharmacySaleEditViewModel
+    {
+        public int SaleId { get; set; }
+        public byte[] RowVersion { get; set; } = null!;
+
+        [Display(Name = "تاريخ البيع")]
+        public DateTime SaleDate { get; set; } = DateTime.Now;
+
+        [Display(Name = "اسم العميل")]
+        public string? CustomerName { get; set; }
+
+        [Display(Name = "ملاحظات")]
+        public string? Notes { get; set; }
+
+        public List<PharmacySaleLineEditViewModel> Lines { get; set; } = new();
+
+        public object? ItemLookup { get; set; }
+    }
+
+    public class PharmacySaleLineEditViewModel
+    {
+        /// <summary>0 = new line, >0 = existing PharmacySaleLine.Id</summary>
+        public int LineId { get; set; }
+
+        [Range(1, int.MaxValue)]
+        public int ItemId { get; set; }
+
+        public int? ItemBatchId { get; set; }
+        public string? Barcode { get; set; }
+
+        [Range(0.01, 999999)]
+        public decimal Quantity { get; set; }
+
+        [Range(0.01, 999999)]
+        public decimal SellingPrice { get; set; }
+    }
+
+    public class PharmacyPurchaseEditViewModel
+    {
+        public int PurchaseId { get; set; }
+        public byte[] RowVersion { get; set; } = null!;
+
+        [Display(Name = "تاريخ الشراء")]
+        public DateTime PurchaseDate { get; set; } = DateTime.Now;
+
+        [Range(1, int.MaxValue, ErrorMessage = "المورد مطلوب")]
+        public int SupplierId { get; set; }
+
+        [Display(Name = "رقم الفاتورة")]
+        public string? InvoiceNumber { get; set; }
+
+        [Display(Name = "ملاحظات")]
+        public string? Notes { get; set; }
+
+        public List<PharmacyPurchaseLineEditViewModel> Lines { get; set; } = new();
+        
+        public object? SupplierLookup { get; set; }
+        public object? ItemLookup { get; set; }
+    }
+
+    public class PharmacyPurchaseLineEditViewModel
+    {
+        /// <summary>0 = new line, >0 = existing PharmacyPurchaseLine.Id</summary>
+        public int LineId { get; set; }
+
+        [Range(1, int.MaxValue)]
+        public int ItemId { get; set; }
+
+        [Required]
+        public string Barcode { get; set; } = string.Empty;
+
+        [Required]
+        public DateTime ExpiryDate { get; set; }
+
+        [Range(0.01, 999999)]
+        public decimal Quantity { get; set; }
+
+        [Range(0, 999999)]
+        public decimal PurchasePrice { get; set; }
+    }
 }
-
-
-

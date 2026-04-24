@@ -1,0 +1,42 @@
+@{
+    var controller = ViewContext.RouteData.Values["controller"]?.ToString();
+    var action = ViewContext.RouteData.Values["action"]?.ToString();
+    var pageTitle = ViewData["Title"]?.ToString() ?? "";
+
+    // Module mapping for the middle breadcrumb segment
+    var moduleMap = new Dictionary<string, (string Label, string Controller, string Action)>
+    {
+        { "Patients",            ("المرضى والمواعيد", "Patients", "Index") },
+        { "Appointments",        ("المرضى والمواعيد", "Appointments", "Index") },
+        { "Doctors",             ("العمليات الطبية",  "Doctors", "Index") },
+        { "Services",            ("العمليات الطبية",  "Services", "Index") },
+        { "Laboratory",          ("العمليات الطبية",  "Laboratory", "Index") },
+        { "LabTests",            ("العمليات الطبية",  "LabTests", "Index") },
+        { "LabDeviceMappings",   ("العمليات الطبية",  "LabDeviceMappings", "Index") },
+        { "PharmacyInventory",   ("الصيدلية والمخزون", "PharmacyInventory", "Index") },
+        { "PharmacySales",       ("الصيدلية والمخزون", "PharmacySales", "Index") },
+        { "PharmacyPurchases",   ("الصيدلية والمخزون", "PharmacyPurchases", "Index") },
+        { "PharmacyItems",       ("الصيدلية والمخزون", "PharmacyItems", "Index") },
+        { "PharmacyCategories",  ("الصيدلية والمخزون", "PharmacyCategories", "Index") },
+        { "PharmacyUnits",       ("الصيدلية والمخزون", "PharmacyUnits", "Index") },
+        { "PharmacySuppliers",   ("الصيدلية والمخزون", "PharmacySuppliers", "Index") },
+        { "PharmacyLocations",   ("الصيدلية والمخزون", "PharmacyLocations", "Index") },
+        { "Users",               ("إدارة النظام",     "Users", "Index") },
+    };
+
+    var hasModule = controller != null && moduleMap.ContainsKey(controller);
+    var module = hasModule ? moduleMap[controller!] : default;
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb mb-0 small">
+        <li class="breadcrumb-item"><a href="/" class="text-decoration-none">الرئيسية</a></li>
+        @if (hasModule)
+        {
+            <li class="breadcrumb-item">
+                <a asp-controller="@module.Controller" asp-action="@module.Action" class="text-decoration-none">@module.Label</a>
+            </li>
+        }
+        <li class="breadcrumb-item active" aria-current="page">@pageTitle</li>
+    </ol>
+</nav>

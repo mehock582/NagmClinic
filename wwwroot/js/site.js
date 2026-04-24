@@ -67,6 +67,24 @@ document.addEventListener('DOMContentLoaded', function () {
         applySidebarMiniPreference();
         closeSidebarOnMobile();
     });
+
+    // Global Double-Submit Prevention
+    $(document).on('submit', 'form', function (e) {
+        var $form = $(this);
+        var $submitBtn = $form.find('button[type="submit"]');
+
+        // Only run jQuery validation if the library is loaded on this specific page
+        if (typeof $form.valid === 'function') {
+            if (!$form.valid()) {
+                return; // Do not disable the button if the form is invalid
+            }
+        }
+
+        if ($submitBtn.length > 0) {
+            $submitBtn.prop('disabled', true);
+            $submitBtn.html('<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> جاري المعالجة...');
+        }
+    });
 });
 
 // Global SweetAlert Delete/Action Confirmation wrapper
@@ -160,10 +178,145 @@ function showToast(icon, message, timer) {
     });
 }
 
-// Auto-fire TempData toasts on page load
-$(function () {
-    var successMsg = $('meta[name="toast-success"]').attr('content');
-    var errorMsg = $('meta[name="toast-error"]').attr('content');
-    if (successMsg) showToast('success', successMsg);
-    if (errorMsg) showToast('error', errorMsg);
+// ────────────────────────────────────────────────
+// Phase 5: Global DataTables Action Buttons
+// ────────────────────────────────────────────────
+function renderActionButtons(id, baseUrl) {
+    var token = $('input[name="__RequestVerificationToken"]').val() || '';
+    return `
+        <div class="action-group">
+            <a href="${baseUrl}/Details/${id}" class="btn-action btn-action-info" data-label="التفاصيل">
+                <i class="bi bi-file-earmark-text"></i>
+            </a>
+            <a href="${baseUrl}/Edit/${id}" class="btn-action btn-action-warning" data-label="تعديل">
+                <i class="bi bi-pencil-fill"></i>
+            </a>
+            <form action="${baseUrl}/Delete/${id}" method="post" style="display:inline;" id="deleteForm_${id}">
+                <input type="hidden" name="__RequestVerificationToken" value="${token}">
+                <button type="button" class="btn-action btn-action-danger" data-label="حذف" 
+                        onclick="confirmAction('تأكيد الحذف', 'هل أنت متأكد من حذف هذا السجل؟', 'نعم، احذف', function() { document.getElementById('deleteForm_${id}').submit(); })">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </form>
+            <a href="${baseUrl}/Details/${id}?print=true" class="btn-action btn-action-dark" data-label="طباعة">
+                <i class="bi bi-printer"></i>
+            </a>
+        </div>
+    `;
+}
+
+function renderPharmacyActionButtons(id, baseUrl, type) {
+    if (type === 'sales') {
+        return `
+            <div class="action-group">
+                <a href="${baseUrl}/Details/${id}" class="btn-action btn-action-info" data-label="تفاصيل الفاتورة">
+                    <i class="bi bi-receipt-cutoff"></i>
+                </a>
+                <a href="${baseUrl}/Edit/${id}" class="btn-action btn-action-warning" data-label="تعديل">
+                    <i class="bi bi-pencil-fill"></i>
+                </a>
+                <a href="${baseUrl}/PrintThermalReceipt/${id}" target="_blank" class="btn-action btn-action-success" data-label="طباعة إيصال">
+                    <i class="bi bi-printer-fill"></i>
+                </a>
+            </div>
+        `;
+    } else if (type === 'purchases') {
+        return `
+            <div class="action-group">
+                <a href="${baseUrl}/Details/${id}" class="btn-action btn-action-info" data-label="تفاصيل الفاتورة">
+                    <i class="bi bi-receipt-cutoff"></i>
+                </a>
+                <a href="${baseUrl}/Edit/${id}" class="btn-action btn-action-warning" data-label="تعديل">
+                    <i class="bi bi-pencil-fill"></i>
+                </a>
+            </div>
+        `;
+    }
+    return '';
+}
+
+function renderModalEditButton(id, onclickFunction, dataAttributes = '') {
+    return `<div class="action-group"><button type="button" class="btn-action btn-action-primary" data-label="تعديل" data-id="${id}" ${dataAttributes} onclick="${onclickFunction}(this)"><i class="bi bi-pencil-fill"></i></button></div>`;
+}
+// ────────────────────────────────────────────────
+// Phase 6: Global AJAX Modal Framework
+// ────────────────────────────────────────────────
+$(document).on('click', '[data-ajax-modal="true"]', function (e) {
+    e.preventDefault();
+    var $btn = $(this);
+    var url = $btn.attr('href') || $btn.data('url');
+    var title = $btn.attr('title') || $btn.data('title') || 'تعديل البيانات';
+
+    $('#appModalLabel').text(title);
+    $('#appModalBody').html('<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted">جاري تحميل البيانات...</p></div>');
+    $('#appModal').modal('show');
+
+    $.get(url, function (data) {
+        $('#appModalBody').html(data);
+        
+        // Finalize form in modal
+        var $form = $('#appModalBody').find('form');
+        
+        // Reparse validation for the new form
+        if (typeof $.validator !== 'undefined' && typeof $.validator.unobtrusive !== 'undefined') {
+            $.validator.unobtrusive.parse($form);
+        }
+
+        // Handle AJAX form submission
+        $form.on('submit', function (formEvt) {
+            if ($form.data('ajax-mode') === 'traditional') return true; // allow normal submit if requested
+
+            formEvt.preventDefault();
+            
+            // Defensively check for jQuery validation before validating
+            if (typeof $form.valid === 'function') {
+                if (!$form.valid()) return false;
+            }
+
+            var $submitBtn = $form.find('button[type="submit"]');
+            var originalBtnHtml = $submitBtn.html();
+            $submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span> جاري الحفظ...');
+
+            $.ajax({
+                url: $form.attr('action'),
+                type: $form.attr('method') || 'POST',
+                data: $form.serialize(),
+                success: function (response) {
+                    if (response.success) {
+                        $('#appModal').modal('hide');
+                        showToast('success', response.message || 'تمت العملية بنجاح');
+                        
+                        // Refresh DataTables if present
+                        if (typeof $.fn.DataTable !== 'undefined') {
+                            $('.dataTable').DataTable().ajax.reload(null, false);
+                            // Also check if there's a specific table ID we should reload
+                            if (window.onModalSuccess) window.onModalSuccess(response);
+                            else if ($('#usersTable').length) location.reload(); // fallback for static tables
+                        } else {
+                            location.reload();
+                        }
+                    } else {
+                        // If validation fails on server or custom error
+                        if (response.errors) {
+                            // Handle errors if returned as JSON
+                            Swal.fire('خطأ', response.errors.join('<br>'), 'error');
+                        } else {
+                            // If response is a PartialView (ModelState error)
+                            $('#appModalBody').html(response);
+                            $.validator.unobtrusive.parse($('#appModalBody').find('form'));
+                        }
+                    }
+                },
+                error: function () {
+                    Swal.fire('خطأ', 'حدث خطأ غير متوقع في النظام', 'error');
+                },
+                complete: function () {
+                    $submitBtn.prop('disabled', false).html(originalBtnHtml);
+                }
+            });
+            return false;
+        });
+    }).fail(function () {
+        $('#appModalBody').html('<div class="alert alert-danger">فشل تحميل البيانات. يرجى المحاولة مرة أخرى.</div>');
+    });
 });

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NagmClinic.Data;
@@ -5,16 +6,20 @@ using NagmClinic.Models;
 using NagmClinic.ViewModels;
 using NagmClinic.Extensions;
 using NagmClinic.Models.DataTables;
+using NagmClinic.Services.Pharmacy;
 
 namespace NagmClinic.Controllers
 {
-    public class PharmacyCategoriesController : Controller
+    [Authorize(Roles = "Admin")]
+    public class PharmacyCategoriesController : BaseController
     {
         private readonly ApplicationDbContext _context;
+        private readonly IPharmacyMasterDataService _masterDataService;
 
-        public PharmacyCategoriesController(ApplicationDbContext context)
+        public PharmacyCategoriesController(ApplicationDbContext context, IPharmacyMasterDataService masterDataService)
         {
             _context = context;
+            _masterDataService = masterDataService;
         }
 
         public IActionResult Index()
@@ -29,17 +34,13 @@ namespace NagmClinic.Controllers
             try
             {
                 var dtParams = Request.GetDataTablesParameters();
-                var query = _context.PharmacyCategories.AsQueryable();
-                var searchValue = dtParams.Search != null && dtParams.Search.ContainsKey("value") ? dtParams.Search["value"] : null;
-                if (!string.IsNullOrEmpty(searchValue))
-                    query = query.Where(c => c.Name.Contains(searchValue));
-                int recordsTotal = await query.CountAsync();
-                var data = await query.OrderBy(c => c.Name).Skip(dtParams.Start).Take(dtParams.Length)
-                    .Select(c => new { c.Id, c.Name, c.Description, c.IsActive })
-                    .ToListAsync();
-                return Json(new DataTablesResponse<object> { draw = dtParams.Draw, recordsTotal = recordsTotal, recordsFiltered = recordsTotal, data = data });
+                var response = await _masterDataService.GetCategoriesDataAsync(dtParams);
+                return Json(response);
             }
-            catch (Exception ex) { return Json(new DataTablesResponse<object> { error = ex.Message }); }
+            catch (Exception ex)
+            {
+                return Json(new DataTablesResponse<object> { error = ex.Message });
+            }
         }
 
         [HttpPost]

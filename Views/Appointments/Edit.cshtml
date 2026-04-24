@@ -78,6 +78,7 @@
                         var isLocked = item.HasRecordedLabResult;
                         <div class="appt-item-row @(isLocked ? "appt-item-locked" : "")" id="svc_row_@i" data-locked="@isLocked.ToString().ToLowerInvariant()" data-section="service">
                             <input type="hidden" class="item-id-input" value="@item.AppointmentItemId" />
+                            <input type="hidden" class="item-row-version" value="@(item.RowVersion != null ? Convert.ToBase64String(item.RowVersion) : "")" />
                             <div class="appt-item-select">
                                 <select class="form-select form-select-sm service-select" required onchange="updateItemPrice(this)" @(isLocked ? "disabled" : "")>
                                     <option value="">-- اختر الخدمة --</option>
@@ -89,7 +90,8 @@
                                 @if (isLocked)
                                 {
                                     <input type="hidden" class="item-service-hidden" value="@item.ServiceId" />
-                                    <div class="small text-warning-emphasis fw-bold mt-1"><i class="bi bi-lock-fill me-1"></i>@item.ServiceDisplayName</div>
+                                    <input type="hidden" class="item-locked-input" value="true" />
+                                    <div class="small text-warning-emphasis fw-bold mt-1"><i class="bi bi-lock-fill me-1"></i>@item.ServiceDisplayName <span class="badge bg-secondary ms-1">مكتمل (يوجد نتيجة)</span></div>
                                 }
                             </div>
                             <div class="appt-item-qty">
@@ -151,6 +153,7 @@
                         var isLocked = item.HasRecordedLabResult;
                         <div class="appt-item-row @(isLocked ? "appt-item-locked" : "")" id="lab_row_@i" data-locked="@isLocked.ToString().ToLowerInvariant()" data-section="lab">
                             <input type="hidden" class="item-id-input" value="@item.AppointmentItemId" />
+                            <input type="hidden" class="item-row-version" value="@(item.RowVersion != null ? Convert.ToBase64String(item.RowVersion) : "")" />
                             <div class="appt-item-select">
                                 <select class="form-select form-select-sm service-select" required onchange="updateItemPrice(this)" @(isLocked ? "disabled" : "")>
                                     <option value="">-- اختر الفحص --</option>
@@ -162,7 +165,8 @@
                                 @if (isLocked)
                                 {
                                     <input type="hidden" class="item-service-hidden" value="@item.ServiceId" />
-                                    <div class="small text-warning-emphasis fw-bold mt-1"><i class="bi bi-lock-fill me-1"></i>@item.ServiceDisplayName</div>
+                                    <input type="hidden" class="item-locked-input" value="true" />
+                                    <div class="small text-warning-emphasis fw-bold mt-1"><i class="bi bi-lock-fill me-1"></i>@item.ServiceDisplayName <span class="badge bg-secondary ms-1">مكتمل (يوجد نتيجة)</span></div>
                                 }
                             </div>
                             <div class="appt-item-qty">
@@ -430,6 +434,12 @@
                 container.append(`<input type="hidden" name="Items[${idx}].ServiceId" value="${serviceId}" />`);
                 container.append(`<input type="hidden" name="Items[${idx}].Quantity" value="${qty}" />`);
                 container.append(`<input type="hidden" name="Items[${idx}].UnitPrice" value="${price}" />`);
+                
+                var rowVersion = row.find('.item-row-version').val() || '';
+                container.append(`<input type="hidden" name="Items[${idx}].RowVersion" value="${rowVersion}" />`);
+
+                var isLocked = row.find('.item-locked-input').val() === 'true';
+                container.append(`<input type="hidden" name="Items[${idx}].HasRecordedLabResult" value="${isLocked}" />`);
                 idx++;
             });
         }

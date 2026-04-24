@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NagmClinic.Data;
@@ -9,7 +10,8 @@ using NagmClinic.Models.DataTables;
 
 namespace NagmClinic.Controllers
 {
-    public class PharmacyPurchasesController : Controller
+    [Authorize(Roles = "Pharmacist,Admin")]
+    public class PharmacyPurchasesController : BaseController
     {
         private readonly IPharmacyPurchasesService _purchaseService;
         private readonly IPharmacyStockService _stockService;
@@ -75,7 +77,7 @@ namespace NagmClinic.Controllers
                 return View(model);
             }
 
-            TempData["SuccessMessage"] = result.Message;
+            ShowAlert(result.Message);
             return RedirectToAction(nameof(Index));
         }
 
@@ -169,6 +171,70 @@ namespace NagmClinic.Controllers
                 }
             });
         }
+        [HttpGet]
+        public async Task<IActionResult> Edit(int id)
+        {
+            var purchase = await _context.PharmacyPurchases
+                .Include(p => p.Lines)
+                .FirstOrDefaultAsync(p => p.Id == id);
+
+            if (purchase == null) return NotFound();
+
+            var model = new NagmClinic.ViewModels.PharmacyPurchaseEditViewModel
+            {
+                PurchaseId = purchase.Id,
+                RowVersion = purchase.RowVersion,
+                PurchaseDate = purchase.PurchaseDate,
+                SupplierId = purchase.SupplierId,
+                InvoiceNumber = purchase.InvoiceNumber,
+                Notes = purchase.Notes,
+                Lines = purchase.Lines.Select(l => new NagmClinic.ViewModels.PharmacyPurchaseLineEditViewModel
+                {
+                    LineId = l.Id,
+                    ItemId = l.ItemId,
+                    Barcode = l.Barcode,
+                    ExpiryDate = l.ExpiryDate,
+                    Quantity = l.Quantity,
+                    PurchasePrice = l.PurchasePrice
+                }).ToList()
+            };
+
+            var freshModel = await _purchaseService.BuildCreateViewModelAsync();
+            model.SupplierLookup = freshModel.SupplierLookup;
+            model.ItemLookup = freshModel.ItemLookup;
+
+            return View(model);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(int id, NagmClinic.ViewModels.PharmacyPurchaseEditViewModel model)
+        {
+            if (id != model.PurchaseId) return BadRequest();
+
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    var result = await _purchaseService.EditPurchaseAsync(model);
+                    if (result.Success)
+                    {
+                        TempData["SuccessMessage"] = result.Message;
+                        return RedirectToAction(nameof(Index));
+                    }
+                    ModelState.AddModelError("", result.Message);
+                }
+                catch (Exception ex)
+                {
+                    ModelState.AddModelError("", ex.Message);
+                }
+            }
+
+            var freshModel = await _purchaseService.BuildCreateViewModelAsync();
+            model.SupplierLookup = freshModel.SupplierLookup;
+            model.ItemLookup = freshModel.ItemLookup;
+            return View(model);
+        }
 
         [HttpGet]
         public async Task<IActionResult> GetNextBatchNumber()
@@ -233,9 +299,7 @@ namespace NagmClinic.Controllers
                 QuantityReceived = 0,
                 QuantityRemaining = 0,
                 PurchasePrice = item.DefaultSellingPrice * 0.7m, // Placeholder estimate
-                SellingPrice = item.DefaultSellingPrice,
-                ReceivedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now
+                SellingPrice = item.DefaultSellingPrice
             };
 
             _context.ItemBatches.Add(ghostBatch);

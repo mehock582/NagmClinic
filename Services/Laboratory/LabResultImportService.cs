@@ -188,7 +188,21 @@ namespace NagmClinic.Services.Laboratory
                     .FirstOrDefault();
                 if (appointmentItem == null)
                 {
-                    return await RejectAsync(importRecord, "Mapped test is not requested for this visit.", outcome, cancellationToken);
+                    appointmentItem = new AppointmentItem
+                    {
+                        AppointmentId = appointment.Id,
+                        ServiceId = mappedTest.Id,
+                        Quantity = 1,
+                        UnitPrice = mappedTest.Price,
+                        TotalPrice = mappedTest.Price,
+                        Status = PaymentStatus.Pending
+                    };
+                    _context.AppointmentItems.Add(appointmentItem);
+                    // We must add it to the navigation property if it was eagerly loaded
+                    if (appointment.AppointmentItems is List<AppointmentItem> list)
+                    {
+                        list.Add(appointmentItem);
+                    }
                 }
 
                 var labResult = appointmentItem.LabResult;

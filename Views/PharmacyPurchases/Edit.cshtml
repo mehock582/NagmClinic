@@ -1,0 +1,509 @@
+@model NagmClinic.ViewModels.PharmacyPurchaseEditViewModel
+
+@{
+    ViewData["Title"] = "تعديل فاتورة الشراء";
+    Model.Lines ??= new System.Collections.Generic.List<NagmClinic.ViewModels.PharmacyPurchaseLineEditViewModel>();
+    var lines = Model.Lines;
+    var suppliers = Model.SupplierLookup as IEnumerable<dynamic>;
+    var items = Model.ItemLookup as IEnumerable<dynamic>;
+}
+
+<link href="~/css/pharmacy-transaction.css" rel="stylesheet" />
+
+<div class="container-fluid erp-transaction-page px-0">
+    <form asp-action="Edit" id="purchaseForm" novalidate>
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="PurchaseId" />
+        <input type="hidden" asp-for="RowVersion" />
+        
+        @* ── POS Header: Scanner & Fixed Controls ── *@
+        <div class="pos-header-container sticky-top py-3 px-4 mb-4">
+            <div class="row align-items-center g-3">
+                <div class="col-xl-7">
+                    <div class="pos-scanner-zone" id="scannerZone">
+                        <div class="pos-scanner-icon-btn">
+                            <i class="bi bi-upc-scan"></i>
+                        </div>
+                        <div class="pos-scanner-input-wrap">
+                            <input type="text" id="barcodeInput"
+                                   class="pos-scanner-input main-barcode-search"
+                                   placeholder="امسح الباركود أو أدخله يدوياً ثم اضغط Enter"
+                                   autocomplete="off" />
+                        </div>
+                        <button type="button" class="btn btn-primary rounded-pill px-4 fw-bold" onclick="lookupBarcode($('#barcodeInput').val())">بحث</button>
+                        <div class="pos-status-badge ms-2" id="scanStatus">
+                            <i class="bi bi-wifi"></i> جاهز
+                        </div>
+                    </div>
+                    <div class="mt-2 text-muted ps-2 d-none d-md-block" style="font-size: 0.75rem;">
+                        <i class="bi bi-info-circle me-1 text-primary"></i> يدعم: ماسح USB، بلوتوث، لاسلكي، هاتف كماسح — أي جهاز يرسل النص يدوياً.
+                    </div>
+                </div>
+                <div class="col-xl-5 text-end">
+                    <div class="d-flex justify-content-end align-items-center gap-2">
+                        <div class="badge bg-primary-subtle text-primary border border-primary px-3 py-2 rounded-pill fw-bold">
+                            <i class="bi bi-receipt me-2"></i>عدد البنود: <span id="scanCount">@lines.Count</span>
+                        </div>
+                        <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3" onclick="PharmacyTransaction.addRow()">
+                            <i class="bi bi-plus-lg me-1"></i> إضافة بند يدوي
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* ── POS Metadata Section ── *@
+        <div class="container-fluid px-4 mb-4">
+            <div class="pos-meta-row shadow-sm">
+                <div class="pos-meta-group" style="flex: 1.5;">
+                    <label asp-for="SupplierId" class="pos-meta-label">المورد</label>
+                    <select asp-for="SupplierId" class="pos-meta-input select2-header">
+                        <option value="0">-- اختر المورد --</option>
+                        @if (suppliers != null) {
+                            @foreach (var s in suppliers) {
+                                <option value="@s.Id">@s.Name</option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="pos-meta-group">
+                    <label asp-for="PurchaseDate" class="pos-meta-label">تاريخ الشراء</label>
+                    <input asp-for="PurchaseDate" asp-format="{0:yyyy-MM-ddTHH:mm}" type="datetime-local" class="pos-meta-input" />
+                </div>
+                <div class="pos-meta-group">
+                    <label asp-for="InvoiceNumber" class="pos-meta-label">رقم المرجع (Invoice)</label>
+                    <input asp-for="InvoiceNumber" class="pos-meta-input" placeholder="INV-0001" />
+                </div>
+                <div class="pos-meta-group" style="flex: 2;">
+                    <label asp-for="Notes" class="pos-meta-label">ملاحظات</label>
+                    <input asp-for="Notes" class="pos-meta-input" placeholder="ملاحظات اختيارية..." />
+                </div>
+            </div>
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger border-0 rounded-4 p-2 mt-3 small shadow-sm"></div>
+        </div>
+
+        @* ── POS Purchase Lines ── *@
+        <div class="container-fluid px-4">
+            <h6 class="text-primary fw-bolder mb-3"><i class="bi bi-cart-check me-2"></i>بنود الفاتورة</h6>
+            
+            <div id="linesBody" class="pos-lines-container">
+            </div>
+
+            <div id="emptyContainer" class="erp-empty pos-fade-in py-5 rounded-5 border-2 shadow-inner" style="@(lines.Count == 0 ? "" : "display:none;") background: #fff;">
+                <i class="bi bi-cart-x fs-1 d-block mb-3 text-primary opacity-25"></i>
+                <h5 class="fw-bold text-muted">الفاتورة فارغة</h5>
+                <p class="small text-secondary">اضغط "إضافة بند يدوي" أو امسح الباركود مباشرة</p>
+                <div id="linesClientValidation" class="text-danger mt-3 fw-bold"></div>
+            </div>
+        </div>
+
+        @* ── POS Action Footer (Sticky) ── *@
+        <div class="pos-footer">
+            <div class="pos-footer-summary">
+                <div class="pos-grand-total">
+                    <span class="pos-total-label"><i class="bi bi-wallet2 me-1"></i>إجمالي المشتريات</span>
+                    <div class="d-flex align-items-baseline gap-2">
+                        <span class="pos-total-amount" id="estimatedTotal">0.00</span>
+                        <span class="pos-line-total-currency">ج.س</span>
+                    </div>
+                </div>
+            </div>
+            <div class="pos-actions">
+                <a asp-action="Index" class="btn btn-pos btn-outline-secondary">
+                    <i class="bi bi-arrow-right"></i> رجوع
+                </a>
+                <button type="submit" class="btn btn-pos btn-pos-primary btn-lg shadow">
+                    <i class="bi bi-save2"></i> حفظ التعديلات
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+@* ── Unknown Barcode Modal ── *@
+<div class="modal fade" id="unknownBarcodeModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header bg-warning text-dark border-0 py-3">
+                <h5 class="modal-title fw-bold"><i class="bi bi-question-circle me-2"></i>باركود غير معروف</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 text-center">
+                <div class="mb-4">
+                    <div class="display-4 text-warning mb-2"><i class="bi bi-upc-scan"></i></div>
+                    <h6 class="fw-bold mb-1">الباركود المسحوح: <span id="unknownBarcodeDisplay" class="text-primary"></span></h6>
+                    <p class="text-muted small">هذا الباركود غير مسجل في قاعدة البيانات. ماذا تريد أن تفعل؟</p>
+                </div>
+                
+                <div class="d-grid gap-3">
+                    <div class="card border border-primary-subtle bg-primary-subtle bg-opacity-10 rounded-4 overflow-hidden">
+                        <div class="card-body p-3">
+                            <h6 class="text-primary fw-bold mb-3 small text-start">الخيار (أ): ربط الباركود بصنف موجود</h6>
+                            <select id="linkItemDropdown" class="form-select select2-modal w-100" data-placeholder="ابحث عن صنف لربطه..."></select>
+                            <button type="button" class="btn btn-primary w-100 mt-3 rounded-pill fw-bold" onclick="linkBarcodeToItem()">
+                                <i class="bi bi-link-45deg me-1"></i> ربط وإضافة للفاتورة
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="text-muted small py-1">--- أو ---</div>
+
+                    <button type="button" class="btn btn-outline-dark w-100 py-3 rounded-4 border-2 fw-bold" onclick="createNewItemWithBarcode()">
+                        <i class="bi bi-plus-circle me-2"></i> الخيار (ب): إنشاء صنف جديد بهذا الباركود
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pb-4">
+                <button type="button" class="btn btn-light rounded-pill px-4 mx-auto" data-bs-dismiss="modal">إلغاء</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<template id="rowTemplate">
+    <partial name="_PharmacyLineItem" view-data='@new ViewDataDictionary(ViewData) { { "Mode", "purchase" } }' />
+</template>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="~/js/pharmacy-transaction.js"></script>
+    <script src="~/js/barcode-scanner.js"></script>
+    <script src="~/js/erp-barcode-scanner.js"></script>
+    <script>
+        var itemLookup = @Html.Raw(Json.Serialize(Model.ItemLookup));
+
+        // Initialize Global Interceptor
+        $(function() {
+            initializeGlobalScanner(function(barcode, unlock) {
+                processGlobalScan(barcode, unlock);
+            });
+        });
+
+        // ─── Shared UI Helpers (mirroring Sales exactly) ───
+
+        function setStatus(type, text) {
+            var el = $('#scanStatus');
+            var zone = $('#scannerZone');
+            el.removeClass('success error');
+            zone.removeClass('pos-flash-success pos-flash-error');
+
+            if (type === 'ready') el.html('<i class="bi bi-wifi"></i> ' + (text || 'جاهز'));
+            else if (type === 'success') {
+                el.addClass('success').html('<i class="bi bi-check-circle-fill"></i> ' + (text || 'تمت الإضافة'));
+                zone.addClass('pos-flash-success');
+            } else if (type === 'error') {
+                el.addClass('error').html('<i class="bi bi-exclamation-triangle-fill"></i> ' + (text || 'غير موجود'));
+                zone.addClass('pos-flash-error');
+            }
+
+            if (type !== 'ready') {
+                setTimeout(() => {
+                    setStatus('ready');
+                    zone.removeClass('pos-flash-success pos-flash-error');
+                }, 2000);
+            }
+        }
+
+        function updateScanCount() {
+            $('#scanCount').text(PharmacyTransaction.getLineCount());
+        }
+
+        function formatNumber(val, digits) {
+            var num = parseFloat(val);
+            if (isNaN(num)) return '0.00';
+            return num.toLocaleString('en-US', { minimumFractionDigits: digits || 2, maximumFractionDigits: digits || 2 });
+        }
+
+        function updateEstimatedTotalQuick() {
+            var total = 0;
+            $('#linesBody .line-total-display').each(function () {
+                var numeric = parseFloat(($(this).text() || '0').replace(/,/g, ''));
+                if (!isNaN(numeric)) total += numeric;
+            });
+            $('#estimatedTotal').text(formatNumber(total));
+        }
+
+        function updateLineTotal($row) {
+            var qty = parseFloat($row.find('.qty-input').val()) || 0;
+            var price = parseFloat($row.find('.purchase-price-input, [data-field="PurchasePrice"]').val()) || 0;
+            $row.find('.line-total-display').text(formatNumber(qty * price));
+            updateEstimatedTotalQuick();
+        }
+
+        function highlightLine($row) {
+            $row.addClass('is-scan-hit');
+            setTimeout(() => $row.removeClass('is-scan-hit'), 800);
+        }
+
+        function getDefaultExpiryDate() {
+            var d = new Date();
+            d.setFullYear(d.getFullYear() + 2);
+            return d.toISOString().split('T')[0];
+        }
+
+        function escapeHtml(text) {
+            return text ? text.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])) : '';
+        }
+
+        // ─── Init ───
+
+        $(function () {
+            $('.select2-header').select2({ theme: 'bootstrap-5', width: '100%', dir: 'rtl' });
+
+            // Initialize Modal Select2
+            $('#linkItemDropdown').select2({
+                theme: 'bootstrap-5',
+                width: '100%',
+                dir: 'rtl',
+                dropdownParent: $('#unknownBarcodeModal'),
+                ajax: {
+                    url: '/PharmacyItems/Search',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function (params) { return { query: params.term }; },
+                    processResults: function (data) {
+                        return {
+                            results: data.map(i => ({
+                                id: i.id,
+                                text: i.name + ' (' + i.unit + ')',
+                                unit: i.unit
+                            }))
+                        };
+                    },
+                    cache: true
+                },
+                minimumInputLength: 1
+            });
+
+            PharmacyTransaction.init({
+                mode: 'purchase',
+                formId: '#purchaseForm',
+                tableBodyId: '#linesBody',
+                rowTemplateId: '#rowTemplate',
+                emptyContainerId: '#emptyContainer',
+                grandTotalId: '#estimatedTotal',
+                callbacks: {
+                    calculateLineTotal: function ($row) {
+                        updateLineTotal($row);
+                    },
+                    onRowAdded: function ($newRow, prefillData) {
+                        var $select = $newRow.find('.item-select');
+                        var optionsHtml = itemLookup.map(i => `<option value="${i.id || i.Id}">${i.name || i.Name}</option>`).join('');
+                        $select.append(optionsHtml);
+
+                        var $expiry = $newRow.find('[data-field="ExpiryDate"]');
+                        $expiry.val(prefillData?.expiryDate || prefillData?.ExpiryDate || getDefaultExpiryDate());
+
+                        var itemId = prefillData?.itemId || prefillData?.ItemId;
+                        var qty = prefillData?.quantity || prefillData?.Quantity || 1;
+                        var price = prefillData?.purchasePrice || prefillData?.PurchasePrice || prefillData?.defaultPurchasePrice || prefillData?.DefaultPurchasePrice;
+                        var barcode = prefillData?.barcode || prefillData?.Barcode;
+
+                        if (itemId) {
+                            $select.val(itemId).trigger('change');
+                        }
+                        $newRow.find('.qty-input').val(qty);
+                        if (price) {
+                            $newRow.find('[data-field="PurchasePrice"]').val(parseFloat(price).toFixed(2));
+                        }
+                        if (barcode) {
+                            $newRow.attr('data-barcode', barcode);
+                            $newRow.find('[data-field="Barcode"]').val(barcode);
+                        }
+
+                        updateLineTotal($newRow);
+                        highlightLine($newRow);
+                        updateScanCount();
+
+                        setTimeout(() => $('#barcodeInput').focus(), 50);
+                    },
+                    onRowRemoved: function() {
+                        updateScanCount();
+                        updateEstimatedTotalQuick();
+                    }
+                }
+            });
+
+            var modelLines = @Html.Raw(Json.Serialize(Model.Lines));
+            if (modelLines && modelLines.length > 0) {
+                modelLines.forEach(function(l) {
+                    PharmacyTransaction.addRow({
+                        itemId: l.itemId,
+                        quantity: l.quantity,
+                        purchasePrice: l.purchasePrice,
+                        barcode: l.barcode,
+                        expiryDate: l.expiryDate ? l.expiryDate.substring(0, 10) : ''
+                    });
+                });
+            } else if ($('#linesBody .erp-line-row').length === 0) {
+                PharmacyTransaction.addRow({ quantity: 1 });
+            }
+
+            // Global Sticky Focus
+            $(document).on('click', function (e) {
+                if (!$(e.target).is('input, select, textarea, .select2-search__field, button')) {
+                    if (!$('#unknownBarcodeModal').hasClass('show')) {
+                        $('#barcodeInput').focus();
+                    }
+                }
+            });
+
+        });
+
+        var isProcessingScan = false;
+
+        function processGlobalScan(barcode, unlock) {
+            // Highlight the scanner box for visual feedback
+            $('#barcodeInput').val(barcode).addClass('pos-flash-success');
+            setTimeout(() => $('#barcodeInput').removeClass('pos-flash-success'), 500);
+            
+            lookupBarcode(barcode, unlock);
+        }
+
+        function lookupBarcode(barcode, unlock) {
+            var finalBarcode = (barcode || "").trim();
+            if (!finalBarcode) {
+                if (unlock) unlock();
+                return;
+            }
+
+            if (finalBarcode.length < 3) {
+                // Keep ready status but maybe show hint
+                if (unlock) unlock();
+                return;
+            }
+
+            if (isProcessingScan) return;
+            isProcessingScan = true;
+
+            // Clear input immediately to prevent double-submissions
+            $('#barcodeInput').val('').blur();
+            setStatus('ready', 'جاري البحث...');
+
+            BarcodeScanner.processScan(finalBarcode, {
+                lookupUrl: '/PharmacyPurchases/LookupByBarcode',
+                findRowByBarcode: function (bc) {
+                    var found = null;
+                    $('#linesBody .erp-line-row').each(function() {
+                        if (($(this).attr('data-barcode') || '').toLowerCase() === bc.toLowerCase()) {
+                            found = $(this); return false;
+                        }
+                    });
+                    return found;
+                },
+                findActiveOrEmptyRow: function () {
+                    return PharmacyTransaction.getActiveRow();
+                },
+                createNewRow: function () {
+                    return PharmacyTransaction.addRow();
+                },
+                fillRow: function ($row, data, bc) {
+                    if (!$row || !$row.length) return;
+                    var itemId = data.itemId || data.ItemId;
+                    var price = data.purchasePrice || data.PurchasePrice;
+                    var expiryDate = data.expiryDate || data.ExpiryDate || '';
+
+                    $row.attr('data-barcode', bc);
+                    $row.find('[data-field="Barcode"]').val(bc);
+                    if (itemId) $row.find('.item-select').val(itemId).trigger('change');
+                    $row.find('.qty-input').val(1);
+                    if (price) $row.find('[data-field="PurchasePrice"]').val(parseFloat(price).toFixed(2));
+                    if (expiryDate) $row.find('[data-field="ExpiryDate"]').val(expiryDate);
+                    
+                    updateLineTotal($row);
+                    highlightLine($row);
+                },
+                incrementQuantity: function ($row) {
+                    var $qty = $row.find('.qty-input');
+                    $qty.val((parseFloat($qty.val()) || 0) + 1).trigger('change');
+                    highlightLine($row);
+                },
+                onSuccess: function (type, $row, bc, data) {
+                    isProcessingScan = false;
+                    var name = data?.itemName || data?.ItemName || 'تم بنجاح';
+                    setStatus('success', name);
+                    setTimeout(function () { $('#barcodeInput').val('').focus(); }, 50);
+                    if (unlock) unlock();
+                },
+                onError: function (err, bc, $row) {
+                    isProcessingScan = false;
+                    if (err === 'not_found' && bc) {
+                        showUnknownBarcodeModal(bc, unlock);
+                    } else {
+                        setStatus('error', 'خطأ في المسح');
+                        setTimeout(function () { $('#barcodeInput').val('').focus(); }, 50);
+                        if (unlock) unlock();
+                    }
+                }
+            });
+        }
+
+        function showUnknownBarcodeModal(barcode, unlock) {
+            $('#unknownBarcodeDisplay').text(barcode);
+            $('#linkItemDropdown').val(null).trigger('change');
+            var modal = new bootstrap.Modal(document.getElementById('unknownBarcodeModal'));
+            modal.show();
+            
+            $('#unknownBarcodeModal').on('hidden.bs.modal', function () {
+                $('#barcodeInput').val('').focus();
+                if (unlock) unlock();
+                $(this).off('hidden.bs.modal');
+            });
+        }
+
+        function linkBarcodeToItem() {
+            var barcode = $('#unknownBarcodeDisplay').text();
+            var itemId = $('#linkItemDropdown').val();
+            
+            if (!itemId) {
+                Swal.fire({ icon: 'warning', title: 'تنبيه', text: 'الرجاء اختيار صنف لربطه' });
+                return;
+            }
+
+            $.post('/PharmacyPurchases/AssignBarcode', { barcode: barcode, itemId: itemId }, function(res) {
+                if (res.success) {
+                    bootstrap.Modal.getInstance(document.getElementById('unknownBarcodeModal')).hide();
+                    PharmacyTransaction.addRow(res.data);
+                    setStatus('success', 'تم الربط إضافة الصنف');
+                } else {
+                    Swal.fire({ icon: 'error', title: 'خطأ', text: res.message || 'تعذر ربط الصنف' });
+                }
+            });
+        }
+
+        function createNewItemWithBarcode() {
+            var barcode = $('#unknownBarcodeDisplay').text();
+            bootstrap.Modal.getInstance(document.getElementById('unknownBarcodeModal')).hide();
+            window.open('/PharmacyItems?newBarcode=' + encodeURIComponent(barcode), '_blank');
+        }
+
+        function handleBarcodeScan() {
+            lookupBarcode($('#barcodeInput').val()?.trim());
+        }
+
+        // Generate barcode button listener
+        $(document).on('click', '.btn-generate-barcode', function () {
+            var $btn = $(this);
+            var $row = $btn.closest('.erp-line-row');
+            var $barcodeInput = $row.find('[data-field="Barcode"]');
+            $btn.prop('disabled', true);
+            $.get('/PharmacyPurchases/GetNextBarcode', function (res) {
+                var success = res.success || res.Success;
+                var barcode = res.barcode || res.Barcode;
+                if (success) {
+                    $barcodeInput.val(barcode).trigger('change');
+                    $row.attr('data-barcode', barcode);
+                    highlightLine($row);
+                } else {
+                    Swal.fire({ icon: 'error', title: 'خطأ', text: res.message || 'تعذر توليد الباركود' });
+                }
+            }).always(function () {
+                $btn.prop('disabled', false);
+            });
+        });
+    </script>
+}

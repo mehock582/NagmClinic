@@ -1,0 +1,35 @@
+@model NagmClinic.ViewModels.EditUserRoleViewModel
+
+<form asp-action="Edit" method="post" id="editUserForm">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="UserId" />
+    <input type="hidden" asp-for="Email" />
+    
+    <div class="text-center mb-4">
+        <div class="avatar-circle mx-auto bg-primary-subtle text-primary fw-bold shadow-sm mb-2" style="width:50px; height:50px; font-size:1.4rem; display:flex; align-items:center; justify-content:center; border-radius:50%;">
+            @Model.Email[0].ToString().ToUpper()
+        </div>
+        <div class="fw-bold">@Model.Email</div>
+    </div>
+
+    <div class="mb-4">
+        <label asp-for="SelectedRole" class="form-label d-block fw-bold small text-center mb-3">تعديل الدور الصلاحي:</label>
+        <div class="d-flex flex-wrap justify-content-center gap-2">
+            @foreach (var role in (SelectList)ViewBag.Roles)
+            {
+                <div class="role-option">
+                    <input type="radio" class="btn-check" asp-for="SelectedRole" value="@role.Value" id="role_@role.Value" autocomplete="off" checked="@(role.Value == Model.SelectedRole)">
+                    <label class="btn btn-outline-primary btn-sm rounded-pill px-3" for="role_@role.Value">@role.Text</label>
+                </div>
+            }
+        </div>
+        <span asp-validation-for="SelectedRole" class="text-danger small mt-2 d-block text-center"></span>
+    </div>
+
+    <div class="modal-footer border-0 px-0 pb-0 mt-3">
+        <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">إلغاء</button>
+        <button type="submit" class="btn btn-primary rounded-pill px-4">
+            <i class="bi bi-shield-check me-1"></i> حفظ التغييرات
+        </button>
+    </div>
+</form>

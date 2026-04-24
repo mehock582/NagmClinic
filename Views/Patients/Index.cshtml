@@ -147,25 +147,7 @@
                     "data": "id",
                     "orderable": false,
                     "render": function (data, type, row) {
-                        return `
-                            <div class="action-group">
-                                <a href="/Patients/Details/${data}" class="btn-action btn-action-info" data-label="ملف المريض">
-                                    <i class="bi bi-file-earmark-person"></i>
-                                </a>
-                                <button type="button" class="btn-action btn-action-warning"
-                                        onclick="openEditModal(this)"
-                                        data-id="${data}"
-                                        data-name="${row.fullName}"
-                                        data-phone="${row.phoneNumber}"
-                                        data-age="${row.age}"
-                                        data-gender="${row.gender}"
-                                        data-address="${row.address || ''}"
-                                        data-active="${row.isActive}"
-                                        data-label="تعديل البيانات">
-                                    <i class="bi bi-pencil-fill"></i>
-                                </button>
-                            </div>
-                        `;
+                        return renderActionButtons(data, '/Patients');
                     }
                 }
             ];

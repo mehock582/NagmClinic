@@ -13,5 +13,6 @@ namespace NagmClinic.Services.Pharmacy
         Task<PharmacySale?> GetSaleDetailsAsync(int id);
         Task<PharmacySaleCreateViewModel> BuildCreateViewModelAsync();
         Task<SaleExecutionResult> ExecuteSaleAsync(PharmacySaleCreateViewModel model);
+        Task<SaleExecutionResult> EditSaleAsync(PharmacySaleEditViewModel model);
     }
 }

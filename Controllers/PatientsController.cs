@@ -11,7 +11,7 @@ using NagmClinic.Services.Patients;
 
 namespace NagmClinic.Controllers
 {
-    public class PatientsController : Controller
+    public class PatientsController : BaseController
     {
         private readonly IPatientService _patientService;
 
@@ -69,7 +69,7 @@ namespace NagmClinic.Controllers
                 var result = await _patientService.CreatePatientAsync(patient);
                 if (result.Success)
                 {
-                    TempData["SuccessMessage"] = result.Message;
+                    ShowAlert(result.Message);
                     return RedirectToAction(nameof(Index));
                 }
                 
@@ -100,7 +100,7 @@ namespace NagmClinic.Controllers
                 var result = await _patientService.UpdatePatientAsync(patient);
                 if (result.Success)
                 {
-                    TempData["SuccessMessage"] = result.Message;
+                    ShowAlert(result.Message);
                     return RedirectToAction(nameof(Index));
                 }
 
@@ -153,6 +153,23 @@ namespace NagmClinic.Controllers
             {
                 return Json(new { success = false, message = "حدث خطأ داخلي: " + ex.Message });
             }
+        }
+
+        // POST: Patients/Delete/5
+        [HttpPost, ActionName("Delete")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteConfirmed(int id)
+        {
+            var result = await _patientService.SoftDeletePatientAsync(id);
+            if (result.Success)
+            {
+                ShowAlert(result.Message);
+            }
+            else
+            {
+                ShowAlert(result.Message, "error");
+            }
+            return RedirectToAction(nameof(Index));
         }
     }
 }
