@@ -10,113 +10,132 @@
 
 <link href="~/css/pharmacy-transaction.css" rel="stylesheet" />
 
-<div class="container-fluid erp-transaction-page px-0">
+<div class="container-fluid px-1 pb-5 mb-5 pharmacy-pos-page">
     <form asp-action="Create" id="purchaseForm" novalidate>
         @Html.AntiForgeryToken()
-        
-        @* ── POS Header: Scanner & Fixed Controls ── *@
-        <div class="pos-header-container sticky-top py-3 px-4 mb-4">
-            <div class="row align-items-center g-3">
-                <div class="col-xl-7">
-                    <div class="pos-scanner-zone" id="scannerZone">
-                        <div class="pos-scanner-icon-btn">
-                            <i class="bi bi-upc-scan"></i>
+        <div class="row g-3 mt-2">
+            @* ── Left Side: Scanner & Line Items ── *@
+            <div class="col-12 col-lg-8 col-xl-9 col-xxl-10">
+                <div class="card shadow-sm border-0 rounded-4 mb-3">
+                    <div class="card-body p-3 p-md-4">
+                        
+                        @* ── POS Header: Scanner & Fixed Controls ── *@
+                        <div class="pos-header-container sticky-top py-3 px-2 px-md-4 bg-white rounded-4 shadow-sm mb-4">
+                            <div class="row g-2 align-items-center">
+                                <div class="col-12 col-md">
+                                    <div class="pos-scanner-zone" id="scannerZone">
+                                        <div class="pos-scanner-icon-btn d-none d-md-flex">
+                                            <i class="bi bi-upc-scan"></i>
+                                        </div>
+                                        <div class="pos-scanner-input-wrap w-100">
+                                            <input type="text" id="barcodeInput"
+                                                   class="pos-scanner-input main-barcode-search w-100"
+                                                   placeholder="امسح الباركود أو أدخله يدوياً ثم اضغط Enter"
+                                                   autocomplete="off" />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-auto">
+                                    <button type="button" class="btn btn-primary rounded-pill px-4 fw-bold w-100" onclick="lookupBarcode($('#barcodeInput').val())">بحث</button>
+                                </div>
+                                <div class="col-12 col-md-auto">
+                                    <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3 w-100" onclick="PharmacyTransaction.addRow()">
+                                        <i class="bi bi-plus-lg me-1"></i> إضافة بند يدوي
+                                    </button>
+                                </div>
+                                <div class="col-12 col-md-auto ms-md-auto d-none d-md-flex align-items-center gap-2">
+                                    <div class="pos-status-badge" id="scanStatus">
+                                        <i class="bi bi-wifi"></i> جاهز
+                                    </div>
+                                    <div class="badge bg-primary-subtle text-primary border border-primary px-3 py-2 rounded-pill fw-bold">
+                                        <i class="bi bi-receipt me-2"></i>عدد البنود: <span id="scanCount">@lines.Count</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-2 text-muted ps-2 d-none d-md-block text-center" style="font-size: 0.75rem;">
+                                <i class="bi bi-info-circle me-1 text-primary"></i> يدعم: ماسح USB، بلوتوث، لاسلكي، هاتف كماسح — أي جهاز يرسل النص يدوياً.
+                            </div>
                         </div>
-                        <div class="pos-scanner-input-wrap">
-                            <input type="text" id="barcodeInput"
-                                   class="pos-scanner-input main-barcode-search"
-                                   placeholder="امسح الباركود أو أدخله يدوياً ثم اضغط Enter"
-                                   autocomplete="off" />
+
+                        @* ── POS Purchase Lines ── *@
+                        <div class="container-fluid px-0">
+
+                            
+                            <div class="pos-line-header pos-line-header--purchase row d-none d-lg-flex align-items-center g-1 mb-1 px-3 text-muted small text-nowrap">
+                                <div class="pos-col-item col-lg-3">الصنف</div>
+                                <div class="pos-col-qty col-lg-2 text-center">الكمية</div>
+                                <div class="pos-col-price col-lg-2 text-center">سعر الشراء</div>
+                                <div class="pos-col-details col-lg-2 text-center">الصلاحية / الباركود</div>
+                                <div class="pos-col-total col-lg-2 text-center">الإجمالي</div>
+                                <div class="pos-col-actions col-lg-1 text-end">الإجراءات</div>
+                            </div>
+
+                            <div id="linesBody" class="pos-lines-container">
+                                @for (int i = 0; i < lines.Count; i++)
+                                {
+                                    <partial name="_PharmacyLineItem" view-data='@new ViewDataDictionary(ViewData) { { "Mode", "purchase" }, { "Index", i } }' />
+                                }
+                            </div>
+
+                            <div id="emptyContainer" class="erp-empty pos-fade-in py-5 rounded-5 border-2 shadow-inner" style="@(lines.Count == 0 ? "" : "display:none;") background: #fff;">
+                                <i class="bi bi-cart-x fs-1 d-block mb-3 text-primary opacity-25"></i>
+                                <h5 class="fw-bold text-muted">الفاتورة فارغة</h5>
+                                <p class="small text-secondary">اضغط "إضافة بند يدوي" أو امسح الباركود مباشرة</p>
+                                <div id="linesClientValidation" class="text-danger mt-3 fw-bold"></div>
+                            </div>
                         </div>
-                        <button type="button" class="btn btn-primary rounded-pill px-4 fw-bold" onclick="lookupBarcode($('#barcodeInput').val())">بحث</button>
-                        <div class="pos-status-badge ms-2" id="scanStatus">
-                            <i class="bi bi-wifi"></i> جاهز
-                        </div>
-                    </div>
-                    <div class="mt-2 text-muted ps-2 d-none d-md-block" style="font-size: 0.75rem;">
-                        <i class="bi bi-info-circle me-1 text-primary"></i> يدعم: ماسح USB، بلوتوث، لاسلكي، هاتف كماسح — أي جهاز يرسل النص يدوياً.
-                    </div>
-                </div>
-                <div class="col-xl-5 text-end">
-                    <div class="d-flex justify-content-end align-items-center gap-2">
-                        <div class="badge bg-primary-subtle text-primary border border-primary px-3 py-2 rounded-pill fw-bold">
-                            <i class="bi bi-receipt me-2"></i>عدد البنود: <span id="scanCount">@lines.Count</span>
-                        </div>
-                        <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3" onclick="PharmacyTransaction.addRow()">
-                            <i class="bi bi-plus-lg me-1"></i> إضافة بند يدوي
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        @* ── POS Metadata Section ── *@
-        <div class="container-fluid px-4 mb-4">
-            <div class="pos-meta-row shadow-sm">
-                <div class="pos-meta-group" style="flex: 1.5;">
-                    <label asp-for="SupplierId" class="pos-meta-label">المورد</label>
-                    <select asp-for="SupplierId" class="pos-meta-input select2-header">
-                        <option value="0">-- اختر المورد --</option>
-                        @if (suppliers != null) {
-                            @foreach (var s in suppliers) {
-                                <option value="@s.Id">@s.Name</option>
-                            }
-                        }
-                    </select>
-                </div>
-                <div class="pos-meta-group">
-                    <label asp-for="PurchaseDate" class="pos-meta-label">تاريخ الشراء</label>
-                    <input asp-for="PurchaseDate" asp-format="{0:yyyy-MM-ddTHH:mm}" type="datetime-local" class="pos-meta-input" />
-                </div>
-                <div class="pos-meta-group">
-                    <label asp-for="InvoiceNumber" class="pos-meta-label">رقم المرجع (Invoice)</label>
-                    <input asp-for="InvoiceNumber" class="pos-meta-input" placeholder="INV-0001" />
-                </div>
-                <div class="pos-meta-group" style="flex: 2;">
-                    <label asp-for="Notes" class="pos-meta-label">ملاحظات</label>
-                    <input asp-for="Notes" class="pos-meta-input" placeholder="ملاحظات اختيارية..." />
-                </div>
-            </div>
-            <div asp-validation-summary="ModelOnly" class="alert alert-danger border-0 rounded-4 p-2 mt-3 small shadow-sm"></div>
-        </div>
-
-        @* ── POS Purchase Lines ── *@
-        <div class="container-fluid px-4">
-            <h6 class="text-primary fw-bolder mb-3"><i class="bi bi-cart-check me-2"></i>بنود الفاتورة</h6>
-            
-            <div id="linesBody" class="pos-lines-container">
-                @for (int i = 0; i < lines.Count; i++)
-                {
-                    <partial name="_PharmacyLineItem" view-data='@new ViewDataDictionary(ViewData) { { "Mode", "purchase" }, { "Index", i } }' />
-                }
-            </div>
-
-            <div id="emptyContainer" class="erp-empty pos-fade-in py-5 rounded-5 border-2 shadow-inner" style="@(lines.Count == 0 ? "" : "display:none;") background: #fff;">
-                <i class="bi bi-cart-x fs-1 d-block mb-3 text-primary opacity-25"></i>
-                <h5 class="fw-bold text-muted">الفاتورة فارغة</h5>
-                <p class="small text-secondary">اضغط "إضافة بند يدوي" أو امسح الباركود مباشرة</p>
-                <div id="linesClientValidation" class="text-danger mt-3 fw-bold"></div>
-            </div>
-        </div>
-
-        @* ── POS Action Footer (Sticky) ── *@
-        <div class="pos-footer">
-            <div class="pos-footer-summary">
-                <div class="pos-grand-total">
-                    <span class="pos-total-label"><i class="bi bi-wallet2 me-1"></i>إجمالي المشتريات</span>
-                    <div class="d-flex align-items-baseline gap-2">
-                        <span class="pos-total-amount" id="estimatedTotal">0.00</span>
-                        <span class="pos-line-total-currency">ج.س</span>
                     </div>
                 </div>
             </div>
-            <div class="pos-actions">
-                <a asp-action="Index" class="btn btn-pos btn-outline-secondary">
-                    <i class="bi bi-arrow-right"></i> رجوع
-                </a>
-                <button type="submit" class="btn btn-pos btn-pos-primary btn-lg shadow">
-                    <i class="bi bi-save2"></i> حفظ فاتورة الشراء
-                </button>
+
+            @* ── Right Side: Metadata & Actions ── *@
+            <div class="col-12 col-lg-4 col-xl-3 col-xxl-2 pos-details-panel">
+                <div class="card shadow-sm border-0 rounded-4 pos-details-card" style="position: sticky; top: 20px;">
+                    <div class="card-body p-2 p-md-3">
+                        <h6 class="text-primary fw-bolder mb-3 small"><i class="bi bi-info-circle me-2"></i>تفاصيل الفاتورة</h6>
+                        
+                        <div class="mb-2 pos-details-field">
+                            <label asp-for="SupplierId" class="form-label small mb-1">المورد</label>
+                            <select asp-for="SupplierId" class="form-control form-control-sm select2-header">
+                                <option value="0">-- اختر المورد --</option>
+                                @if (suppliers != null) {
+                                    @foreach (var s in suppliers) {
+                                        <option value="@s.Id">@s.Name</option>
+                                    }
+                                }
+                            </select>
+                            <span asp-validation-for="SupplierId" class="text-danger small"></span>
+                        </div>
+                        <div class="mb-2 pos-details-field">
+                            <label asp-for="PurchaseDate" class="form-label small mb-1">تاريخ الشراء</label>
+                            <input asp-for="PurchaseDate" asp-format="{0:yyyy-MM-ddTHH:mm}" type="datetime-local" class="form-control form-control-sm" />
+                            <span asp-validation-for="PurchaseDate" class="text-danger small"></span>
+                        </div>
+                        <div class="mb-2 pos-details-field">
+                            <label asp-for="InvoiceNumber" class="form-label small mb-1">رقم الفاتورة</label>
+                            <input asp-for="InvoiceNumber" class="form-control form-control-sm" placeholder="INV-0001" />
+                            <span asp-validation-for="InvoiceNumber" class="text-danger small"></span>
+                        </div>
+                        <input type="hidden" asp-for="Notes" />
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger border-0 rounded-4 p-2 mt-2 small shadow-sm"></div>
+
+                        <div class="bg-light rounded-3 p-2 text-center mt-3 mb-2 pos-total-compact">
+                            <span class="text-muted d-block mb-0" style="font-size:0.75rem;">الإجمالي التقديري</span>
+                            <h4 class="text-primary fw-bold mb-0" id="estimatedTotal">
+                                0.00 <span class="fs-6 text-muted">ج.س</span>
+                            </h4>
+                        </div>
+
+                        <div class="d-grid gap-2 pos-actions-compact">
+                            <button type="submit" class="btn btn-primary btn-sm shadow-sm fw-bold">
+                                <i class="bi bi-save2"></i> حفظ الفاتورة
+                            </button>
+                            <a class="btn btn-outline-secondary btn-sm" href="/PharmacyPurchases">
+                                <i class="bi bi-arrow-right"></i> رجوع
+                            </a>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </form>
@@ -214,11 +233,7 @@
             $('#scanCount').text(PharmacyTransaction.getLineCount());
         }
 
-        function formatNumber(val, digits) {
-            var num = parseFloat(val);
-            if (isNaN(num)) return '0.00';
-            return num.toLocaleString('en-US', { minimumFractionDigits: digits || 2, maximumFractionDigits: digits || 2 });
-        }
+
 
         function updateEstimatedTotalQuick() {
             var total = 0;
@@ -310,7 +325,7 @@
                         }
                         $newRow.find('.qty-input').val(qty);
                         if (price) {
-                            $newRow.find('[data-field="PurchasePrice"]').val(parseFloat(price).toFixed(2));
+                            $newRow.find('[data-field="PurchasePrice"]').val(Number(parseFloat(price).toFixed(2)));
                         }
                         if (barcode) {
                             $newRow.attr('data-barcode', barcode);
@@ -342,6 +357,37 @@
                     }
                 }
             });
+
+            // Zero-Mouse POS hotkeys
+            $(document)
+                .off('keydown.posHotkeys')
+                .on('keydown.posHotkeys', function (e) {
+                    const isEditable =
+                        $(e.target).is('input, textarea, select') ||
+                        $(e.target).hasClass('select2-search__field') ||
+                        $(e.target).closest('.modal.show').length > 0;
+
+                    if (isEditable) return;
+
+                    if (e.key === 'F2' || e.key === 'F4' || e.key === 'F10') {
+                        e.preventDefault();
+                    }
+
+                    switch (e.key) {
+                        case 'F2':
+                            $('#barcodeInput').focus().select();
+                            break;
+                        case 'F4':
+                            PharmacyTransaction.addRow();
+                            break;
+                        case 'F10':
+                            var $saveBtn = $('button[type="submit"]');
+                            if ($saveBtn.length && !$saveBtn.prop('disabled')) {
+                                $saveBtn.trigger('click');
+                            }
+                            break;
+                    }
+                });
 
         });
 
@@ -402,7 +448,7 @@
                     $row.find('[data-field="Barcode"]').val(bc);
                     if (itemId) $row.find('.item-select').val(itemId).trigger('change');
                     $row.find('.qty-input').val(1);
-                    if (price) $row.find('[data-field="PurchasePrice"]').val(parseFloat(price).toFixed(2));
+                    if (price) $row.find('[data-field="PurchasePrice"]').val(Number(parseFloat(price).toFixed(2)));
                     if (expiryDate) $row.find('[data-field="ExpiryDate"]').val(expiryDate);
                     
                     updateLineTotal($row);

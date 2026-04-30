@@ -30,8 +30,41 @@ namespace NagmClinic.Services.Pharmacy
                 query = query.Where(p => (p.InvoiceNumber != null && p.InvoiceNumber.Contains(searchValue)) || (p.Supplier != null && p.Supplier.Name.Contains(searchValue)));
             
             int recordsTotal = await query.CountAsync();
+
+            // Dynamic Sorting
+            if (dtParams.Order != null && dtParams.Order.Any())
+            {
+                var order = dtParams.Order.First();
+                var direction = order.Dir.ToLower() == "asc" ? "asc" : "desc";
+
+                switch (order.Column)
+                {
+                    case 0:
+                        query = direction == "asc" ? query.OrderBy(p => p.InvoiceNumber).ThenBy(p => p.Id) : query.OrderByDescending(p => p.InvoiceNumber).ThenByDescending(p => p.Id);
+                        break;
+                    case 1:
+                        query = direction == "asc" ? query.OrderBy(p => p.PurchaseDate) : query.OrderByDescending(p => p.PurchaseDate);
+                        break;
+                    case 2:
+                        query = direction == "asc" ? query.OrderBy(p => p.Supplier!.Name) : query.OrderByDescending(p => p.Supplier!.Name);
+                        break;
+                    case 3:
+                        query = direction == "asc" ? query.OrderBy(p => p.Lines.Count) : query.OrderByDescending(p => p.Lines.Count);
+                        break;
+                    case 4:
+                        query = direction == "asc" ? query.OrderBy(p => p.TotalAmount) : query.OrderByDescending(p => p.TotalAmount);
+                        break;
+                    default:
+                        query = query.OrderByDescending(p => p.PurchaseDate);
+                        break;
+                }
+            }
+            else
+            {
+                query = query.OrderByDescending(p => p.PurchaseDate);
+            }
             
-            var data = await query.OrderByDescending(p => p.PurchaseDate).Skip(dtParams.Start).Take(dtParams.Length)
+            var data = await query.Skip(dtParams.Start).Take(dtParams.Length)
                 .Select(p => new
                 {
                     p.Id,

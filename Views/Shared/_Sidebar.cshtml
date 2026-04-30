@@ -40,13 +40,13 @@
     var isAdminGroupOpen = IsInControllers("Users");
 }
 
-<aside class="sidebar" id="sidebar">
+<aside class="sidebar offcanvas-md offcanvas-end bg-white shadow" id="mainSidebar" tabindex="-1">
     <div class="sidebar-header">
         <a class="sidebar-brand" asp-controller="Home" asp-action="Index">
             <span class="sidebar-brand-icon"><i class="bi bi-heart-pulse-fill"></i></span>
             <span class="sidebar-brand-text">@BrandingService.GetBranding().CenterNameAr</span>
         </a>
-        <button class="btn btn-link d-lg-none sidebar-close" type="button" onclick="toggleSidebar()" aria-label="إغلاق القائمة">
+        <button class="btn btn-link d-md-none sidebar-close" type="button" data-bs-dismiss="offcanvas" aria-label="إغلاق القائمة">
             <i class="bi bi-x-lg"></i>
         </button>
     </div>

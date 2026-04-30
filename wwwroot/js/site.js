@@ -1,26 +1,6 @@
 // Sidebar Toggle
 var SIDEBAR_MINI_KEY = 'nagmclinic.sidebarMini';
 
-function toggleSidebar() {
-    var sidebar = document.getElementById('sidebar');
-    var overlay = document.getElementById('sidebarOverlay');
-    if (!sidebar || !overlay) return;
-
-    sidebar.classList.toggle('open');
-    overlay.classList.toggle('show');
-}
-
-function closeSidebarOnMobile() {
-    if (window.innerWidth >= 992) return;
-
-    var sidebar = document.getElementById('sidebar');
-    var overlay = document.getElementById('sidebarOverlay');
-    if (!sidebar || !overlay) return;
-
-    sidebar.classList.remove('open');
-    overlay.classList.remove('show');
-}
-
 function applySidebarMiniPreference() {
     if (window.innerWidth >= 992 && localStorage.getItem(SIDEBAR_MINI_KEY) === '1') {
         document.body.classList.add('sidebar-mini');
@@ -59,13 +39,8 @@ document.addEventListener('DOMContentLoaded', function () {
         groupBody.addEventListener('hidden.bs.collapse', syncSidebarGroupState);
     });
 
-    document.querySelectorAll('#sidebar .nav-item').forEach(function (link) {
-        link.addEventListener('click', closeSidebarOnMobile);
-    });
-
     window.addEventListener('resize', function () {
         applySidebarMiniPreference();
-        closeSidebarOnMobile();
     });
 
     // Global Double-Submit Prevention
@@ -248,12 +223,26 @@ $(document).on('click', '[data-ajax-modal="true"]', function (e) {
     var title = $btn.attr('title') || $btn.data('title') || 'تعديل البيانات';
 
     $('#appModalLabel').text(title);
+    // Remove any previously relocated footer
+    $('#appModal .modal-content > .modal-footer').remove();
     $('#appModalBody').html('<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted">جاري تحميل البيانات...</p></div>');
     $('#appModal').modal('show');
 
     $.get(url, function (data) {
         $('#appModalBody').html(data);
-        
+
+        // Relocate .modal-footer to be a direct child of .modal-content
+        // so that modal-dialog-scrollable can pin it at the bottom
+        var $footer = $('#appModalBody').find('.modal-footer').detach();
+        if ($footer.length) {
+            $('#appModal .modal-content').append($footer);
+            // Re-associate submit buttons with their form via the form attribute
+            var formId = $('#appModalBody').find('form').attr('id');
+            if (formId) {
+                $footer.find('button[type="submit"]').attr('form', formId);
+            }
+        }
+
         // Finalize form in modal
         var $form = $('#appModalBody').find('form');
         
@@ -273,7 +262,8 @@ $(document).on('click', '[data-ajax-modal="true"]', function (e) {
                 if (!$form.valid()) return false;
             }
 
-            var $submitBtn = $form.find('button[type="submit"]');
+            // Search for submit button in the whole modal (it may be in the relocated footer)
+            var $submitBtn = $('#appModal').find('button[type="submit"]');
             var originalBtnHtml = $submitBtn.html();
             $submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span> جاري الحفظ...');
 
@@ -319,4 +309,9 @@ $(document).on('click', '[data-ajax-modal="true"]', function (e) {
     }).fail(function () {
         $('#appModalBody').html('<div class="alert alert-danger">فشل تحميل البيانات. يرجى المحاولة مرة أخرى.</div>');
     });
+});
+
+// Clean up relocated footer when modal closes
+$('#appModal').on('hidden.bs.modal', function () {
+    $(this).find('.modal-content > .modal-footer').remove();
 });

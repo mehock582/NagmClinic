@@ -10,54 +10,61 @@
 
 <link href="~/css/pharmacy-transaction.css" rel="stylesheet" />
 
-<div class="container-fluid erp-transaction-page px-0">
-    <form asp-action="Edit" id="purchaseForm" novalidate>
-        @Html.AntiForgeryToken()
-        <input type="hidden" asp-for="PurchaseId" />
-        <input type="hidden" asp-for="RowVersion" />
+<div class="container-fluid erp-transaction-page px-2 px-md-4 pb-5 mb-5">
+    <div class="row justify-content-center">
+        <div class="col-12 col-xxl-10">
+            <form asp-action="Edit" id="purchaseForm" novalidate>
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="PurchaseId" />
+                <input type="hidden" asp-for="RowVersion" />
+
+                <div class="card shadow-sm border-0 rounded-4 mt-3">
+                    <div class="card-body p-3 p-md-4">
         
         @* ── POS Header: Scanner & Fixed Controls ── *@
-        <div class="pos-header-container sticky-top py-3 px-4 mb-4">
-            <div class="row align-items-center g-3">
-                <div class="col-xl-7">
+        <div class="pos-header-container sticky-top py-3 px-2 px-md-4 bg-white rounded-4 shadow-sm mb-4">
+            <div class="row g-2 align-items-center">
+                <div class="col-12 col-md">
                     <div class="pos-scanner-zone" id="scannerZone">
-                        <div class="pos-scanner-icon-btn">
+                        <div class="pos-scanner-icon-btn d-none d-md-flex">
                             <i class="bi bi-upc-scan"></i>
                         </div>
-                        <div class="pos-scanner-input-wrap">
+                        <div class="pos-scanner-input-wrap w-100">
                             <input type="text" id="barcodeInput"
-                                   class="pos-scanner-input main-barcode-search"
+                                   class="pos-scanner-input main-barcode-search w-100"
                                    placeholder="امسح الباركود أو أدخله يدوياً ثم اضغط Enter"
                                    autocomplete="off" />
                         </div>
-                        <button type="button" class="btn btn-primary rounded-pill px-4 fw-bold" onclick="lookupBarcode($('#barcodeInput').val())">بحث</button>
-                        <div class="pos-status-badge ms-2" id="scanStatus">
-                            <i class="bi bi-wifi"></i> جاهز
-                        </div>
-                    </div>
-                    <div class="mt-2 text-muted ps-2 d-none d-md-block" style="font-size: 0.75rem;">
-                        <i class="bi bi-info-circle me-1 text-primary"></i> يدعم: ماسح USB، بلوتوث، لاسلكي، هاتف كماسح — أي جهاز يرسل النص يدوياً.
                     </div>
                 </div>
-                <div class="col-xl-5 text-end">
-                    <div class="d-flex justify-content-end align-items-center gap-2">
-                        <div class="badge bg-primary-subtle text-primary border border-primary px-3 py-2 rounded-pill fw-bold">
-                            <i class="bi bi-receipt me-2"></i>عدد البنود: <span id="scanCount">@lines.Count</span>
-                        </div>
-                        <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3" onclick="PharmacyTransaction.addRow()">
-                            <i class="bi bi-plus-lg me-1"></i> إضافة بند يدوي
-                        </button>
+                <div class="col-12 col-md-auto">
+                    <button type="button" class="btn btn-primary rounded-pill px-4 fw-bold w-100" onclick="lookupBarcode($('#barcodeInput').val())">بحث</button>
+                </div>
+                <div class="col-12 col-md-auto">
+                    <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3 w-100" onclick="PharmacyTransaction.addRow()">
+                        <i class="bi bi-plus-lg me-1"></i> إضافة بند يدوي
+                    </button>
+                </div>
+                <div class="col-12 col-md-auto ms-md-auto d-none d-md-flex align-items-center gap-2">
+                    <div class="pos-status-badge" id="scanStatus">
+                        <i class="bi bi-wifi"></i> جاهز
+                    </div>
+                    <div class="badge bg-primary-subtle text-primary border border-primary px-3 py-2 rounded-pill fw-bold">
+                        <i class="bi bi-receipt me-2"></i>عدد البنود: <span id="scanCount">@lines.Count</span>
                     </div>
                 </div>
+            </div>
+            <div class="mt-2 text-muted ps-2 d-none d-md-block" style="font-size: 0.75rem;">
+                <i class="bi bi-info-circle me-1 text-primary"></i> يدعم: ماسح USB، بلوتوث، لاسلكي، هاتف كماسح — أي جهاز يرسل النص يدوياً.
             </div>
         </div>
 
         @* ── POS Metadata Section ── *@
         <div class="container-fluid px-4 mb-4">
-            <div class="pos-meta-row shadow-sm">
-                <div class="pos-meta-group" style="flex: 1.5;">
-                    <label asp-for="SupplierId" class="pos-meta-label">المورد</label>
-                    <select asp-for="SupplierId" class="pos-meta-input select2-header">
+            <div class="row">
+                <div class="col-12 col-md-6 mb-3">
+                    <label asp-for="SupplierId" class="form-label">المورد</label>
+                    <select asp-for="SupplierId" class="form-control select2-header">
                         <option value="0">-- اختر المورد --</option>
                         @if (suppliers != null) {
                             @foreach (var s in suppliers) {
@@ -65,26 +72,35 @@
                             }
                         }
                     </select>
+                    <span asp-validation-for="SupplierId" class="text-danger"></span>
                 </div>
-                <div class="pos-meta-group">
-                    <label asp-for="PurchaseDate" class="pos-meta-label">تاريخ الشراء</label>
-                    <input asp-for="PurchaseDate" asp-format="{0:yyyy-MM-ddTHH:mm}" type="datetime-local" class="pos-meta-input" />
+                <div class="col-12 col-md-6 mb-3">
+                    <label asp-for="PurchaseDate" class="form-label">تاريخ الشراء</label>
+                    <input asp-for="PurchaseDate" asp-format="{0:yyyy-MM-ddTHH:mm}" type="datetime-local" class="form-control" />
+                    <span asp-validation-for="PurchaseDate" class="text-danger"></span>
                 </div>
-                <div class="pos-meta-group">
-                    <label asp-for="InvoiceNumber" class="pos-meta-label">رقم المرجع (Invoice)</label>
-                    <input asp-for="InvoiceNumber" class="pos-meta-input" placeholder="INV-0001" />
+                <div class="col-12 col-md-6 mb-3">
+                    <label asp-for="InvoiceNumber" class="form-label">رقم المرجع (Invoice)</label>
+                    <input asp-for="InvoiceNumber" class="form-control" placeholder="INV-0001" />
+                    <span asp-validation-for="InvoiceNumber" class="text-danger"></span>
                 </div>
-                <div class="pos-meta-group" style="flex: 2;">
-                    <label asp-for="Notes" class="pos-meta-label">ملاحظات</label>
-                    <input asp-for="Notes" class="pos-meta-input" placeholder="ملاحظات اختيارية..." />
-                </div>
+                <input type="hidden" asp-for="Notes" />
             </div>
             <div asp-validation-summary="ModelOnly" class="alert alert-danger border-0 rounded-4 p-2 mt-3 small shadow-sm"></div>
         </div>
 
         @* ── POS Purchase Lines ── *@
         <div class="container-fluid px-4">
-            <h6 class="text-primary fw-bolder mb-3"><i class="bi bi-cart-check me-2"></i>بنود الفاتورة</h6>
+
+
+            <div class="pos-line-header pos-line-header--purchase row d-none d-lg-flex align-items-center g-1 mb-1 px-3 text-muted small text-nowrap">
+                <div class="pos-col-item col-lg-3">الصنف</div>
+                <div class="pos-col-qty col-lg-2 text-center">الكمية</div>
+                <div class="pos-col-price col-lg-2 text-center">سعر الشراء</div>
+                <div class="pos-col-details col-lg-2 text-center">الصلاحية / الباركود</div>
+                <div class="pos-col-total col-lg-2 text-center">الإجمالي</div>
+                <div class="pos-col-actions col-lg-1 text-end">الإجراءات</div>
+            </div>
             
             <div id="linesBody" class="pos-lines-container">
             </div>
@@ -95,11 +111,13 @@
                 <p class="small text-secondary">اضغط "إضافة بند يدوي" أو امسح الباركود مباشرة</p>
                 <div id="linesClientValidation" class="text-danger mt-3 fw-bold"></div>
             </div>
+                </div>
+            </div>
         </div>
 
         @* ── POS Action Footer (Sticky) ── *@
-        <div class="pos-footer">
-            <div class="pos-footer-summary">
+        <div class="pos-footer py-2 py-md-4">
+            <div class="pos-footer-summary mb-2 mb-md-0">
                 <div class="pos-grand-total">
                     <span class="pos-total-label"><i class="bi bi-wallet2 me-1"></i>إجمالي المشتريات</span>
                     <div class="d-flex align-items-baseline gap-2">
@@ -108,16 +126,18 @@
                     </div>
                 </div>
             </div>
-            <div class="pos-actions">
-                <a asp-action="Index" class="btn btn-pos btn-outline-secondary">
+            <div class="pos-actions d-flex flex-column flex-md-row justify-content-end align-items-center gap-3 ms-auto">
+                <a class="btn btn-outline-secondary w-100 px-5" style="max-width: 250px;" href="/PharmacyPurchases">
                     <i class="bi bi-arrow-right"></i> رجوع
                 </a>
-                <button type="submit" class="btn btn-pos btn-pos-primary btn-lg shadow">
+                <button type="submit" class="btn btn-primary btn-lg shadow w-100 px-5" style="max-width: 300px;">
                     <i class="bi bi-save2"></i> حفظ التعديلات
                 </button>
             </div>
         </div>
     </form>
+        </div>
+    </div>
 </div>
 
 @* ── Unknown Barcode Modal ── *@

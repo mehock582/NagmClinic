@@ -34,8 +34,43 @@ namespace NagmClinic.Services.Pharmacy
 
             int recordsTotal = await query.CountAsync();
 
+            // Dynamic Sorting
+            if (dtParams.Order != null && dtParams.Order.Any())
+            {
+                var order = dtParams.Order.First();
+                var direction = order.Dir.ToLower() == "asc" ? "asc" : "desc";
+                
+                switch (order.Column)
+                {
+                    case 0:
+                        query = direction == "asc" ? query.OrderBy(s => s.Id) : query.OrderByDescending(s => s.Id);
+                        break;
+                    case 1:
+                        query = direction == "asc" ? query.OrderBy(s => s.SaleDate) : query.OrderByDescending(s => s.SaleDate);
+                        break;
+                    case 2:
+                        query = direction == "asc" ? query.OrderBy(s => s.CustomerName) : query.OrderByDescending(s => s.CustomerName);
+                        break;
+                    case 3:
+                        query = direction == "asc" ? query.OrderBy(s => s.Lines.Count) : query.OrderByDescending(s => s.Lines.Count);
+                        break;
+                    case 4:
+                        query = direction == "asc" ? query.OrderBy(s => s.Status) : query.OrderByDescending(s => s.Status);
+                        break;
+                    case 5:
+                        query = direction == "asc" ? query.OrderBy(s => s.TotalAmount) : query.OrderByDescending(s => s.TotalAmount);
+                        break;
+                    default:
+                        query = query.OrderByDescending(s => s.SaleDate);
+                        break;
+                }
+            }
+            else
+            {
+                query = query.OrderByDescending(s => s.SaleDate);
+            }
+
             var data = await query
-                .OrderByDescending(s => s.SaleDate)
                 .Skip(dtParams.Start)
                 .Take(dtParams.Length)
                 .Select(s => new

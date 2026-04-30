@@ -4,87 +4,80 @@
     var idx = ViewData["Index"]?.ToString() ?? "{idx}";
 }
 
-<div class="pos-line-card pos-fade-in erp-line-row service-row @(mode == "sale" ? "sale-service-row" : "purchase-service-row") pos-specific-batch" 
+<div class="pos-line-card pos-fade-in erp-line-row service-row @(mode == "sale" ? "sale-service-row pos-line-card--sale" : "purchase-service-row pos-line-card--purchase") pos-specific-batch row align-items-center g-2" 
      id="line_row_@idx" 
      data-line-index="@idx"
      data-item-id=""
      data-batch-id=""
      data-barcode="">
-    <div class="pos-line-item">
-        <span class="pos-field-label">الصنف <span class="text-danger">*</span></span>
+    <div class="pos-line-item pos-col-item col-12 col-lg-3">
+        <span class="pos-field-label d-lg-none">الصنف <span class="text-danger">*</span></span>
         @if (mode == "sale")
         {
             <input type="hidden" id="Lines_@(idx)__Barcode" name="Lines[@(idx)].Barcode" data-field="Barcode" />
             <input type="hidden" id="Lines_@(idx)__ItemBatchId" name="Lines[@(idx)].ItemBatchId" data-field="ItemBatchId" />
         }
-        <select id="Lines_@(idx)__ItemId" name="Lines[@(idx)].ItemId" data-field="ItemId" class="form-select erp-input item-select @(mode == "sale" ? "sale-item-select" : "purchase-item-select")" required data-val="true" data-val-range="يرجى اختيار الصنف" data-val-range-min="1">
+        <select id="Lines_@(idx)__ItemId" name="Lines[@(idx)].ItemId" data-field="ItemId" class="form-select erp-input item-select @(mode == "sale" ? "sale-item-select" : "purchase-item-select")" required data-val="true" data-val-required="يرجى اختيار الصنف لإتمام العملية." data-val-range="يرجى اختيار الصنف" data-val-range-min="1">
             <option value="">-- اختر الصنف --</option>
         </select>
-        <span class="text-danger small field-validation-valid field-validation-inline" data-valmsg-for="Lines[@idx].ItemId" data-valmsg-replace="true" data-valmsg-field="ItemId"></span>
     </div>
     
-    <div class="pos-line-qty">
-        <span class="pos-field-label">الكمية</span>
-        <input id="Lines_@(idx)__Quantity" name="Lines[@(idx)].Quantity" data-field="Quantity" type="number" class="form-control pos-qty-input qty-input @(mode == "sale" ? "sale-qty-input" : "purchase-qty-input")" value="1" min="0.01" step="0.01" required />
-        <span class="text-danger small field-validation-valid field-validation-inline" data-valmsg-for="Lines[@idx].Quantity" data-valmsg-replace="true" data-valmsg-field="Quantity"></span>
+    <div class="pos-line-qty pos-col-qty col-6 text-center col-lg-2">
+        <span class="pos-field-label d-lg-none">الكمية</span>
+        @if (mode == "sale")
+        {
+            <div class="specific-batch-text mb-1"></div>
+        }
+        <input id="Lines_@(idx)__Quantity" name="Lines[@(idx)].Quantity" data-field="Quantity" type="number" class="form-control pos-qty-input qty-input px-1 text-center @(mode == "sale" ? "sale-qty-input" : "purchase-qty-input")" value="1" min="0.01" step="0.01" data-max="" required />
     </div>
 
     @if (mode == "sale")
     {
-        <div class="pos-line-price">
-            <span class="pos-field-label">سعر البيع</span>
-            <input id="Lines_@(idx)__SellingPrice" name="Lines[@(idx)].SellingPrice" data-field="SellingPrice" type="number" class="form-control pos-price-input sale-price-input" value="0.00" min="0.01" step="0.01" required />
-            <span class="text-danger small field-validation-valid field-validation-inline" data-valmsg-for="Lines[@idx].SellingPrice" data-valmsg-replace="true" data-valmsg-field="SellingPrice"></span>
+        <div class="pos-line-price pos-col-price col-6 text-center col-lg-2">
+            <span class="pos-field-label d-lg-none">سعر البيع</span>
+            <input id="Lines_@(idx)__SellingPrice" name="Lines[@(idx)].SellingPrice" data-field="SellingPrice" type="number" class="form-control pos-price-input sale-price-input" value="0" min="0.01" step="0.01" required />
         </div>
     }
     else
     {
-        <div class="pos-line-price">
-            <span class="pos-field-label">سعر الشراء</span>
-            <input id="Lines_@(idx)__PurchasePrice" name="Lines[@(idx)].PurchasePrice" data-field="PurchasePrice" type="number" class="form-control pos-price-input purchase-price-input" value="0.00" min="0.01" step="0.01" required />
+        <div class="pos-line-price pos-col-price col-6 text-center col-lg-2">
+            <span class="pos-field-label d-lg-none">سعر الشراء</span>
+            <input id="Lines_@(idx)__PurchasePrice" name="Lines[@(idx)].PurchasePrice" data-field="PurchasePrice" type="number" class="form-control pos-price-input purchase-price-input" value="0" min="0.01" step="0.01" required />
         </div>
     }
 
-    <div class="pos-line-fefo">
+    <div class="pos-line-fefo pos-col-details col-12 col-lg-2">
         @if (mode == "sale")
         {
-            <span class="pos-field-label text-primary py-1"><i class="bi bi-info-circle-fill me-1"></i> تفاصيل المخزن</span>
-            
-            <div class="pos-specific-batch-indicator d-flex">
-                <i class="bi bi-patch-check-fill text-info fs-5"></i>
-                <div>
-                   <div class="fw-bold batch-label-text">Auto (FEFO)</div>
-                   <div class="small opacity-75 specific-batch-text" id="batch_chips_@idx">
-                      <!-- Chips will be rendered here -->
-                      <span class="text-muted">جاري التخصيص...</span>
-                   </div>
+            <div class="row g-1 align-items-center">
+                <div class="col-12">
+                    <div class="input-group input-group-sm flex-nowrap">
+                        <input id="Lines_@(idx)__Barcode" name="Lines[@(idx)].Barcode" data-field="Barcode" type="text" class="form-control line-barcode-input text-center px-1" placeholder="الباركود..." style="min-width: 0;" />
+                        <button type="button" class="btn btn-outline-primary btn-generate-barcode px-2" style="flex-shrink: 0;"><i class="bi bi-magic"></i></button>
+                    </div>
                 </div>
             </div>
         }
         
         @if (mode == "purchase")
         {
-            <div class="mt-2 row g-1">
-                <div class="col-12">
-                    <input id="Lines_@(idx)__ExpiryDate" name="Lines[@(idx)].ExpiryDate" data-field="ExpiryDate" type="date" class="form-control form-control-sm" />
-                </div>
-                <div class="col-12 mt-1">
-                    <div class="input-group input-group-sm">
-                        <input id="Lines_@(idx)__Barcode" name="Lines[@(idx)].Barcode" data-field="Barcode" type="text" class="form-control line-barcode-input" placeholder="الباركود" />
-                        <button type="button" class="btn btn-outline-primary btn-generate-barcode"><i class="bi bi-magic"></i></button>
-                    </div>
+            <div class="d-flex flex-column gap-1">
+                <input id="Lines_@(idx)__ExpiryDate" name="Lines[@(idx)].ExpiryDate" data-field="ExpiryDate" type="date" class="form-control form-control-sm text-center px-1" title="تاريخ الصلاحية" />
+                <div class="input-group input-group-sm flex-nowrap">
+                    <input id="Lines_@(idx)__Barcode" name="Lines[@(idx)].Barcode" data-field="Barcode" type="text" class="form-control line-barcode-input text-center px-1" placeholder="الباركود..." style="min-width: 0;" />
+                    <button type="button" class="btn btn-outline-primary btn-generate-barcode px-2" style="flex-shrink: 0;"><i class="bi bi-magic"></i></button>
                 </div>
             </div>
         }
     </div>
 
-    <div class="pos-line-total-wrap">
-        <span class="pos-field-label">الإجمالي</span>
+    <div class="pos-line-total-wrap pos-col-total col-6 text-center col-lg-2">
+        <span class="pos-field-label d-lg-none">الإجمالي</span>
         <div class="pos-line-total-amount @(mode == "sale" ? "line-est-total" : "") line-total-display">0.00</div>
         <span class="pos-line-total-currency">ج.س</span>
     </div>
 
-    <div class="pos-line-actions">
+    <div class="pos-line-actions pos-col-actions col-6 text-end col-lg-1">
         <button type="button" class="btn btn-remove-pos btn-remove-line" title="حذف">
             <i class="bi bi-trash3-fill"></i>
         </button>

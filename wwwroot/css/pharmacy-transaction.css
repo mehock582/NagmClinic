@@ -1,8 +1,8 @@
 :root {
     --pos-bg: #f8fafc;
-    --pos-primary: #4f46e5;
-    --pos-primary-glow: rgba(79, 70, 229, 0.1);
-    --pos-accent: #6366f1;
+    --pos-primary: #2563eb;
+    --pos-primary-glow: rgba(37, 99, 235, 0.12);
+    --pos-accent: #0891b2;
     --pos-success: #10b981;
     --pos-danger: #ef4444;
     --pos-warning: #f59e0b;
@@ -153,34 +153,189 @@
     box-shadow: 0 0 0 3px var(--pos-primary-glow);
 }
 
-/* ── Sales Line Card ── */
+/* ── Purchase Meta Grid (Desktop) ── */
+@media (min-width: 992px) {
+    .purchase-meta-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+    }
+}
+
+@media (max-width: 991.98px) {
+    .purchase-meta-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+    }
+}
+
+
+.pos-line-header {
+    padding: 0.45rem 0.75rem;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    font-weight: 800;
+    color: #64748b !important;
+}
+
+/* ── Optimized Sales Grid (Desktop) ── */
+@media (min-width: 992px) {
+    .pos-line-card--sale, 
+    .pos-line-header--sale {
+        display: flex !important;
+        align-items: center !important;
+        gap: 12px !important;
+    }
+
+    /* 1. Item Name */
+    .pos-line-card--sale > .pos-col-item,
+    .pos-line-header--sale > .pos-col-item { 
+        width: 20% !important; 
+        flex: 0 0 20% !important; 
+    }
+
+    /* 2. Quantity */
+    .pos-line-card--sale > .pos-col-qty,
+    .pos-line-header--sale > .pos-col-qty { 
+        width: 10% !important; 
+        flex: 0 0 10% !important; 
+    }
+
+    /* 3. Price */
+    .pos-line-card--sale > .pos-col-price,
+    .pos-line-header--sale > .pos-col-price { 
+        width: 12% !important; 
+        flex: 0 0 12% !important; 
+    }
+
+    /* 4. Barcode (The safe zone) */
+    .pos-line-card--sale > .pos-col-details,
+    .pos-line-header--sale > .pos-col-details { 
+        width: 25% !important; 
+        flex: 0 0 25% !important; 
+    }
+    
+    .pos-line-card--sale .line-barcode-input { 
+        font-family: 'Cascadia Code', 'Fira Code', monospace !important; 
+        font-size: 0.85rem !important; 
+    }
+
+    /* 5. Total (The expansion zone) */
+    .pos-line-card--sale > .pos-col-total,
+    .pos-line-header--sale > .pos-col-total { 
+        flex: 1 1 auto !important; 
+        text-align: center !important; 
+        min-width: 0;
+    }
+
+    /* 6. Actions (The far left in RTL) */
+    .pos-line-card--sale > .pos-col-actions,
+    .pos-line-header--sale > .pos-col-actions { 
+        width: 50px !important; 
+        flex: 0 0 50px !important; 
+        order: 99 !important; /* Pushes to left in RTL flow */
+    }
+}
+
+/* ── Optimized Purchase Grid (Desktop) ── */
+@media (min-width: 992px) {
+    .pos-line-header--purchase > .pos-col-item,
+    .pos-line-card--purchase > .pos-col-item {
+        flex: 0 0 22% !important;
+        max-width: 22% !important;
+    }
+
+    .pos-line-header--purchase > .pos-col-qty,
+    .pos-line-card--purchase > .pos-col-qty {
+        flex: 0 0 12% !important;
+        max-width: 12% !important;
+    }
+
+    .pos-line-header--purchase > .pos-col-price,
+    .pos-line-card--purchase > .pos-col-price {
+        flex: 0 0 14% !important;
+        max-width: 14% !important;
+    }
+
+    .pos-line-header--purchase > .pos-col-details,
+    .pos-line-card--purchase > .pos-col-details {
+        flex: 0 0 28% !important;
+        max-width: 28% !important;
+    }
+
+    .pos-line-header--purchase > .pos-col-total,
+    .pos-line-card--purchase > .pos-col-total {
+        flex: 0 0 17% !important;
+        max-width: 17% !important;
+    }
+
+    .pos-line-header--purchase > .pos-col-actions,
+    .pos-line-card--purchase > .pos-col-actions {
+        flex: 0 0 7% !important;
+        max-width: 7% !important;
+    }
+}
+
+/* ── Sales/Purchase Line Card ── */
 .pos-line-card {
     background: #fff;
-    border: 1px solid var(--pos-border);
-    border-radius: 1.25rem;
+    border: 1px solid #eef2f7;
+    border-radius: 16px;
     padding: 1rem;
     margin-bottom: 0.75rem;
-    display: grid;
-    grid-template-columns: 2.5fr 1fr 1.2fr 2fr 1.5fr 40px;
-    gap: 1.25rem;
-    align-items: center;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    display: flex !important;
+    align-items: center !important; /* Forces Item, Qty, and Price to same baseline */
+    position: relative !important;  /* Needed for the absolute tag positioning */
 }
 
 .pos-line-card:hover {
-    transform: scale(1.005);
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
-    border-color: #cbd5e1;
+    transform: translateY(-3px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.06);
+    border-color: #dbeafe;
 }
 
 .pos-line-card.is-scan-hit {
     animation: posScanPulse 0.6s ease-out;
+    background: #f0fdf4;
 }
+
+.pos-line-card > [class*="col-"] {
+    min-width: 0;
+}
+
+.pos-line-card .form-control,
+.pos-line-card .form-select,
+.pos-line-card .select2-container--bootstrap-5 .select2-selection {
+    min-height: 42px;
+    border-color: #dbe3ee;
+    border-radius: 0.5rem;
+    background-color: #ffffff;
+    box-shadow: none;
+}
+
+.pos-line-card .form-control:focus,
+.pos-line-card .form-select:focus {
+    border-color: var(--pos-primary);
+    box-shadow: 0 0 0 0.2rem var(--pos-primary-glow);
+}
+
+.pos-line-qty {
+    position: relative; /* Scope for absolute FEFO badge */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
 
 @keyframes posScanPulse {
     0% { border-color: var(--pos-success); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
-    100% { border-color: var(--pos-border); box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+    100% { border-color: #e2e8f0; box-shadow: 0 1px 2px rgba(0,0,0,0.02); }
 }
 
 /* ── Line Components ── */
@@ -198,12 +353,27 @@
     color: var(--pos-text);
 }
 
+.pos-line-item {
+    display: flex !important;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.pos-line-item .item-select, 
+.pos-line-item input {
+    margin-bottom: 0 !important; /* Removes default bootstrap or custom margins */
+}
+
+.pos-qty-input, .pos-price-input, .line-barcode-input {
+    height: 42px;
+    border-radius: 0.5rem;
+    font-variant-numeric: tabular-nums;
+}
+
 .pos-qty-input, .pos-price-input {
-    border-radius: 0.75rem;
+    text-align: center;
     font-size: 1rem;
     font-weight: 700;
-    text-align: center;
-    height: 42px;
 }
 
 /* ── FEFO Details inside Card ── */
@@ -226,24 +396,29 @@
 }
 
 .pos-fefo-tag {
-    background: #f1f5f9;
-    padding: 2px 10px;
-    border-radius: 999px;
-    font-size: 11px;
-    margin-right: 4px;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    border: 1px solid #e2e8f0;
+    position: absolute !important;
+    top: -14px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+
+    /* Visual styling */
+    font-size: 9px;
+    background-color: #ffffff;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 0 5px;
+    white-space: nowrap;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
     font-weight: 600;
     color: #475569;
-    margin-bottom: 2px;
+    display: inline-flex;
 }
 
 .pos-fefo-tag.low-stock {
-    background: #fee2e2;
-    color: #b91c1c;
-    border-color: #fecaca;
+    background: #fee2e2 !important;
+    color: #b91c1c !important;
+    border-color: #fecaca !important;
 }
 
 .pos-fefo-tag i {
@@ -255,34 +430,90 @@
 .pos-specific-batch-indicator {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 8px 12px;
+    gap: 8px;
+    min-width: 0;
+    min-height: 42px;
+    padding: 0.45rem 0.625rem;
     background: #f8fafc;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 12px;
+    border: 1px solid #dbe3ee;
+    border-radius: 0.5rem;
     transition: all 0.3s ease;
     width: 100%;
 }
 
+.pos-specific-batch-indicator > i {
+    flex: 0 0 auto;
+}
+
+.pos-batch-content {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.batch-label-text {
+    max-width: 100%;
+    color: #0f172a;
+    line-height: 1.15;
+}
+
+.specific-batch-text {
+    position: absolute !important;
+    top: 0;
+    width: 100%;
+    height: 0;
+    overflow: visible;
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+}
+
 .pos-line-card:hover .pos-specific-batch-indicator {
-    border-color: var(--pos-primary-glow);
+    border-color: #cbd5e1;
     background: #fff;
 }
+
+.pos-purchase-fields {
+    margin-top: 0;
+    align-items: center;
+}
+
+.pos-purchase-fields .input-group {
+    min-width: 0;
+}
+
+.pos-purchase-fields .line-barcode-input {
+    min-width: 0;
+}
+
+.btn-generate-barcode {
+    width: 40px;
+    min-width: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.5rem 0 0 0.5rem;
+}
+
 /* ── Line Subtotal ── */
 .pos-line-total-wrap {
+    white-space: nowrap;
     text-align: right;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.15;
 }
 
 .pos-line-total-amount {
-    font-size: 1.25rem;
+    font-size: 1.05rem;
     font-weight: 800;
-    color: var(--pos-primary);
+    color: #0f172a;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .pos-line-total-currency {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     color: var(--pos-muted);
-    font-weight: 700;
+    font-weight: 600;
 }
 
 /* ── Sticky POS Footer ── */
@@ -358,20 +589,26 @@
     box-shadow: 0 6px 12px var(--pos-primary-glow);
 }
 
-.btn-remove-pos {
-    width: 38px;
-    height: 38px;
-    border-radius: 0.75rem;
+.btn-remove-line {
+    width: 36px;
+    height: 36px;
+    border-radius: 0.5rem;
     border: 1px solid #fee2e2;
     background: #fff;
     color: var(--pos-danger);
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     transition: all 0.2s;
+    padding: 0;
 }
 
-.btn-remove-pos:hover {
+.pos-line-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.btn-remove-line:hover {
     background: var(--pos-danger);
     color: #fff;
     border-color: var(--pos-danger);
@@ -379,7 +616,56 @@
 
 /* ── Animations ── */
 .pos-fade-in {
-    animation: posFadeIn 0.3s ease-out;
+    animation: posFadeIn 0.3s ease-out forwards;
+}
+
+
+.pos-col-total {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ── Compact POS Details Panel ── */
+@media (min-width: 1400px) {
+    .pos-details-panel {
+        max-width: 340px;
+        min-width: 280px;
+    }
+}
+
+.pos-details-card .card-body {
+    padding: 1rem 1.25rem !important;
+}
+
+.pos-details-field label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--pos-text);
+    margin-bottom: 0.2rem;
+}
+
+.pos-details-field .form-control,
+.pos-details-field .form-select,
+.pos-details-field .select2-container--bootstrap-5 .select2-selection {
+    min-height: 36px !important;
+    height: 36px !important;
+    font-size: 0.85rem !important;
+    padding: 0.35rem 0.6rem !important;
+}
+
+.pos-total-compact {
+    padding: 0.75rem !important;
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0;
+}
+
+.pos-total-compact h4 {
+    font-size: 1.5rem !important;
+}
+
+.pos-actions-compact .btn {
+    font-size: 0.85rem;
+    padding: 0.5rem 1rem;
 }
 
 @keyframes posFadeIn {
@@ -396,16 +682,24 @@
         .pos-header-container {
             padding: 1rem !important;
         }
-        
+
         .pos-line-card {
-            grid-template-columns: 1fr;
-            gap: 1rem;
-            padding: 1.25rem;
+            padding: 0.875rem;
+            border-radius: 0.75rem;
         }
 
         .pos-line-total-wrap {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 0.75rem;
             text-align: right;
             border-top: 1px solid #e2e8f0;
-            padding-top: 1rem;
+            padding-top: 0.75rem;
+        }
+
+        .pos-line-actions {
+            align-items: flex-end;
         }
     }
+

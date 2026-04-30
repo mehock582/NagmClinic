@@ -19,6 +19,7 @@
 
     <!-- DataTables -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" />
+    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css" />
 
     <!-- Custom Clinic Styles -->
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
@@ -34,15 +35,12 @@
     <!-- Sidebar -->
     <partial name="_Sidebar" />
 
-    <!-- Overlay for mobile -->
-    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
-
     <!-- Main Content -->
     <div class="main-wrapper">
         <!-- Topbar -->
         <header class="topbar">
             <div class="d-flex align-items-center gap-3">
-                <button class="btn btn-link d-lg-none p-0 text-dark fs-5" onclick="toggleSidebar()">
+                <button class="btn btn-link d-md-none p-0 text-dark fs-5" type="button" data-bs-toggle="offcanvas" data-bs-target="#mainSidebar" aria-controls="mainSidebar">
                     <i class="bi bi-list"></i>
                 </button>
                 <button class="btn btn-sm btn-light d-none d-lg-inline-flex align-items-center justify-content-center sidebar-mini-toggle"
@@ -77,7 +75,7 @@
 
         <!-- Global Modal -->
         <div class="modal fade" id="appModal" tabindex="-1" aria-labelledby="appModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-fullscreen-md-down">
                 <div class="modal-content border-0 shadow-lg rounded-4">
                     <div class="modal-header border-0 pb-0">
                         <h5 class="modal-title fw-bold" id="appModalLabel"></h5>
@@ -110,6 +108,8 @@
     <!-- DataTables JS -->
     <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
     <script src="~/js/shared-datatable.js" asp-append-version="true"></script>
     
     <script src="~/js/site.js" asp-append-version="true"></script>

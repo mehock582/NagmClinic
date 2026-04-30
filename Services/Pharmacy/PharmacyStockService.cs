@@ -563,7 +563,46 @@ namespace NagmClinic.Services.Pharmacy
                 query = query.Where(i => i.Name.Contains(searchValue) || (i.GenericName != null && i.GenericName.Contains(searchValue)));
 
             int recordsTotal = await query.CountAsync();
-            var data = await query.OrderBy(i => i.Name).Skip(dtParams.Start).Take(dtParams.Length)
+
+            // Dynamic Sorting
+            if (dtParams.Order != null && dtParams.Order.Any())
+            {
+                var order = dtParams.Order.First();
+                var direction = order.Dir.ToLower() == "asc" ? "asc" : "desc";
+
+                switch (order.Column)
+                {
+                    case 0:
+                        query = direction == "asc" ? query.OrderBy(i => i.Name) : query.OrderByDescending(i => i.Name);
+                        break;
+                    case 1:
+                        query = direction == "asc" ? query.OrderBy(i => i.Category!.Name).ThenBy(i => i.Unit!.Name) : query.OrderByDescending(i => i.Category!.Name).ThenByDescending(i => i.Unit!.Name);
+                        break;
+                    case 2:
+                        query = direction == "asc" ? query.OrderBy(i => i.Location!.Code) : query.OrderByDescending(i => i.Location!.Code);
+                        break;
+                    case 3:
+                        query = direction == "asc" 
+                            ? query.OrderBy(i => i.Batches.Where(b => b.ExpiryDate.Date >= today && b.QuantityRemaining > 0).Sum(b => (decimal?)b.QuantityRemaining) ?? 0)
+                            : query.OrderByDescending(i => i.Batches.Where(b => b.ExpiryDate.Date >= today && b.QuantityRemaining > 0).Sum(b => (decimal?)b.QuantityRemaining) ?? 0);
+                        break;
+                    case 4:
+                        query = direction == "asc" ? query.OrderBy(i => i.DefaultSellingPrice) : query.OrderByDescending(i => i.DefaultSellingPrice);
+                        break;
+                    case 5:
+                        query = direction == "asc" ? query.OrderBy(i => i.IsActive) : query.OrderByDescending(i => i.IsActive);
+                        break;
+                    default:
+                        query = query.OrderBy(i => i.Name);
+                        break;
+                }
+            }
+            else
+            {
+                query = query.OrderBy(i => i.Name);
+            }
+
+            var data = await query.Skip(dtParams.Start).Take(dtParams.Length)
                 .Select(i => new
                 {
                     i.Id, i.Name, i.GenericName,
@@ -593,7 +632,46 @@ namespace NagmClinic.Services.Pharmacy
             }
 
             int recordsTotal = await query.CountAsync();
-            var dataItems = await query.OrderBy(i => i.Name)
+
+            // Dynamic Sorting
+            if (dtParams.Order != null && dtParams.Order.Any())
+            {
+                var order = dtParams.Order.First();
+                var direction = order.Dir.ToLower() == "asc" ? "asc" : "desc";
+
+                switch (order.Column)
+                {
+                    case 0:
+                        query = direction == "asc" ? query.OrderBy(i => i.Name) : query.OrderByDescending(i => i.Name);
+                        break;
+                    case 1:
+                        query = direction == "asc" ? query.OrderBy(i => i.Category!.Name) : query.OrderByDescending(i => i.Category!.Name);
+                        break;
+                    case 2:
+                        query = direction == "asc" ? query.OrderBy(i => i.Unit!.Name) : query.OrderByDescending(i => i.Unit!.Name);
+                        break;
+                    case 3:
+                        query = direction == "asc" 
+                            ? query.OrderBy(i => i.Batches.Where(b => b.QuantityRemaining > 0 && b.ExpiryDate.Date >= today).Sum(b => (decimal?)b.QuantityRemaining) ?? 0)
+                            : query.OrderByDescending(i => i.Batches.Where(b => b.QuantityRemaining > 0 && b.ExpiryDate.Date >= today).Sum(b => (decimal?)b.QuantityRemaining) ?? 0);
+                        break;
+                    case 4:
+                        query = direction == "asc" ? query.OrderBy(i => i.ReorderLevel) : query.OrderByDescending(i => i.ReorderLevel);
+                        break;
+                    case 5:
+                        query = direction == "asc" ? query.OrderBy(i => i.Location!.Code) : query.OrderByDescending(i => i.Location!.Code);
+                        break;
+                    default:
+                        query = query.OrderBy(i => i.Name);
+                        break;
+                }
+            }
+            else
+            {
+                query = query.OrderBy(i => i.Name);
+            }
+
+            var dataItems = await query
                 .Skip(dtParams.Start).Take(dtParams.Length)
                 .Select(i => new NagmClinic.ViewModels.InventoryItemSummaryViewModel
                 {
@@ -623,7 +701,47 @@ namespace NagmClinic.Services.Pharmacy
             }
 
             int recordsTotal = await query.CountAsync();
-            var dataBatches = await query.OrderBy(b => b.ExpiryDate).ThenBy(b => b.ItemId)
+
+            // Dynamic Sorting
+            if (dtParams.Order != null && dtParams.Order.Any())
+            {
+                var order = dtParams.Order.First();
+                var direction = order.Dir.ToLower() == "asc" ? "asc" : "desc";
+
+                switch (order.Column)
+                {
+                    case 0:
+                        query = direction == "asc" ? query.OrderBy(b => b.Item!.Name) : query.OrderByDescending(b => b.Item!.Name);
+                        break;
+                    case 1:
+                        query = direction == "asc" ? query.OrderBy(b => b.BatchNumber) : query.OrderByDescending(b => b.BatchNumber);
+                        break;
+                    case 2:
+                        query = direction == "asc" ? query.OrderBy(b => b.Barcode) : query.OrderByDescending(b => b.Barcode);
+                        break;
+                    case 3:
+                        query = direction == "asc" ? query.OrderBy(b => b.ExpiryDate) : query.OrderByDescending(b => b.ExpiryDate);
+                        break;
+                    case 4:
+                        query = direction == "asc" ? query.OrderBy(b => b.QuantityRemaining) : query.OrderByDescending(b => b.QuantityRemaining);
+                        break;
+                    case 5:
+                        query = direction == "asc" ? query.OrderBy(b => b.PurchasePrice) : query.OrderByDescending(b => b.PurchasePrice);
+                        break;
+                    case 6:
+                        query = direction == "asc" ? query.OrderBy(b => b.Supplier!.Name) : query.OrderByDescending(b => b.Supplier!.Name);
+                        break;
+                    default:
+                        query = query.OrderBy(b => b.ExpiryDate).ThenBy(b => b.ItemId);
+                        break;
+                }
+            }
+            else
+            {
+                query = query.OrderBy(b => b.ExpiryDate).ThenBy(b => b.ItemId);
+            }
+
+            var dataBatches = await query
                 .Skip(dtParams.Start).Take(dtParams.Length)
                 .Select(b => new NagmClinic.ViewModels.InventoryBatchDetailViewModel
                 {
